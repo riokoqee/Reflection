@@ -104,5 +104,12 @@ public class AssetSetter {
         gp.iTile[mapNum][i] = new IT_DryTree(gp, 20, 22);i++;
         gp.iTile[mapNum][i] = new IT_DryTree(gp, 22, 24);i++;
         gp.iTile[mapNum][i] = new IT_DryTree(gp, 24, 24);i++;
+        gp.iTile[mapNum][i] = new IT_DryTree(gp, 15, 40);i++;
+        gp.iTile[mapNum][i] = new IT_DryTree(gp, 14, 40);i++;
+        gp.iTile[mapNum][i] = new IT_DryTree(gp, 13, 40);i++;
+        gp.iTile[mapNum][i] = new IT_DryTree(gp, 13, 41);i++;
+        gp.iTile[mapNum][i] = new IT_DryTree(gp, 12, 41);i++;
+        gp.iTile[mapNum][i] = new IT_DryTree(gp, 11, 41);i++;
+        gp.iTile[mapNum][i] = new IT_DryTree(gp, 10, 41);i++;
     }
 }
