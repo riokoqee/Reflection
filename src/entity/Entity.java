@@ -197,7 +197,7 @@ public class Entity {
         }
 
         spriteCounter++;
-        if (spriteCounter > 12) {
+        if (spriteCounter > 24) {
             if (spriteNum == 1) {
                 spriteNum = 2;
             }
