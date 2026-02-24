@@ -66,7 +66,7 @@ public class Player extends Entity{
         dexterity = 1;
         exp = 0;
         nextLevelExp = 5;
-        coin = 0;
+        coin = 500;
         currentWeapon = new OBJ_Sword_Normal(gp);
         currentShield = new OBJ_Shield_Wood(gp);
         projectile = new OBJ_Fireball(gp);
