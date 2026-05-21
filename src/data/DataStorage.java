@@ -1,29 +1,18 @@
 package data;
 
-import entity.Entity;
-
 import java.io.Serializable;
-import java.util.ArrayList;
 
 public class DataStorage implements Serializable {
 
-    // PLAYER STATE
-    int level;
-    int maxLife;
-    int life;
-    int strength;
-    int dexterity;
-    int exp;
-    int nextLevelExp;
-    int coin;
+    private static final long serialVersionUID = 2L;
 
-    // PLAYER INVENTORY
-    ArrayList<String> itemNames = new ArrayList<>();
-    int currentWeaponSlot;
-    int currentShieldSlot;
-
-    // OBJECT ON MAP
-    String mapObjectNames[][];
-    int mapObjectWorldX[][];
-    int mapObjectWorldY[][];
+    int currentMap;
+    int playerWorldX;
+    int playerWorldY;
+    int storyStage;
+    int growth;
+    int calm;
+    int empathy;
+    int confidence;
+    boolean hasLantern;
 }

@@ -10,7 +10,7 @@ public class Main{
         window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
-        window.setTitle("Please 100 ballov");
+        window.setTitle("Wanderer: Отражения");
 
 
         GamePanel gamePanel = new GamePanel();

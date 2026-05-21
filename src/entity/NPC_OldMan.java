@@ -36,11 +36,9 @@ public class NPC_OldMan extends Entity{
 
     public void setDialogue() {
 
-        dialogues[0] = "wassap fine shyt!";
-        dialogues[1] = "im daryn! aka grand rizzler";
-        dialogues[2] = "do u wanna be minecraft but without \ncraft?";
-        dialogues[3] = "jk, my heart is already taken by nura";
-        dialogues[4] = "dont play with me!";
+        dialogues[0] = "Иногда старые ответы звучат тише,\nчем новые вопросы.";
+        dialogues[1] = "Не каждый путь наружу ведёт изнутри.";
+        dialogues[2] = "Слушай не только страх,\nно и то, что за ним прячется.";
     }
 
     public void setAction() {

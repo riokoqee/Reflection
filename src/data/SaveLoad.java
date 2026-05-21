@@ -1,10 +1,12 @@
 package data;
 
-import entity.Entity;
 import main.GamePanel;
-import object.*;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 public class SaveLoad {
 
@@ -13,121 +15,49 @@ public class SaveLoad {
     public SaveLoad(GamePanel gp) {
         this.gp = gp;
     }
-    public Entity getObject(String itemName) {
-
-        Entity obj = null;
-
-        switch (itemName) {
-            case "Woodcutter's Axe": obj = new OBJ_Axe(gp); break;
-            case "Key": obj = new OBJ_Key(gp); break;
-            case "Red Potion": obj = new OBJ_Potion_Red(gp); break;
-            case "Blue Shield": obj = new OBJ_Shield_Blue(gp); break;
-            case "Wood Shield": obj = new OBJ_Shield_Wood(gp); break;
-            case "Normal Sword": obj = new OBJ_Sword_Normal(gp); break;
-            case "Door": obj = new OBJ_Door(gp); break;
-        }
-
-        return obj;
-    }
 
     public void save() {
-
         try {
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File("save.dat")));
-
             DataStorage ds = new DataStorage();
 
-            ds.level = gp.player.level;
-            ds.maxLife = gp.player.maxLife;
-            ds.life = gp.player.life;
-            ds.strength = gp.player.strength;
-            ds.dexterity = gp.player.dexterity;
-            ds.exp = gp.player.exp;
-            ds.nextLevelExp = gp.player.nextLevelExp;
-            ds.coin = gp.player.coin;
+            ds.currentMap = gp.currentMap;
+            ds.playerWorldX = gp.player.worldX;
+            ds.playerWorldY = gp.player.worldY;
+            ds.storyStage = gp.story.getStage();
+            ds.growth = gp.story.growth;
+            ds.calm = gp.story.calm;
+            ds.empathy = gp.story.empathy;
+            ds.confidence = gp.story.confidence;
+            ds.hasLantern = gp.hasLantern;
 
-            // PLAYER INVENTORY
-            for (int i = 0; i < gp.player.inventory.size(); i++) {
-                ds.itemNames.add(gp.player.inventory.get(i).name);
-            }
-            // PLAYER EQUIPMENT
-            ds.currentWeaponSlot = gp.player.getCurrentWeaponSlot();
-            ds.currentShieldSlot = gp.player.getCurrentShieldSlot();
-
-            // OBJECTS ON MAP
-            ds.mapObjectNames = new String[gp.maxMap][gp.obj[1].length];
-            ds.mapObjectWorldX = new int[gp.maxMap][gp.obj[1].length];
-            ds.mapObjectWorldY = new int[gp.maxMap][gp.obj[1].length];
-
-            for (int mapNum = 0; mapNum < gp.maxMap; mapNum++) {
-
-                for (int i = 0; i < gp.obj[1].length; i++) {
-
-                    if (gp.obj[mapNum][i] == null) {
-                        ds.mapObjectNames[mapNum][i] = "NA";
-                    }
-                    else {
-                        ds.mapObjectNames[mapNum][i] = gp.obj[mapNum][i].name;
-                        ds.mapObjectWorldX[mapNum][i] = gp.obj[mapNum][i].worldX;
-                        ds.mapObjectWorldY[mapNum][i] = gp.obj[mapNum][i].worldY;
-                    }
-                }
-            }
-
-            // Write the DataStorage object
             oos.writeObject(ds);
+            oos.close();
         }
         catch (Exception e) {
             System.out.println("Save Exception!");
         }
     }
 
-    public void load() {
-
+    public boolean load() {
         try {
             ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File("save.dat")));
+            DataStorage ds = (DataStorage) ois.readObject();
+            ois.close();
 
-            // Read the DataStorage object
-            DataStorage ds = (DataStorage)ois.readObject();
-
-            gp.player.level = ds.level;
-            gp.player.maxLife = ds.maxLife;
-            gp.player.life = ds.life;
-            gp.player.strength = ds.strength;
-            gp.player.dexterity = ds.dexterity;
-            gp.player.exp = ds.exp;
-            gp.player.nextLevelExp = ds.nextLevelExp;
-            gp.player.coin = ds.coin;
-
-            // PLAYER INVENTORY
-            gp.player.inventory.clear();
-            for (int i = 0; i < ds.itemNames.size(); i++) {
-                gp.player.inventory.add(getObject(ds.itemNames.get(i)));
-            }
-            // PLAYER EQUIPMENT
-            gp.player.currentWeapon = gp.player.inventory.get(ds.currentWeaponSlot);
-            gp.player.currentShield = gp.player.inventory.get(ds.currentShieldSlot);
-            gp.player.getAttack();
-            gp.player.getDefense();
-            gp.player.getPlayerAttackImage();
-
-            // OBJS ON MAP
-            for (int mapNum = 0; mapNum < gp.maxMap; mapNum++) {
-                for (int i = 0; i < gp.obj[1].length; i++) {
-                    if (ds.mapObjectNames[mapNum][i].equals("NA")) {
-                        gp.obj[mapNum][i] = null;
-                    }
-                    else {
-                        gp.obj[mapNum][i] = getObject(ds.mapObjectNames[mapNum][i]);
-                        gp.obj[mapNum][i].worldX = ds.mapObjectWorldX[mapNum][i];
-                        gp.obj[mapNum][i].worldY = ds.mapObjectWorldY[mapNum][i];
-                    }
-                }
-            }
+            gp.currentMap = ds.currentMap;
+            gp.player.worldX = ds.playerWorldX;
+            gp.player.worldY = ds.playerWorldY;
+            gp.player.direction = "down";
+            gp.hasLantern = ds.hasLantern;
+            gp.story.loadState(ds.storyStage, ds.growth, ds.calm, ds.empathy, ds.confidence);
+            gp.aSetter.setObject();
+            gp.aSetter.setNPC();
+            return true;
         }
-
         catch (Exception e) {
             System.out.println("Load Exception!");
+            return false;
         }
     }
 }

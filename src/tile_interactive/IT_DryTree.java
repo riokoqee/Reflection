@@ -17,19 +17,12 @@ public class IT_DryTree extends InteractiveTile{
         this.worldY = gp.tileSize * row;
 
         down1 = setup("/tiles_interactive/drytree", gp.tileSize, gp.tileSize);
-        destructible = true;
+        destructible = false;
         life = 3;
     }
 
     public boolean isCorrectItem(Entity entity) {
-
-        boolean isCorrectItem = false;
-
-        if (entity.currentWeapon.type == type_axe) {
-            isCorrectItem = true;
-        }
-
-        return isCorrectItem;
+        return false;
     }
 
     public void playSE() {

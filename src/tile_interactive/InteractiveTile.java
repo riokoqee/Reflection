@@ -41,13 +41,10 @@ public class InteractiveTile extends Entity {
 
     public void draw(Graphics2D g2) {
 
-        int screenX = worldX - gp.player.worldX + gp.player.screenX;
-        int screenY = worldY - gp.player.worldY + gp.player.screenY;
+        int screenX = gp.worldToScreenX(worldX);
+        int screenY = gp.worldToScreenY(worldY);
 
-        if (worldX + gp.tileSize > gp.player.worldX - gp.player.screenX &&
-                worldX - gp.tileSize < gp.player.worldX + gp.player.screenX &&
-                worldY + gp.tileSize > gp.player.worldY - gp.player.screenY &&
-                worldY - gp.tileSize < gp.player.worldY + gp.player.screenY) {
+        if (gp.isInCamera(worldX, worldY, gp.tileSize, gp.tileSize)) {
 
             g2.drawImage(down1, screenX, screenY,null);
         }
