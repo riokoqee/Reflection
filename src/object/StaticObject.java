@@ -14,10 +14,6 @@ public class StaticObject extends Entity {
     private final int drawWidth;
     private final int drawHeight;
 
-    public StaticObject(GamePanel gp, String name, String imagePath, int widthTiles, int heightTiles, boolean collision) {
-        this(gp, name, imagePath, (double) widthTiles, (double) heightTiles, collision);
-    }
-
     public StaticObject(GamePanel gp, String name, String imagePath, double widthTiles, double heightTiles, boolean collision) {
         super(gp);
 
@@ -46,6 +42,7 @@ public class StaticObject extends Entity {
         }
     }
 
+    @Override
     public void draw(Graphics2D g2) {
         int screenX = gp.worldToScreenX(worldX);
         int screenY = gp.worldToScreenY(worldY);

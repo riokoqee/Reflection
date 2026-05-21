@@ -16,7 +16,6 @@ public class SwingChildNPC extends Entity {
     public SwingChildNPC(GamePanel gp, String displayName) {
         super(gp);
         this.displayName = displayName;
-        type = type_npc;
         direction = "down";
         speed = 0;
         childSprite = setup("/player/characters/child", gp.tileSize, gp.tileSize);

@@ -5,9 +5,12 @@ import java.awt.event.KeyListener;
 
 public class KeyHandler implements KeyListener {
 
-    GamePanel gp;
+    private static final int TITLE_LAST_COMMAND = 3;
+    private static final int PAUSE_LAST_COMMAND = 5;
+    private static final int OPTIONS_LAST_COMMAND = 4;
+
+    private final GamePanel gp;
     public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed;
-    boolean showDebugTest = false;
 
     public KeyHandler(GamePanel gp) {
         this.gp = gp;
@@ -30,6 +33,9 @@ public class KeyHandler implements KeyListener {
         else if (gp.gameState == gp.pauseState) {
             pauseState(code);
         }
+        else if (gp.gameState == gp.optionsState) {
+            optionsState(code);
+        }
         else if (gp.gameState == gp.dialogueState) {
             dialogueState(code);
         }
@@ -40,20 +46,12 @@ public class KeyHandler implements KeyListener {
 
     public void titleState(int code) {
         if (isUp(code)) {
-            gp.ui.commandNum--;
-            if (gp.ui.commandNum < 0) {
-                gp.ui.commandNum = 2;
-            }
-            gp.playCursorSE();
+            moveCommand(-1, TITLE_LAST_COMMAND);
         }
         if (isDown(code)) {
-            gp.ui.commandNum++;
-            if (gp.ui.commandNum > 2) {
-                gp.ui.commandNum = 0;
-            }
-            gp.playCursorSE();
+            moveCommand(1, TITLE_LAST_COMMAND);
         }
-        if (code == KeyEvent.VK_ENTER) {
+        if (isConfirm(code)) {
             if (gp.ui.commandNum == 0) {
                 gp.story.startNewGame();
                 gp.saveLoad.save();
@@ -65,57 +63,46 @@ public class KeyHandler implements KeyListener {
                 gp.gameState = gp.playState;
             }
             else if (gp.ui.commandNum == 2) {
+                gp.openOptionsMenu(gp.titleState);
+            }
+            else if (gp.ui.commandNum == 3) {
                 System.exit(0);
             }
         }
     }
 
     public void playState(int code) {
-        if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+        if (isUp(code)) {
             upPressed = true;
         }
-        if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
+        if (isDown(code)) {
             downPressed = true;
         }
-        if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT) {
+        if (isLeft(code)) {
             leftPressed = true;
         }
-        if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) {
+        if (isRight(code)) {
             rightPressed = true;
         }
-        if (code == KeyEvent.VK_E || code == KeyEvent.VK_ENTER) {
+        if (isAction(code)) {
             enterPressed = true;
         }
-        if (code == KeyEvent.VK_P) {
+        if (code == KeyEvent.VK_P || code == KeyEvent.VK_ESCAPE) {
             gp.openPauseMenu();
-        }
-        if (code == KeyEvent.VK_ESCAPE) {
-            gp.openPauseMenu();
-        }
-        if (code == KeyEvent.VK_F3) {
-            showDebugTest = !showDebugTest;
         }
     }
 
     public void pauseState(int code) {
         if (isUp(code)) {
-            gp.ui.commandNum--;
-            if (gp.ui.commandNum < 0) {
-                gp.ui.commandNum = 4;
-            }
-            gp.playCursorSE();
+            moveCommand(-1, PAUSE_LAST_COMMAND);
         }
         if (isDown(code)) {
-            gp.ui.commandNum++;
-            if (gp.ui.commandNum > 4) {
-                gp.ui.commandNum = 0;
-            }
-            gp.playCursorSE();
+            moveCommand(1, PAUSE_LAST_COMMAND);
         }
         if (code == KeyEvent.VK_P || code == KeyEvent.VK_ESCAPE) {
             gp.closePauseMenu();
         }
-        if (code == KeyEvent.VK_ENTER) {
+        if (isConfirm(code)) {
             if (gp.ui.commandNum == 0) {
                 gp.closePauseMenu();
             }
@@ -125,7 +112,6 @@ public class KeyHandler implements KeyListener {
             }
             else if (gp.ui.commandNum == 2) {
                 if (gp.saveLoad.load()) {
-                    gp.clearPauseBackground();
                     gp.gameState = gp.playState;
                 }
                 else {
@@ -133,16 +119,43 @@ public class KeyHandler implements KeyListener {
                 }
             }
             else if (gp.ui.commandNum == 3) {
-                gp.story.startNewGame();
-                gp.saveLoad.save();
-                gp.clearPauseBackground();
-                gp.gameState = gp.playState;
+                gp.openOptionsMenu(gp.pauseState);
             }
             else if (gp.ui.commandNum == 4) {
+                gp.story.startNewGame();
                 gp.saveLoad.save();
-                gp.clearPauseBackground();
+                gp.gameState = gp.playState;
+            }
+            else if (gp.ui.commandNum == 5) {
+                gp.saveLoad.save();
                 gp.gameState = gp.titleState;
                 gp.ui.commandNum = 0;
+            }
+        }
+    }
+
+    public void optionsState(int code) {
+        if (isUp(code)) {
+            moveCommand(-1, OPTIONS_LAST_COMMAND);
+        }
+        if (isDown(code)) {
+            moveCommand(1, OPTIONS_LAST_COMMAND);
+        }
+        if (code == KeyEvent.VK_ESCAPE) {
+            gp.closeOptionsMenu();
+        }
+        if (isLeft(code)) {
+            changeOption(-1);
+        }
+        if (isRight(code)) {
+            changeOption(1);
+        }
+        if (isConfirm(code)) {
+            if (gp.ui.commandNum == 4) {
+                gp.closeOptionsMenu();
+            }
+            else {
+                changeOption(1);
             }
         }
     }
@@ -155,11 +168,11 @@ public class KeyHandler implements KeyListener {
             if (isDown(code)) {
                 gp.story.moveChoice(1);
             }
-            if (code == KeyEvent.VK_ENTER || code == KeyEvent.VK_E) {
+            if (isAction(code)) {
                 gp.story.chooseSelected();
             }
         }
-        else if (code == KeyEvent.VK_ENTER || code == KeyEvent.VK_E || code == KeyEvent.VK_SPACE) {
+        else if (isAction(code) || code == KeyEvent.VK_SPACE) {
             gp.story.continueDialogue();
         }
     }
@@ -169,7 +182,7 @@ public class KeyHandler implements KeyListener {
             gp.ui.commandNum = gp.ui.commandNum == 0 ? 1 : 0;
             gp.playCursorSE();
         }
-        if (code == KeyEvent.VK_ENTER) {
+        if (isConfirm(code)) {
             if (gp.ui.commandNum == 0) {
                 gp.story.startNewGame();
                 gp.saveLoad.save();
@@ -189,20 +202,63 @@ public class KeyHandler implements KeyListener {
         return code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN;
     }
 
+    private boolean isLeft(int code) {
+        return code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT;
+    }
+
+    private boolean isRight(int code) {
+        return code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT;
+    }
+
+    private boolean isConfirm(int code) {
+        return code == KeyEvent.VK_ENTER;
+    }
+
+    private boolean isAction(int code) {
+        return code == KeyEvent.VK_E || isConfirm(code);
+    }
+
+    private void moveCommand(int amount, int maxCommand) {
+        gp.ui.commandNum += amount;
+        if (gp.ui.commandNum < 0) {
+            gp.ui.commandNum = maxCommand;
+        }
+        if (gp.ui.commandNum > maxCommand) {
+            gp.ui.commandNum = 0;
+        }
+        gp.playCursorSE();
+    }
+
+    private void changeOption(int amount) {
+        if (gp.ui.commandNum == 0) {
+            gp.changeMusicVolume(amount);
+        }
+        else if (gp.ui.commandNum == 1) {
+            gp.changeSoundEffectVolume(amount);
+        }
+        else if (gp.ui.commandNum == 2) {
+            gp.toggleFullScreen();
+        }
+        else if (gp.ui.commandNum == 3) {
+            gp.toggleHud();
+        }
+        gp.playCursorSE();
+    }
+
     @Override
     public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();
 
-        if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
+        if (isUp(code)) {
             upPressed = false;
         }
-        if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
+        if (isDown(code)) {
             downPressed = false;
         }
-        if (code == KeyEvent.VK_A || code == KeyEvent.VK_LEFT) {
+        if (isLeft(code)) {
             leftPressed = false;
         }
-        if (code == KeyEvent.VK_D || code == KeyEvent.VK_RIGHT) {
+        if (isRight(code)) {
             rightPressed = false;
         }
     }

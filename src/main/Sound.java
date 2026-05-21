@@ -8,44 +8,42 @@ import java.net.URL;
 
 public class Sound {
 
-    Clip clip;
-    URL soundURL[] = new URL[30];
-    FloatControl fc;
-    FloatControl panControl;
+    private Clip clip;
+    private final URL[] soundURL = new URL[30];
+    private FloatControl fc;
+    private FloatControl panControl;
     int volumeScale = 3;
-    float volume;
 
     public Sound() {
-
-        soundURL[0] = getClass().getResource("/sound/BlueBoyAdventure.wav");
-        soundURL[1] = getClass().getResource("/sound/coin.wav");
-        soundURL[2] = getClass().getResource("/sound/powerup.wav");
-        soundURL[3] = getClass().getResource("/sound/unlock.wav");
-        soundURL[4] = getClass().getResource("/sound/fanfare.wav");
-        soundURL[5] = getClass().getResource("/sound/hitmonster.wav");
-        soundURL[6] = getClass().getResource("/sound/receivedamage.wav");
-        soundURL[7] = getClass().getResource("/sound/swordswing.wav");
-        soundURL[8] = getClass().getResource("/sound/slimedamage.wav");
-        soundURL[9] = getClass().getResource("/sound/levelup.wav");
-        soundURL[10] = getClass().getResource("/sound/cursor.wav");
-        soundURL[11] = getClass().getResource("/sound/gameover.wav");
-        soundURL[12] = getClass().getResource("/sound/stairs.wav");
-        soundURL[13] = getClass().getResource("/sound/burning.wav");
-        soundURL[14] = getClass().getResource("/sound/treecutting.wav");
-        soundURL[15] = getClass().getResource("/sound/rocking_chair.wav");
+        register(0, "BlueBoyAdventure.wav");
+        register(1, "coin.wav");
+        register(2, "powerup.wav");
+        register(3, "unlock.wav");
+        register(4, "fanfare.wav");
+        register(5, "hitmonster.wav");
+        register(6, "receivedamage.wav");
+        register(7, "swordswing.wav");
+        register(8, "slimedamage.wav");
+        register(9, "levelup.wav");
+        register(10, "cursor.wav");
+        register(11, "gameover.wav");
+        register(12, "stairs.wav");
+        register(13, "burning.wav");
+        register(14, "treecutting.wav");
+        register(15, "rocking_chair.wav");
     }
 
     public boolean setFile(int i) {
-
         try {
             close();
             if (i < 0 || i >= soundURL.length || soundURL[i] == null) {
                 throw new IllegalArgumentException("Missing sound resource index " + i);
             }
-            AudioInputStream ais = AudioSystem.getAudioInputStream(soundURL[i]);
-            clip = AudioSystem.getClip();
-            clip.open(ais);
-            fc = (FloatControl)clip.getControl(FloatControl.Type.MASTER_GAIN);
+            try (AudioInputStream ais = AudioSystem.getAudioInputStream(soundURL[i])) {
+                clip = AudioSystem.getClip();
+                clip.open(ais);
+            }
+            fc = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
             if (clip.isControlSupported(FloatControl.Type.PAN)) {
                 panControl = (FloatControl) clip.getControl(FloatControl.Type.PAN);
             }
@@ -54,16 +52,17 @@ public class Sound {
             }
             checkVolume();
             return true;
-        }catch(Exception e) {
-            System.out.println("Sound Exception: " + i + " - " + e.getMessage());
+        }
+        catch (Exception e) {
+            System.err.println("Sound failed: " + i + " - " + e.getMessage());
             clip = null;
             fc = null;
             panControl = null;
             return false;
         }
     }
-    public void play() {
 
+    public void play() {
         if (clip == null) {
             return;
         }
@@ -80,15 +79,15 @@ public class Sound {
         clip.setFramePosition(0);
         clip.start();
     }
-    public void loop() {
 
+    public void loop() {
         if (clip == null) {
             return;
         }
         clip.loop(Clip.LOOP_CONTINUOUSLY);
     }
-    public void stop() {
 
+    public void stop() {
         if (clip == null) {
             return;
         }
@@ -128,9 +127,7 @@ public class Sound {
     }
 
     public void checkVolume() {
-
-        volume = volumeScaleToDb(volumeScale);
-        setVolumeDb(volume);
+        setVolumeDb(volumeScaleToDb(volumeScale));
     }
 
     public static float volumeScaleToDb(int volumeScale) {
@@ -143,5 +140,9 @@ public class Sound {
             case 5: return 6f;
             default: return -5f;
         }
+    }
+
+    private void register(int index, String fileName) {
+        soundURL[index] = getClass().getResource("/sound/" + fileName);
     }
 }

@@ -2,7 +2,6 @@ package data;
 
 import main.GamePanel;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
@@ -10,15 +9,14 @@ import java.io.ObjectOutputStream;
 
 public class SaveLoad {
 
-    GamePanel gp;
+    private final GamePanel gp;
 
     public SaveLoad(GamePanel gp) {
         this.gp = gp;
     }
 
     public void save() {
-        try {
-            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File("save.dat")));
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("save.dat"))) {
             DataStorage ds = new DataStorage();
 
             ds.currentMap = gp.currentMap;
@@ -32,18 +30,15 @@ public class SaveLoad {
             ds.hasLantern = gp.hasLantern;
 
             oos.writeObject(ds);
-            oos.close();
         }
         catch (Exception e) {
-            System.out.println("Save Exception!");
+            System.err.println("Save failed: " + e.getMessage());
         }
     }
 
     public boolean load() {
-        try {
-            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File("save.dat")));
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("save.dat"))) {
             DataStorage ds = (DataStorage) ois.readObject();
-            ois.close();
 
             gp.currentMap = ds.currentMap;
             gp.player.worldX = ds.playerWorldX;
@@ -56,7 +51,7 @@ public class SaveLoad {
             return true;
         }
         catch (Exception e) {
-            System.out.println("Load Exception!");
+            System.err.println("Load failed: " + e.getMessage());
             return false;
         }
     }

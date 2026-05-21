@@ -6,6 +6,8 @@ import java.awt.*;
 
 public class StoryNPC extends Entity {
 
+    private static final String CHARACTER_PREFIX = "character:";
+
     private final String role;
     private final String displayName;
 
@@ -14,7 +16,6 @@ public class StoryNPC extends Entity {
 
         this.role = role;
         this.displayName = displayName;
-        type = type_npc;
         direction = "down";
         speed = 0;
 
@@ -30,29 +31,10 @@ public class StoryNPC extends Entity {
     }
 
     private void getImage(String spriteSet) {
-        if (spriteSet.startsWith("character:")) {
-            loadStaticSprite("/player/characters/" + spriteSet.substring("character:".length()));
-        }
-        else if ("merchant".equals(spriteSet)) {
-            up1 = setup("/npc/merchant_down_1", gp.tileSize, gp.tileSize);
-            up2 = setup("/npc/merchant_down_2", gp.tileSize, gp.tileSize);
-            down1 = setup("/npc/merchant_down_1", gp.tileSize, gp.tileSize);
-            down2 = setup("/npc/merchant_down_2", gp.tileSize, gp.tileSize);
-            left1 = setup("/npc/merchant_down_1", gp.tileSize, gp.tileSize);
-            left2 = setup("/npc/merchant_down_2", gp.tileSize, gp.tileSize);
-            right1 = setup("/npc/merchant_down_1", gp.tileSize, gp.tileSize);
-            right2 = setup("/npc/merchant_down_2", gp.tileSize, gp.tileSize);
-        }
-        else {
-            up1 = setup("/npc/oldman_up_1", gp.tileSize, gp.tileSize);
-            up2 = setup("/npc/oldman_up_2", gp.tileSize, gp.tileSize);
-            down1 = setup("/npc/oldman_down_1", gp.tileSize, gp.tileSize);
-            down2 = setup("/npc/oldman_down_2", gp.tileSize, gp.tileSize);
-            left1 = setup("/npc/oldman_left_1", gp.tileSize, gp.tileSize);
-            left2 = setup("/npc/oldman_left_2", gp.tileSize, gp.tileSize);
-            right1 = setup("/npc/oldman_right_1", gp.tileSize, gp.tileSize);
-            right2 = setup("/npc/oldman_right_2", gp.tileSize, gp.tileSize);
-        }
+        String imagePath = spriteSet.startsWith(CHARACTER_PREFIX)
+                ? "/player/characters/" + spriteSet.substring(CHARACTER_PREFIX.length())
+                : spriteSet;
+        loadStaticSprite(imagePath);
     }
 
     private void loadStaticSprite(String path) {
@@ -66,10 +48,12 @@ public class StoryNPC extends Entity {
         right2 = up1;
     }
 
+    @Override
     public void speak() {
         gp.story.interact(role);
     }
 
+    @Override
     public void draw(Graphics2D g2) {
         super.draw(g2);
 

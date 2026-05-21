@@ -5,17 +5,19 @@ import entity.Entity;
 import entity.Player;
 import entity.SwingChildNPC;
 import tile.TileManager;
-import tile_interactive.InteractiveTile;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.concurrent.locks.LockSupport;
 
 public class GamePanel extends JPanel implements Runnable {
+
+    private static final long serialVersionUID = 1L;
 
     final int originalTileSize = 16;
     final int scale = 3;
@@ -29,24 +31,22 @@ public class GamePanel extends JPanel implements Runnable {
     public final int maxWorldCol = 50;
     public final int maxWorldRow = 50;
     public final int maxMap = 10;
-    public int currentMap = 0;
+    public int currentMap = MapId.APARTMENT;
 
-    private static final int APARTMENT_MAP = 0;
     private static final int APARTMENT_LEFT_COL = 5;
     private static final int APARTMENT_RIGHT_EXCLUSIVE_COL = 26;
     private static final int APARTMENT_TOP_ROW = 6;
     private static final int APARTMENT_BOTTOM_EXCLUSIVE_ROW = 21;
-    private static final int FOREST_DOUBTS_MAP = 1;
     private static final int FOREST_LEFT_COL = 4;
     private static final int FOREST_RIGHT_EXCLUSIVE_COL = 46;
     private static final int FOREST_TOP_ROW = 4;
     private static final int FOREST_BOTTOM_EXCLUSIVE_ROW = 46;
-    private static final int VILLAGE_MAP = 2;
 
     int screenWidth2 = screenWidth;
     int screenHeight2 = screenHeight;
     BufferedImage tempScreen;
-    private BufferedImage pauseBackground;
+    private BufferedImage renderScreen;
+    private BufferStrategy screenBufferStrategy;
     private BufferedImage forestDarknessBuffer;
     private BufferedImage strongLightMask;
     private BufferedImage weakLightMask;
@@ -55,8 +55,8 @@ public class GamePanel extends JPanel implements Runnable {
     private BufferedImage lanternGlowImage;
     private BufferedImage forestVignetteLantern;
     private BufferedImage forestVignetteDark;
-    Graphics2D g2;
     public boolean fullScreenOn = false;
+    public boolean hudVisible = true;
 
     int FPS = 60;
 
@@ -73,7 +73,6 @@ public class GamePanel extends JPanel implements Runnable {
     public AssetSetter aSetter = new AssetSetter(this);
     public UI ui = new UI(this);
     public StoryManager story = new StoryManager(this);
-    public EventHandler eHandler = new EventHandler(this);
     Config config = new Config(this);
     public SaveLoad saveLoad = new SaveLoad(this);
     Thread gameThread;
@@ -82,9 +81,8 @@ public class GamePanel extends JPanel implements Runnable {
     public boolean hasLantern = false;
     public Entity obj[][] = new Entity[maxMap][120];
     public Entity npc[][] = new Entity[maxMap][10];
-    public InteractiveTile iTile[][] = new InteractiveTile[maxMap][50];
-    public ArrayList<Entity> particleList = new ArrayList<>();
-    ArrayList<Entity> entityList = new ArrayList<>();
+    private final ArrayList<Entity> entityList = new ArrayList<>();
+    private final Object frameLock = new Object();
 
     public int gameState;
     public final int titleState = 0;
@@ -92,8 +90,9 @@ public class GamePanel extends JPanel implements Runnable {
     public final int pauseState = 2;
     public final int dialogueState = 3;
     public final int optionsState = 5;
-    public final int transitionState = 7;
     public final int resultState = 9;
+    public int optionsReturnState = titleState;
+    private int optionsReturnCommand = 0;
     public static final int SE_CURSOR = 10;
     private static final int SWING_SOUND_INDEX = 15;
 
@@ -108,27 +107,15 @@ public class GamePanel extends JPanel implements Runnable {
     public void setupGame() {
         aSetter.setObject();
         aSetter.setNPC();
-        aSetter.setInteractiveTile();
         gameState = titleState;
 
         tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
-        pauseBackground = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
+        renderScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         forestDarknessBuffer = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
-        g2 = (Graphics2D) tempScreen.getGraphics();
         preloadCursorSound();
 
         if (fullScreenOn) {
             setFullScreen();
-        }
-    }
-
-    public void resetGame(boolean restart) {
-        if (restart) {
-            story.startNewGame();
-        }
-        else {
-            player.setDefaultPositions();
-            player.restoreStatus();
         }
     }
 
@@ -137,7 +124,6 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        capturePauseBackground();
         gameState = pauseState;
         ui.commandNum = 0;
         playCursorSE();
@@ -148,41 +134,95 @@ public class GamePanel extends JPanel implements Runnable {
         playCursorSE();
     }
 
-    public void clearPauseBackground() {
-        if (pauseBackground == null) {
-            return;
-        }
-        Graphics2D pauseGraphics = pauseBackground.createGraphics();
-        pauseGraphics.setComposite(AlphaComposite.Clear);
-        pauseGraphics.fillRect(0, 0, screenWidth, screenHeight);
-        pauseGraphics.dispose();
+    public void openOptionsMenu(int returnState) {
+        optionsReturnState = returnState;
+        optionsReturnCommand = ui.commandNum;
+        gameState = optionsState;
+        ui.commandNum = 0;
+        playCursorSE();
     }
 
-    private void capturePauseBackground() {
-        if (tempScreen == null) {
-            return;
-        }
-        if (pauseBackground == null) {
-            pauseBackground = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
-        }
-
-        Graphics2D pauseGraphics = pauseBackground.createGraphics();
-        pauseGraphics.setComposite(AlphaComposite.Src);
-        pauseGraphics.drawImage(tempScreen, 0, 0, null);
-        pauseGraphics.dispose();
-    }
-
-    public void restart() {
-        story.startNewGame();
+    public void closeOptionsMenu() {
+        config.saveConfig();
+        gameState = optionsReturnState;
+        ui.commandNum = optionsReturnCommand;
+        playCursorSE();
     }
 
     public void setFullScreen() {
         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         GraphicsDevice gd = ge.getDefaultScreenDevice();
+        screenBufferStrategy = null;
+        Main.window.setIgnoreRepaint(true);
         gd.setFullScreenWindow(Main.window);
 
         screenWidth2 = Main.window.getWidth();
         screenHeight2 = Main.window.getHeight();
+    }
+
+    public void toggleFullScreen() {
+        fullScreenOn = !fullScreenOn;
+        applyScreenMode();
+        config.saveConfig();
+    }
+
+    public void changeMusicVolume(int amount) {
+        music.volumeScale = clampVolume(music.volumeScale + amount);
+        music.checkVolume();
+        config.saveConfig();
+    }
+
+    public int getMusicVolume() {
+        return music.volumeScale;
+    }
+
+    public void changeSoundEffectVolume(int amount) {
+        se.volumeScale = clampVolume(se.volumeScale + amount);
+        cursorSE.volumeScale = se.volumeScale;
+        cursorSE.checkVolume();
+        config.saveConfig();
+    }
+
+    public int getSoundEffectVolume() {
+        return se.volumeScale;
+    }
+
+    public void toggleHud() {
+        hudVisible = !hudVisible;
+        config.saveConfig();
+    }
+
+    private int clampVolume(int value) {
+        return Math.max(0, Math.min(5, value));
+    }
+
+    private void applyScreenMode() {
+        if (Main.window == null) {
+            return;
+        }
+
+        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        gd.setFullScreenWindow(null);
+        Main.window.dispose();
+        Main.window.setUndecorated(fullScreenOn);
+        screenBufferStrategy = null;
+        Main.window.setIgnoreRepaint(fullScreenOn);
+
+        if (fullScreenOn) {
+            Main.window.setVisible(true);
+            gd.setFullScreenWindow(Main.window);
+            screenWidth2 = Main.window.getWidth();
+            screenHeight2 = Main.window.getHeight();
+        }
+        else {
+            Main.window.pack();
+            Main.window.setLocationRelativeTo(null);
+            Main.window.setVisible(true);
+            screenWidth2 = screenWidth;
+            screenHeight2 = screenHeight;
+        }
+
+        requestFocusInWindow();
     }
 
     public void startGameThread() {
@@ -196,20 +236,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         int cameraX = player.worldX - player.screenX;
-        if (currentMap == APARTMENT_MAP) {
-            int minX = APARTMENT_LEFT_COL * tileSize;
-            int maxX = APARTMENT_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth;
-            return clampCamera(cameraX, minX, maxX);
-        }
-        if (currentMap == FOREST_DOUBTS_MAP) {
-            int minX = FOREST_LEFT_COL * tileSize;
-            int maxX = FOREST_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth;
-            return clampCamera(cameraX, minX, maxX);
-        }
-        if (currentMap == VILLAGE_MAP) {
-            return clampCamera(cameraX, 0, maxWorldCol * tileSize - screenWidth);
-        }
-        return cameraX;
+        return clampCameraX(cameraX);
     }
 
     public int getCameraY() {
@@ -218,20 +245,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         int cameraY = player.worldY - player.screenY;
-        if (currentMap == APARTMENT_MAP) {
-            int minY = APARTMENT_TOP_ROW * tileSize;
-            int maxY = APARTMENT_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight;
-            return clampCamera(cameraY, minY, maxY);
-        }
-        if (currentMap == FOREST_DOUBTS_MAP) {
-            int minY = FOREST_TOP_ROW * tileSize;
-            int maxY = FOREST_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight;
-            return clampCamera(cameraY, minY, maxY);
-        }
-        if (currentMap == VILLAGE_MAP) {
-            return clampCamera(cameraY, 0, maxWorldRow * tileSize - screenHeight);
-        }
-        return cameraY;
+        return clampCameraY(cameraY);
     }
 
     public int worldToScreenX(int worldX) {
@@ -258,32 +272,72 @@ public class GamePanel extends JPanel implements Runnable {
         return Math.max(min, Math.min(value, max));
     }
 
+    private int clampCameraX(int cameraX) {
+        switch (currentMap) {
+            case MapId.APARTMENT:
+                return clampCamera(cameraX, APARTMENT_LEFT_COL * tileSize,
+                        APARTMENT_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth);
+            case MapId.FOREST_DOUBTS:
+                return clampCamera(cameraX, FOREST_LEFT_COL * tileSize,
+                        FOREST_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth);
+            case MapId.VILLAGE:
+                return clampCamera(cameraX, 0, maxWorldCol * tileSize - screenWidth);
+            default:
+                return cameraX;
+        }
+    }
+
+    private int clampCameraY(int cameraY) {
+        switch (currentMap) {
+            case MapId.APARTMENT:
+                return clampCamera(cameraY, APARTMENT_TOP_ROW * tileSize,
+                        APARTMENT_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight);
+            case MapId.FOREST_DOUBTS:
+                return clampCamera(cameraY, FOREST_TOP_ROW * tileSize,
+                        FOREST_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight);
+            case MapId.VILLAGE:
+                return clampCamera(cameraY, 0, maxWorldRow * tileSize - screenHeight);
+            default:
+                return cameraY;
+        }
+    }
+
     public void run() {
-        double drawInterval = 1000000000 / FPS;
-        double delta = 0;
-        long lastTime = System.nanoTime();
-        long currentTime;
-        long timer = 0;
-        int drawCount = 0;
+        long drawInterval = 1_000_000_000L / FPS;
+        long nextDrawTime = System.nanoTime();
 
         while (gameThread != null) {
-            currentTime = System.nanoTime();
+            update();
+            drawToTempScreen();
+            presentFrame();
 
-            delta += (currentTime - lastTime) / drawInterval;
-            timer += (currentTime - lastTime);
-            lastTime = currentTime;
-
-            if (delta >= 1) {
-                update();
-                drawToTempScreen();
-                drawToScreen();
-                delta--;
-                drawCount++;
+            nextDrawTime += drawInterval;
+            if (nextDrawTime < System.nanoTime()) {
+                nextDrawTime = System.nanoTime();
+                continue;
             }
 
-            if (timer >= 1000000000) {
-                drawCount = 0;
-                timer = 0;
+            waitForNextFrame(nextDrawTime);
+        }
+    }
+
+    private void waitForNextFrame(long nextDrawTime) {
+        while (gameThread != null) {
+            long remainingTime = nextDrawTime - System.nanoTime();
+            if (remainingTime <= 0) {
+                return;
+            }
+
+            if (remainingTime > 2_000_000L) {
+                LockSupport.parkNanos(remainingTime - 1_000_000L);
+            }
+            else {
+                Thread.yield();
+            }
+
+            if (Thread.currentThread().isInterrupted()) {
+                gameThread = null;
+                return;
             }
         }
     }
@@ -298,17 +352,6 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             }
 
-            for (int i = 0; i < particleList.size(); i++) {
-                if (particleList.get(i) != null) {
-                    if (particleList.get(i).alive) {
-                        particleList.get(i).update();
-                    }
-                    if (!particleList.get(i).alive) {
-                        particleList.remove(i);
-                    }
-                }
-            }
-
             updateSwingSound();
         }
         else {
@@ -317,7 +360,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void updateSwingSound() {
-        if (currentMap != FOREST_DOUBTS_MAP) {
+        if (currentMap != MapId.FOREST_DOUBTS) {
             stopSwingSound();
             return;
         }
@@ -392,68 +435,103 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void drawToTempScreen() {
-        if (g2 == null) {
+        if (renderScreen == null) {
             return;
         }
 
-        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D frameGraphics = renderScreen.createGraphics();
+        prepareWorldGraphics(frameGraphics);
+        renderWorldLayer(frameGraphics);
+        frameGraphics.dispose();
 
-        if (gameState == titleState) {
-            ui.draw(g2);
-        }
-        else if (gameState == pauseState && pauseBackground != null) {
-            g2.drawImage(pauseBackground, 0, 0, null);
-            ui.draw(g2);
-        }
-        else {
-            tileM.draw(g2);
-
-            for (int i = 0; i < iTile[currentMap].length; i++) {
-                if (iTile[currentMap][i] != null) {
-                    iTile[currentMap][i].draw(g2);
-                }
-            }
-
-            entityList.add(player);
-
-            for (int i = 0; i < npc[currentMap].length; i++) {
-                if (npc[currentMap][i] != null) {
-                    entityList.add(npc[currentMap][i]);
-                }
-            }
-
-            for (int i = 0; i < obj[currentMap].length; i++) {
-                if (obj[currentMap][i] != null) {
-                    entityList.add(obj[currentMap][i]);
-                }
-            }
-
-            for (int i = 0; i < particleList.size(); i++) {
-                if (particleList.get(i) != null) {
-                    entityList.add(particleList.get(i));
-                }
-            }
-
-            Collections.sort(entityList, new Comparator<Entity>() {
-                @Override
-                public int compare(Entity e1, Entity e2) {
-                    return Integer.compare(e1.worldY, e2.worldY);
-                }
-            });
-
-            for (int i = 0; i < entityList.size(); i++) {
-                entityList.get(i).draw(g2);
-            }
-
-            entityList.clear();
-            drawForestMood(g2);
-            ui.draw(g2);
+        synchronized (frameLock) {
+            BufferedImage readyFrame = renderScreen;
+            renderScreen = tempScreen;
+            tempScreen = readyFrame;
         }
     }
 
+    @Override
+    protected void paintComponent(Graphics graphics) {
+        if (fullScreenOn) {
+            return;
+        }
+
+        super.paintComponent(graphics);
+        Graphics2D screenGraphics = (Graphics2D) graphics.create();
+        drawFrameToScreen(screenGraphics, getWidth(), getHeight());
+        screenGraphics.dispose();
+    }
+
+    private void renderWorldLayer(Graphics2D graphics) {
+        clearFrame(graphics);
+
+        if (gameState == titleState) {
+            return;
+        }
+        if (gameState == optionsState && optionsReturnState != pauseState) {
+            return;
+        }
+
+        drawGameWorld(graphics);
+        drawForestMood(graphics);
+    }
+
+    private void prepareWorldGraphics(Graphics2D graphics) {
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+    }
+
+    private void prepareScreenImageGraphics(Graphics2D graphics) {
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+    }
+
+    private void prepareUiGraphics(Graphics2D graphics) {
+        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+    }
+
+    private void clearFrame(Graphics2D graphics) {
+        Composite oldComposite = graphics.getComposite();
+        graphics.setComposite(AlphaComposite.Src);
+        graphics.setColor(Color.black);
+        graphics.fillRect(0, 0, screenWidth, screenHeight);
+        graphics.setComposite(oldComposite);
+    }
+
+    private void drawGameWorld(Graphics2D g2) {
+        tileM.draw(g2);
+
+        entityList.add(player);
+
+        for (int i = 0; i < npc[currentMap].length; i++) {
+            if (npc[currentMap][i] != null) {
+                entityList.add(npc[currentMap][i]);
+            }
+        }
+
+        for (int i = 0; i < obj[currentMap].length; i++) {
+            if (obj[currentMap][i] != null) {
+                entityList.add(obj[currentMap][i]);
+            }
+        }
+
+        entityList.sort(Comparator.comparingInt(e -> e.worldY));
+
+        for (int i = 0; i < entityList.size(); i++) {
+            entityList.get(i).draw(g2);
+        }
+
+        entityList.clear();
+    }
+
     private void drawForestMood(Graphics2D g2) {
-        if (currentMap != FOREST_DOUBTS_MAP) {
+        if (currentMap != MapId.FOREST_DOUBTS) {
             return;
         }
 
@@ -584,10 +662,91 @@ public class GamePanel extends JPanel implements Runnable {
         return null;
     }
 
-    public void drawToScreen() {
-        Graphics g = getGraphics();
-        g.drawImage(tempScreen, 0, 0, screenWidth2, screenHeight2, null);
-        g.dispose();
+    private void presentFrame() {
+        if (shouldUseActiveRender()) {
+            drawWithBufferStrategy();
+        }
+        else {
+            repaint();
+        }
+    }
+
+    private boolean shouldUseActiveRender() {
+        return fullScreenOn && Main.window != null && Main.window.isVisible();
+    }
+
+    private void drawWithBufferStrategy() {
+        if (!ensureScreenBufferStrategy()) {
+            return;
+        }
+
+        do {
+            do {
+                Graphics2D screenGraphics = (Graphics2D) screenBufferStrategy.getDrawGraphics();
+                try {
+                    drawFrameToScreen(screenGraphics, Main.window.getWidth(), Main.window.getHeight());
+                }
+                finally {
+                    screenGraphics.dispose();
+                }
+            } while (screenBufferStrategy.contentsRestored());
+
+            screenBufferStrategy.show();
+            Toolkit.getDefaultToolkit().sync();
+        } while (screenBufferStrategy.contentsLost());
+    }
+
+    private boolean ensureScreenBufferStrategy() {
+        if (screenBufferStrategy != null) {
+            return true;
+        }
+        if (Main.window == null || !Main.window.isDisplayable()) {
+            return false;
+        }
+
+        try {
+            Main.window.createBufferStrategy(2);
+            screenBufferStrategy = Main.window.getBufferStrategy();
+            return screenBufferStrategy != null;
+        }
+        catch (IllegalStateException e) {
+            screenBufferStrategy = null;
+            return false;
+        }
+    }
+
+    private void drawFrameToScreen(Graphics2D screenGraphics, int targetWidth, int targetHeight) {
+        if (targetWidth <= 0 || targetHeight <= 0) {
+            targetWidth = screenWidth2;
+            targetHeight = screenHeight2;
+        }
+
+        screenGraphics.setColor(Color.black);
+        screenGraphics.fillRect(0, 0, targetWidth, targetHeight);
+
+        double scale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
+        int drawWidth = (int) Math.ceil(screenWidth * scale);
+        int drawHeight = (int) Math.ceil(screenHeight * scale);
+        int drawX = (targetWidth - drawWidth) / 2;
+        int drawY = (targetHeight - drawHeight) / 2;
+
+        if (shouldDrawWorldBuffer()) {
+            prepareScreenImageGraphics(screenGraphics);
+            synchronized (frameLock) {
+                screenGraphics.drawImage(tempScreen, drawX, drawY, drawWidth, drawHeight, null);
+            }
+        }
+
+        Graphics2D frameGraphics = (Graphics2D) screenGraphics.create(drawX, drawY, drawWidth, drawHeight);
+        frameGraphics.scale(scale, scale);
+        frameGraphics.setClip(0, 0, screenWidth, screenHeight);
+        prepareUiGraphics(frameGraphics);
+        ui.draw(frameGraphics);
+        frameGraphics.dispose();
+    }
+
+    private boolean shouldDrawWorldBuffer() {
+        return gameState != titleState && !(gameState == optionsState && optionsReturnState != pauseState);
     }
 
     public void playMusic(int i) {

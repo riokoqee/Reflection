@@ -7,164 +7,33 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.ArrayList;
 
 public class Entity {
 
-    protected GamePanel gp;
-    public BufferedImage image, image2, image3;
+    protected final GamePanel gp;
     public BufferedImage up1, up2, down1, down2, left1, left2, right1, right2;
     public String direction = "down";
     public Rectangle solidArea = new Rectangle(0, 0, 48, 48);
-    public Rectangle attackArea = new Rectangle(0, 0, 0, 0);
     public int solidAreaDefaultX, solidAreaDefaultY;
     public boolean collision = false;
-    String dialogues[] = new String[20];
-
-    public int invincibleCounter = 0;
-    public int spriteCounter = 0;
-    public int actionLockCounter = 0;
-    int dyingCounter = 0;
 
     public int worldX, worldY;
     public boolean collisionOn = false;
     public boolean invincible = false;
-    int dialogueIndex = 0;
-    public int spriteNum = 1;
-    public boolean alive = true;
-    public boolean dying = false;
 
     public String name;
 
     public int maxLife;
     public int life;
-    public int mana;
-    public int maxMana;
-    public int ammo;
     public int speed;
-    public int level;
-    public int strength;
-    public int dexterity;
-    public int attack;
-    public int defense;
-    public int exp;
-    public int nextLevelExp;
-    public int coin;
-    public Entity currentWeapon;
-    public Entity currentShield;
-
-    public ArrayList<Entity> inventory = new ArrayList<>();
-    public final int maxInventorySize = 20;
-    public int value;
-    public int attackValue;
-    public int defenseValue;
-    public String description = "";
-    public int useCost;
-    public int price;
-
-    public int type;
-    public final int type_player = 0;
-    public final int type_npc = 1;
-    public final int type_monster = 2;
-    public final int type_sword = 3;
-    public final int type_axe = 4;
-    public final int type_shield = 5;
-    public final int type_consumable = 6;
-    public final int type_pickupOnly = 7;
 
     public Entity(GamePanel gp) {
         this.gp = gp;
     }
 
-    public void setAction() {}
+    public void speak() {}
 
-    public void damageReaction() {}
-
-    public void speak() {
-        if (dialogues[dialogueIndex] == null) {
-            dialogueIndex = 0;
-        }
-        gp.ui.currentDialogue = dialogues[dialogueIndex];
-        dialogueIndex++;
-
-        switch(gp.player.direction) {
-            case "up": direction = "down"; break;
-            case "down": direction = "up"; break;
-            case "left": direction = "right"; break;
-            case "right": direction = "left"; break;
-        }
-    }
-
-    public void use(Entity entity) {}
-
-    public void checkDrop() {}
-
-    public void dropItem(Entity droppedItem) {
-        for (int i = 0; i < gp.obj[gp.currentMap].length; i++) {
-            if (gp.obj[gp.currentMap][i] == null) {
-                gp.obj[gp.currentMap][i] = droppedItem;
-                gp.obj[gp.currentMap][i].worldX = worldX;
-                gp.obj[gp.currentMap][i].worldY = worldY;
-                break;
-            }
-        }
-    }
-
-    public Color getParticleColor() {
-        return null;
-    }
-
-    public int getParticleSize() {
-        return 6;
-    }
-
-    public int getParticleSpeed() {
-        return 1;
-    }
-
-    public int getParticleMaxLife() {
-        return 0;
-    }
-
-    public void generateParticle(Entity generator, Entity target) {
-        Color color = generator.getParticleColor();
-        int size = generator.getParticleSize();
-        int speed = generator.getParticleSpeed();
-        int maxLife = generator.getParticleMaxLife();
-
-        Particle p1 = new Particle(gp, target, color, size, speed, maxLife, -2, -1);
-        Particle p2 = new Particle(gp, target, color, size, speed, maxLife, 2, -1);
-        Particle p3 = new Particle(gp, target, color, size, speed, maxLife, -2, 1);
-        Particle p4 = new Particle(gp, target, color, size, speed, maxLife, 2, 1);
-        gp.particleList.add(p1);
-        gp.particleList.add(p2);
-        gp.particleList.add(p3);
-        gp.particleList.add(p4);
-    }
-
-    public void update() {
-        setAction();
-
-        collisionOn = false;
-        gp.cChecker.checkTile(this);
-        gp.cChecker.checkEntity(this, gp.npc);
-        gp.cChecker.checkPlayer(this);
-
-        if (!collisionOn) {
-            switch (direction) {
-                case "up": worldY -= speed; break;
-                case "down": worldY += speed; break;
-                case "left": worldX -= speed; break;
-                case "right": worldX += speed; break;
-            }
-        }
-
-        spriteCounter++;
-        if (spriteCounter > 24) {
-            spriteNum = spriteNum == 1 ? 2 : 1;
-            spriteCounter = 0;
-        }
-    }
+    public void update() {}
 
     public void draw(Graphics2D g2) {
         BufferedImage image = null;
@@ -174,41 +43,24 @@ public class Entity {
 
         if (gp.isInCamera(worldX, worldY, gp.tileSize, gp.tileSize)) {
 
-            switch(direction) {
-                case "up": image = spriteNum == 1 ? up1 : up2; break;
-                case "down": image = spriteNum == 1 ? down1 : down2; break;
-                case "left": image = spriteNum == 1 ? left1 : left2; break;
-                case "right": image = spriteNum == 1 ? right1 : right2; break;
-            }
-
-            if (dying) {
-                dyingAnimation(g2);
+            switch (direction) {
+                case "up": image = up1; break;
+                case "left": image = left1; break;
+                case "right": image = right1; break;
+                default: image = down1; break;
             }
 
             g2.drawImage(image, screenX, screenY, null);
-            changeAlpha(g2, 1f);
         }
     }
 
-    public void dyingAnimation(Graphics2D g2) {
-        dyingCounter++;
-        int i = 5;
-
-        if (dyingCounter <= i) {changeAlpha(g2, 0f);}
-        if (dyingCounter > i && dyingCounter <= i * 2) {changeAlpha(g2, 1f);}
-        if (dyingCounter > i * 2 && dyingCounter <= i * 3) {changeAlpha(g2, 0f);}
-        if (dyingCounter > i * 3 && dyingCounter <= i * 4) {changeAlpha(g2, 1f);}
-        if (dyingCounter > i * 4 && dyingCounter <= i * 5) {changeAlpha(g2, 0f);}
-        if (dyingCounter > i * 5 && dyingCounter <= i * 6) {changeAlpha(g2, 1f);}
-        if (dyingCounter > i * 6 && dyingCounter <= i * 7) {changeAlpha(g2, 0f);}
-        if (dyingCounter > i * 7 && dyingCounter <= i * 8) {changeAlpha(g2, 1f);}
-        if (dyingCounter > i * 8) {
-            alive = false;
+    protected void moveInCurrentDirection() {
+        switch (direction) {
+            case "up": worldY -= speed; break;
+            case "down": worldY += speed; break;
+            case "left": worldX -= speed; break;
+            case "right": worldX += speed; break;
         }
-    }
-
-    public void changeAlpha(Graphics2D g2, float alphaValue) {
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alphaValue));
     }
 
     public BufferedImage setup(String imagePath, int width, int height) {
@@ -219,8 +71,8 @@ public class Entity {
             image = ImageIO.read(getClass().getResourceAsStream(imagePath + ".png"));
             image = uTool.scaleImage(image, width, height);
         }
-        catch (IOException e) {
-            e.printStackTrace();
+        catch (IOException | IllegalArgumentException e) {
+            throw new IllegalStateException("Cannot load entity sprite: " + imagePath, e);
         }
 
         return image;

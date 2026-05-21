@@ -1,17 +1,19 @@
 package tile;
 
 import main.GamePanel;
+import main.MapId;
 import main.UtilityTool;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 public class TileManager {
-    GamePanel gp;
+    private final GamePanel gp;
     public Tile[] tile;
-    public int mapTileNum[][][];
+    public int[][][] mapTileNum;
 
     public TileManager(GamePanel gp) {
         this.gp = gp;
@@ -20,13 +22,13 @@ public class TileManager {
         mapTileNum = new int[gp.maxMap][gp.maxWorldCol][gp.maxWorldRow];
 
         getTileImage();
-        loadMap("/maps/apartment.txt", 0);
-        loadMap("/maps/forest_doubts.txt", 1);
-        loadMap("/maps/map02.txt", 2);
-        loadMap("/maps/map03.txt", 3);
+        loadMap("/maps/apartment.txt", MapId.APARTMENT);
+        loadMap("/maps/forest_doubts.txt", MapId.FOREST_DOUBTS);
+        loadMap("/maps/map02.txt", MapId.VILLAGE);
+        loadMap("/maps/map03.txt", MapId.MOUNTAIN);
     }
 
-    public void getTileImage() {
+    private void getTileImage() {
         setup(0, "grass00", false);
         setup(1, "grass00", true);
         setup(2, "grass00", true);
@@ -37,8 +39,6 @@ public class TileManager {
         setup(7, "grass00", false);
         setup(8, "grass00", false);
         setup(9, "grass00", false);
-        // PLACEHOLDER
-
         setup(10, "grass00", false);
         setup(11, "grass01", false);
         setup(12, "water00", true);
@@ -84,52 +84,54 @@ public class TileManager {
         setup(52, "forest_generated/edge", true);
         setup(53, "forest_generated/flowers", false);
     }
-    public void setup(int index, String imageName, boolean collision) {
-
-        UtilityTool uTool =  new UtilityTool();
-
+    private void setup(int index, String imageName, boolean collision) {
         try {
             tile[index] = new Tile();
-            tile[index].image = ImageIO.read(getClass().getResource("/tiles/"+ imageName + ".png"));
-            tile[index].image = uTool.scaleImage(tile[index].image, gp.tileSize, gp.tileSize);
+            BufferedImage image = ImageIO.read(getClass().getResource("/tiles/" + imageName + ".png"));
+            tile[index].image = new UtilityTool().scaleImage(image, gp.tileSize, gp.tileSize);
             tile[index].collision = collision;
-        }catch (IOException e){
-            e.printStackTrace();
+        }
+        catch (IOException | IllegalArgumentException e) {
+            throw new IllegalStateException("Cannot load tile image: " + imageName, e);
         }
     }
-    public void loadMap(String filePath, int map) {
 
+    private void loadMap(String filePath, int map) {
         try {
             InputStream is = getClass().getResourceAsStream(filePath);
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            if (is == null) {
+                throw new FileNotFoundException(filePath);
+            }
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                int col = 0;
+                int row = 0;
 
-            int col = 0;
-            int row = 0;
+                while (col < gp.maxWorldCol && row < gp.maxWorldRow) {
+                    String line = br.readLine();
+                    if (line == null) {
+                        throw new IOException("Map has fewer rows than expected: " + filePath);
+                    }
+                    String[] numbers = line.trim().split("\\s+");
+                    if (numbers.length < gp.maxWorldCol) {
+                        throw new IOException("Map row has fewer columns than expected: " + filePath + " row " + row);
+                    }
 
-            while(col < gp.maxWorldCol && row < gp.maxWorldRow) {
-
-                String line = br.readLine();
-
-                while(col < gp.maxWorldCol) {
-                    String numbers[] = line.split(" ");
-
-                    int num = Integer.parseInt(numbers[col]);
-
-                    mapTileNum[map][col][row] = num;
-                    col++;
-                }
-                if(col == gp.maxWorldCol) {
-                    col = 0;
-                    row++;
+                    while (col < gp.maxWorldCol) {
+                        mapTileNum[map][col][row] = Integer.parseInt(numbers[col]);
+                        col++;
+                    }
+                    if (col == gp.maxWorldCol) {
+                        col = 0;
+                        row++;
+                    }
                 }
             }
-            br.close();
-
-        }catch (Exception e){
-
         }
-
+        catch (Exception e) {
+            throw new IllegalStateException("Cannot load map: " + filePath, e);
+        }
     }
+
     public void draw(Graphics2D g2) {
         int cameraX = gp.getCameraX();
         int cameraY = gp.getCameraY();

@@ -4,67 +4,60 @@ import java.io.*;
 
 public class Config {
 
-    GamePanel gp;
+    private final GamePanel gp;
 
     public Config(GamePanel gp) {
         this.gp = gp;
     }
 
     public void saveConfig() {
-
-        try {
-            BufferedWriter bw = new BufferedWriter(new FileWriter("config.txt"));
-
-            // Full screen
-            if (gp.fullScreenOn == true) {
-                bw.write("On");
-            }
-            if (gp.fullScreenOn == false) {
-                bw.write("Off");
-            }
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("config.txt"))) {
+            bw.write(gp.fullScreenOn ? "On" : "Off");
             bw.newLine();
 
-            // Music volume
             bw.write(String.valueOf(gp.music.volumeScale));
             bw.newLine();
 
-            // SE volume
             bw.write(String.valueOf(gp.se.volumeScale));
             bw.newLine();
 
-            bw.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
+            bw.write(gp.hudVisible ? "On" : "Off");
+            bw.newLine();
+        }
+        catch (IOException e) {
+            System.err.println("Config save failed: " + e.getMessage());
         }
     }
+
     public void loadConfig() {
-
-        try {
-            BufferedReader br = new BufferedReader(new FileReader("config.txt"));
-
-            String s = br.readLine();
-
-            // Full screen
-            if (s.equals("On")) {
-                gp.fullScreenOn = true;
-            }
-            if (s.equals("Off")) {
-                gp.fullScreenOn = false;
-            }
-
-            // Music volume
-            s = br.readLine();
-            gp.music.volumeScale = Integer.parseInt(s);
-
-            // SE volume
-            s = br.readLine();
-            gp.se.volumeScale = Integer.parseInt(s);
-
-            br.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        try (BufferedReader br = new BufferedReader(new FileReader("config.txt"))) {
+            gp.fullScreenOn = "On".equals(br.readLine());
+            gp.music.volumeScale = parseVolume(br.readLine(), gp.music.volumeScale);
+            gp.se.volumeScale = parseVolume(br.readLine(), gp.se.volumeScale);
+            gp.hudVisible = parseToggle(br.readLine(), gp.hudVisible);
         }
+        catch (Exception e) {
+            System.err.println("Config load failed: " + e.getMessage());
+        }
+    }
+
+    private int parseVolume(String value, int fallback) {
+        try {
+            int parsed = Integer.parseInt(value);
+            return Math.max(0, Math.min(5, parsed));
+        }
+        catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private boolean parseToggle(String value, boolean fallback) {
+        if ("On".equals(value)) {
+            return true;
+        }
+        if ("Off".equals(value)) {
+            return false;
+        }
+        return fallback;
     }
 }

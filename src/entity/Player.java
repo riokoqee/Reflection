@@ -16,8 +16,9 @@ public class Player extends Entity {
     private static final int ROW_SIDE = 1;
     private static final int ROW_UP = 2;
     private static final double DRAW_SCALE = 2.1;
+    private static final int NO_TARGET = 999;
 
-    KeyHandler keyH;
+    private final KeyHandler keyH;
     public final int screenX;
     public final int screenY;
     private BufferedImage[][] idleFrames;
@@ -92,6 +93,7 @@ public class Player extends Entity {
         up2 = idleFrames[ROW_UP][1];
     }
 
+    @Override
     public void update() {
         boolean moving = keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed;
 
@@ -121,26 +123,16 @@ public class Player extends Entity {
             gp.cChecker.checkEntity(this, gp.npc);
 
             if (!collisionOn) {
-                switch (direction) {
-                    case "up": worldY -= speed; break;
-                    case "down": worldY += speed; break;
-                    case "left": worldX -= speed; break;
-                    case "right": worldX += speed; break;
-                }
+                moveInCurrentDirection();
             }
 
-            spriteCounter++;
-            if (spriteCounter > 12) {
-                spriteNum = spriteNum == 1 ? 2 : 1;
-                spriteCounter = 0;
-            }
         }
 
         updateAnimation(moving);
     }
 
     private void pickUpObject(int objectIndex) {
-        if (objectIndex == 999 || gp.obj[gp.currentMap][objectIndex] == null) {
+        if (objectIndex == NO_TARGET || gp.obj[gp.currentMap][objectIndex] == null) {
             return;
         }
 
@@ -154,7 +146,7 @@ public class Player extends Entity {
 
     private void interactNPC() {
         int npcIndex = findFacingNPC();
-        if (npcIndex != 999) {
+        if (npcIndex != NO_TARGET) {
             gp.npc[gp.currentMap][npcIndex].speak();
         }
         else {
@@ -191,9 +183,10 @@ public class Player extends Entity {
                 }
             }
         }
-        return 999;
+        return NO_TARGET;
     }
 
+    @Override
     public void draw(Graphics2D g2) {
         BufferedImage image = getCurrentFrame();
         int drawX = gp.worldToScreenX(worldX) - (image.getWidth() - gp.tileSize) / 2;

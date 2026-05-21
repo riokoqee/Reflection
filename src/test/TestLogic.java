@@ -13,7 +13,10 @@ public class TestLogic {
     public static void main(String[] args) {
         File saveFile = new File("save.dat");
         boolean hadSave = saveFile.exists();
-        byte[] saveBackup = readSaveBackup(saveFile);
+        byte[] saveBackup = readBackup(saveFile);
+        File configFile = new File("config.txt");
+        boolean hadConfig = configFile.exists();
+        byte[] configBackup = readBackup(configFile);
 
         try {
             runTest("Тест 1: стартовые метрики", TestLogic::testInitialMetrics);
@@ -27,9 +30,11 @@ public class TestLogic {
             runTest("Test 9: pause menu controls", TestLogic::testPauseMenuControls);
             runTest("Test 10: forest lantern pickup", TestLogic::testForestLanternPickup);
             runTest("Test 11: village map layout", TestLogic::testVillageMapLayout);
+            runTest("Test 12: settings menu controls", TestLogic::testSettingsMenuControls);
         }
         finally {
-            restoreSave(saveFile, hadSave, saveBackup);
+            restoreFile(saveFile, hadSave, saveBackup);
+            restoreFile(configFile, hadConfig, configBackup);
         }
     }
 
@@ -49,29 +54,29 @@ public class TestLogic {
         }
     }
 
-    private static byte[] readSaveBackup(File saveFile) {
-        if (!saveFile.exists()) {
+    private static byte[] readBackup(File file) {
+        if (!file.exists()) {
             return null;
         }
         try {
-            return Files.readAllBytes(saveFile.toPath());
+            return Files.readAllBytes(file.toPath());
         }
         catch (IOException e) {
-            throw new IllegalStateException("Cannot back up save.dat before tests", e);
+            throw new IllegalStateException("Cannot back up " + file.getName() + " before tests", e);
         }
     }
 
-    private static void restoreSave(File saveFile, boolean hadSave, byte[] saveBackup) {
+    private static void restoreFile(File file, boolean hadFile, byte[] backup) {
         try {
-            if (hadSave && saveBackup != null) {
-                Files.write(saveFile.toPath(), saveBackup);
+            if (hadFile && backup != null) {
+                Files.write(file.toPath(), backup);
             }
-            else if (!hadSave && saveFile.exists()) {
-                Files.delete(saveFile.toPath());
+            else if (!hadFile && file.exists()) {
+                Files.delete(file.toPath());
             }
         }
         catch (IOException e) {
-            throw new IllegalStateException("Cannot restore save.dat after tests", e);
+            throw new IllegalStateException("Cannot restore " + file.getName() + " after tests", e);
         }
     }
 
@@ -167,6 +172,19 @@ public class TestLogic {
         assertEquals(gp.tileSize + gp.tileSize / 12, gp.obj[0][0].solidArea.width, "Bed collision width");
         assertEquals(gp.tileSize + gp.tileSize * 5 / 8, gp.obj[0][0].solidArea.height, "Bed collision height");
         assertObjectCollisionAtBedEdge(gp);
+
+        if (gp.obj[0][1] == null) {
+            throw new AssertionError("Apartment must contain a mirror object");
+        }
+        if (!gp.obj[0][1].collision) {
+            throw new AssertionError("Mirror sink must block only its base");
+        }
+        assertEquals(gp.tileSize * 13, gp.obj[0][1].worldX, "Mirror X position");
+        assertEquals(gp.tileSize * 7, gp.obj[0][1].worldY, "Mirror Y position");
+        assertEquals(gp.tileSize / 3, gp.obj[0][1].solidArea.x, "Mirror collision X offset");
+        assertEquals(gp.tileSize, gp.obj[0][1].solidArea.y, "Mirror collision Y offset");
+        assertEquals(gp.tileSize, gp.obj[0][1].solidArea.width, "Mirror collision width");
+        assertEquals(gp.tileSize / 2, gp.obj[0][1].solidArea.height, "Mirror collision height");
     }
 
     public static void testApartmentCameraBounds() {
@@ -243,7 +261,7 @@ public class TestLogic {
         assertEquals(0, gp.ui.commandNum, "Pause menu must open on Continue");
 
         gp.keyH.pauseState(KeyEvent.VK_UP);
-        assertEquals(4, gp.ui.commandNum, "Pause menu selection must wrap upward");
+        assertEquals(5, gp.ui.commandNum, "Pause menu selection must wrap upward");
 
         gp.keyH.pauseState(KeyEvent.VK_DOWN);
         assertEquals(0, gp.ui.commandNum, "Pause menu selection must wrap downward");
@@ -252,6 +270,7 @@ public class TestLogic {
         assertEquals(gp.playState, gp.gameState, "Escape must close pause menu");
 
         gp.keyH.playState(KeyEvent.VK_ESCAPE);
+        gp.keyH.pauseState(KeyEvent.VK_DOWN);
         gp.keyH.pauseState(KeyEvent.VK_DOWN);
         gp.keyH.pauseState(KeyEvent.VK_DOWN);
         gp.keyH.pauseState(KeyEvent.VK_DOWN);
@@ -332,6 +351,42 @@ public class TestLogic {
 
         gp.player.worldY = gp.tileSize * 49;
         assertEquals(gp.maxWorldRow * gp.tileSize - gp.screenHeight, gp.getCameraY(), "Village camera must stop at the bottom edge");
+    }
+
+    public static void testSettingsMenuControls() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+
+        gp.gameState = gp.titleState;
+        gp.ui.commandNum = 2;
+        gp.keyH.titleState(KeyEvent.VK_ENTER);
+        assertEquals(gp.optionsState, gp.gameState, "Title settings command must open the settings menu");
+        assertEquals(0, gp.ui.commandNum, "Settings menu must open on music volume");
+
+        int startMusicVolume = gp.getMusicVolume();
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals(Math.min(5, startMusicVolume + 1), gp.getMusicVolume(), "Right must increase music volume");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        assertEquals(1, gp.ui.commandNum, "Down must move to sound effects volume");
+        int startSoundVolume = gp.getSoundEffectVolume();
+        gp.keyH.optionsState(KeyEvent.VK_LEFT);
+        assertEquals(Math.max(0, startSoundVolume - 1), gp.getSoundEffectVolume(), "Left must decrease sound effects volume");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        boolean fullScreenBefore = gp.fullScreenOn;
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(fullScreenBefore ? 0 : 1, gp.fullScreenOn ? 1 : 0, "Enter must toggle fullscreen setting");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        boolean hudBefore = gp.hudVisible;
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(hudBefore ? 0 : 1, gp.hudVisible ? 1 : 0, "Enter must toggle HUD setting");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(gp.titleState, gp.gameState, "Back must return to title menu");
+        assertEquals(2, gp.ui.commandNum, "Returning from settings must restore the previous menu command");
     }
 
     private static void assertEquals(int expected, int actual, String message) {

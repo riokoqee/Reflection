@@ -43,14 +43,12 @@ public class StoryManager {
         resetMetrics();
         stage = STAGE_SHADOW_FIRST;
         clearDialogue();
-        gp.currentMap = 0;
+        gp.currentMap = MapId.APARTMENT;
         gp.hasLantern = false;
         gp.player.setPosition(14, 14);
         gp.player.direction = "down";
         gp.aSetter.setObject();
         gp.aSetter.setNPC();
-        gp.aSetter.setInteractiveTile();
-        gp.clearPauseBackground();
         gp.gameState = gp.playState;
         gp.ui.commandNum = 0;
     }
@@ -172,7 +170,7 @@ public class StoryManager {
         }
         else if ("shadow_second".equals(prompt.id)) {
             stage = STAGE_CHILD;
-            finishChoice("Тень", "Дверь квартиры растворяется и становится порталом. За ней шумит Лес Сомнений.", 1, 23, 43, false);
+            finishChoice("Тень", "Дверь квартиры растворяется и становится порталом. За ней шумит Лес Сомнений.", MapId.FOREST_DOUBTS, 23, 43, false);
         }
         else if ("child".equals(prompt.id)) {
             stage = STAGE_FOREST_SHADOW;
@@ -180,7 +178,7 @@ public class StoryManager {
         }
         else if ("forest_shadow".equals(prompt.id)) {
             stage = STAGE_FRIEND;
-            finishChoice("Тень", "Лес расступается. Впереди появляются огни Деревни Связей.", 2, 23, 15, false);
+            finishChoice("Тень", "Лес расступается. Впереди появляются огни Деревни Связей.", MapId.VILLAGE, 23, 15, false);
         }
         else if ("friend".equals(prompt.id)) {
             stage = STAGE_ELDER;
@@ -188,7 +186,7 @@ public class StoryManager {
         }
         else if ("elder".equals(prompt.id)) {
             stage = STAGE_WARRIOR;
-            finishChoice("Старик", "Мост за библиотекой ведёт к Горе Целей.", 3, 35, 31, false);
+            finishChoice("Старик", "Мост за библиотекой ведёт к Горе Целей.", MapId.MOUNTAIN, 35, 31, false);
         }
         else if ("warrior".equals(prompt.id)) {
             stage = STAGE_DONE;
@@ -232,10 +230,10 @@ public class StoryManager {
 
     public String getLocationTitle() {
         switch (gp.currentMap) {
-            case 0: return "Квартира";
-            case 1: return "Лес Сомнений";
-            case 2: return "Деревня Связей";
-            case 3: return "Гора Целей";
+            case MapId.APARTMENT: return "Квартира";
+            case MapId.FOREST_DOUBTS: return "Лес Сомнений";
+            case MapId.VILLAGE: return "Деревня Связей";
+            case MapId.MOUNTAIN: return "Гора Целей";
             default: return "Внутренний мир";
         }
     }
