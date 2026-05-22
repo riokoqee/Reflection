@@ -1,5 +1,6 @@
 package test;
 
+import entity.Entity;
 import entity.SwingChildNPC;
 import main.GamePanel;
 
@@ -177,14 +178,16 @@ public class TestLogic {
             throw new AssertionError("Apartment must contain a mirror object");
         }
         if (!gp.obj[0][1].collision) {
-            throw new AssertionError("Mirror sink must block only its base");
+            throw new AssertionError("Mirror must block its visible body");
         }
-        assertEquals(gp.tileSize * 13, gp.obj[0][1].worldX, "Mirror X position");
-        assertEquals(gp.tileSize * 7, gp.obj[0][1].worldY, "Mirror Y position");
+        assertEquals(gp.tileSize * 7, gp.obj[0][1].worldX, "Mirror X position");
+        assertEquals(gp.tileSize * 8, gp.obj[0][1].worldY, "Mirror Y position");
         assertEquals(gp.tileSize / 3, gp.obj[0][1].solidArea.x, "Mirror collision X offset");
-        assertEquals(gp.tileSize, gp.obj[0][1].solidArea.y, "Mirror collision Y offset");
+        assertEquals(gp.tileSize / 3, gp.obj[0][1].solidArea.y, "Mirror collision Y offset");
         assertEquals(gp.tileSize, gp.obj[0][1].solidArea.width, "Mirror collision width");
-        assertEquals(gp.tileSize / 2, gp.obj[0][1].solidArea.height, "Mirror collision height");
+        assertEquals(gp.tileSize * 13 / 8, gp.obj[0][1].solidArea.height, "Mirror collision height");
+        assertObjectBlocksFromTop(gp, gp.obj[0][1], "Mirror top");
+        assertObjectBlocksFromLeft(gp, gp.obj[0][1], "Mirror left side");
     }
 
     public static void testApartmentCameraBounds() {
@@ -552,6 +555,32 @@ public class TestLogic {
 
         if (!gp.player.collisionOn) {
             throw new AssertionError("Bed must block movement after the player reaches it");
+        }
+    }
+
+    private static void assertObjectBlocksFromTop(GamePanel gp, Entity object, String label) {
+        int objectTop = object.worldY + object.solidArea.y;
+        gp.player.worldX = object.worldX + object.solidArea.x;
+        gp.player.worldY = objectTop - gp.player.solidArea.y - gp.player.solidArea.height - gp.player.speed + 1;
+        gp.player.direction = "down";
+        gp.player.collisionOn = false;
+        gp.cChecker.checkObject(gp.player, true);
+
+        if (!gp.player.collisionOn) {
+            throw new AssertionError(label + " must block movement");
+        }
+    }
+
+    private static void assertObjectBlocksFromLeft(GamePanel gp, Entity object, String label) {
+        int objectLeft = object.worldX + object.solidArea.x;
+        gp.player.worldX = objectLeft - gp.player.solidArea.x - gp.player.solidArea.width - gp.player.speed + 1;
+        gp.player.worldY = object.worldY + object.solidArea.y;
+        gp.player.direction = "right";
+        gp.player.collisionOn = false;
+        gp.cChecker.checkObject(gp.player, true);
+
+        if (!gp.player.collisionOn) {
+            throw new AssertionError(label + " must block movement");
         }
     }
 }

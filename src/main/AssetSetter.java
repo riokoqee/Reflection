@@ -143,13 +143,14 @@ public class AssetSetter {
         syncSolidDefaults(bed);
         placeObject(MapId.APARTMENT, 0, bed, 21, 9);
 
-        StaticObject mirror = new StaticObject(gp, "Mirror", "/objects/home/mirror_sink", 1.7, 1.7, true);
+        StaticObject mirror = new StaticObject(gp, "Mirror",
+                "/objects/home/mirrors/mirror_floor_wood_brown", 1.6, 2.4, true);
         mirror.solidArea.x = gp.tileSize / 3;
-        mirror.solidArea.y = gp.tileSize;
+        mirror.solidArea.y = gp.tileSize / 3;
         mirror.solidArea.width = gp.tileSize;
-        mirror.solidArea.height = gp.tileSize / 2;
+        mirror.solidArea.height = gp.tileSize * 13 / 8;
         syncSolidDefaults(mirror);
-        placeObject(MapId.APARTMENT, 1, mirror, 13, 7);
+        placeObject(MapId.APARTMENT, 1, mirror, 7, 8);
     }
 
     private void placeForestObjects() {
