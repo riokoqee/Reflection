@@ -8,6 +8,7 @@ import tile.TileManager;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Area;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferStrategy;
@@ -34,9 +35,25 @@ public class GamePanel extends JPanel implements Runnable {
     public int currentMap = MapId.APARTMENT;
 
     private static final int APARTMENT_LEFT_COL = 5;
-    private static final int APARTMENT_RIGHT_EXCLUSIVE_COL = 26;
+    private static final int APARTMENT_RIGHT_EXCLUSIVE_COL = 38;
     private static final int APARTMENT_TOP_ROW = 6;
-    private static final int APARTMENT_BOTTOM_EXCLUSIVE_ROW = 21;
+    private static final int APARTMENT_BOTTOM_EXCLUSIVE_ROW = 25;
+    private static final int ROOM_BEDROOM = 0;
+    private static final int ROOM_HALL = 1;
+    private static final int ROOM_KITCHEN = 2;
+    private static final int ROOM_BATHROOM = 3;
+    private static final int ROOM_CORRIDOR = 4;
+    private static final ApartmentRoom[] APARTMENT_ROOMS = {
+            new ApartmentRoom(ROOM_BEDROOM, "Спальня", 5, 6, 23, 16, true),
+            new ApartmentRoom(ROOM_HALL, "Зал", 26, 6, 38, 16, true),
+            new ApartmentRoom(ROOM_KITCHEN, "Кухня", 5, 15, 23, 25, true),
+            new ApartmentRoom(ROOM_BATHROOM, "Санузел", 26, 15, 38, 25, true),
+            new ApartmentRoom(ROOM_CORRIDOR, "Коридор", 22, 6, 27, 25, false)
+    };
+    private static final Color APARTMENT_ROOM_SHADOW = new Color(5, 7, 10, 178);
+    private static final Color APARTMENT_INACTIVE_ROOM_SHADOW = new Color(0, 0, 0, 205);
+    private static final int APARTMENT_ROOM_TRANSITION_FRAMES = 38;
+    private static final int APARTMENT_ROOM_TRANSITION_MAX_ALPHA = 190;
     private static final int FOREST_LEFT_COL = 4;
     private static final int FOREST_RIGHT_EXCLUSIVE_COL = 46;
     private static final int FOREST_TOP_ROW = 4;
@@ -65,10 +82,21 @@ public class GamePanel extends JPanel implements Runnable {
     Sound music = new Sound();
     Sound se = new Sound();
     Sound cursorSE = new Sound();
+    private final Sound[] oneShotSE = {new Sound(), new Sound(), new Sound(), new Sound()};
     Sound swingSound = new Sound();
+    Sound footstepSound = new Sound();
+    Sound apartmentAmbienceSound = new Sound();
+    Sound whisperSound = new Sound();
     private boolean cursorSoundLoaded = false;
     private boolean swingSoundLoaded = false;
     private boolean swingSoundUnavailable = false;
+    private int activeFootstepSoundIndex = -1;
+    private int unavailableFootstepSoundIndex = -1;
+    private boolean apartmentAmbienceLoaded = false;
+    private boolean apartmentAmbienceUnavailable = false;
+    private boolean whisperSoundLoaded = false;
+    private boolean whisperSoundUnavailable = false;
+    private int oneShotSECursor = 0;
     public CollisionChecker cChecker = new CollisionChecker(this);
     public AssetSetter aSetter = new AssetSetter(this);
     public UI ui = new UI(this);
@@ -83,6 +111,9 @@ public class GamePanel extends JPanel implements Runnable {
     public Entity npc[][] = new Entity[maxMap][10];
     private final ArrayList<Entity> entityList = new ArrayList<>();
     private final Object frameLock = new Object();
+    private int lastApartmentRoomId = -1;
+    private int apartmentRoomTransitionCounter = 0;
+    private String apartmentRoomTransitionTitle = "";
 
     public int gameState;
     public final int titleState = 0;
@@ -93,7 +124,8 @@ public class GamePanel extends JPanel implements Runnable {
     public final int resultState = 9;
     public int optionsReturnState = titleState;
     private int optionsReturnCommand = 0;
-    public static final int SE_CURSOR = 10;
+    public static final int SE_CURSOR = Sound.MENU_CURSOR;
+    private static final int FALLBACK_CURSOR_SOUND_INDEX = 10;
     private static final int SWING_SOUND_INDEX = 15;
 
     public GamePanel() {
@@ -112,6 +144,7 @@ public class GamePanel extends JPanel implements Runnable {
         tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         renderScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         forestDarknessBuffer = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
+        syncSoundEffectVolumes();
         preloadCursorSound();
 
         if (fullScreenOn) {
@@ -126,12 +159,12 @@ public class GamePanel extends JPanel implements Runnable {
 
         gameState = pauseState;
         ui.commandNum = 0;
-        playCursorSE();
+        playConfirmSE();
     }
 
     public void closePauseMenu() {
         gameState = playState;
-        playCursorSE();
+        playBackSE();
     }
 
     public void openOptionsMenu(int returnState) {
@@ -139,14 +172,14 @@ public class GamePanel extends JPanel implements Runnable {
         optionsReturnCommand = ui.commandNum;
         gameState = optionsState;
         ui.commandNum = 0;
-        playCursorSE();
+        playConfirmSE();
     }
 
     public void closeOptionsMenu() {
         config.saveConfig();
         gameState = optionsReturnState;
         ui.commandNum = optionsReturnCommand;
-        playCursorSE();
+        playBackSE();
     }
 
     public void setFullScreen() {
@@ -178,8 +211,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void changeSoundEffectVolume(int amount) {
         se.volumeScale = clampVolume(se.volumeScale + amount);
-        cursorSE.volumeScale = se.volumeScale;
-        cursorSE.checkVolume();
+        syncSoundEffectVolumes();
         config.saveConfig();
     }
 
@@ -194,6 +226,19 @@ public class GamePanel extends JPanel implements Runnable {
 
     private int clampVolume(int value) {
         return Math.max(0, Math.min(5, value));
+    }
+
+    private void syncSoundEffectVolumes() {
+        cursorSE.volumeScale = se.volumeScale;
+        cursorSE.checkVolume();
+        for (Sound sound : oneShotSE) {
+            sound.volumeScale = se.volumeScale;
+            sound.checkVolume();
+        }
+        swingSound.volumeScale = se.volumeScale;
+        footstepSound.volumeScale = se.volumeScale;
+        apartmentAmbienceSound.volumeScale = se.volumeScale;
+        whisperSound.volumeScale = se.volumeScale;
     }
 
     private void applyScreenMode() {
@@ -275,8 +320,7 @@ public class GamePanel extends JPanel implements Runnable {
     private int clampCameraX(int cameraX) {
         switch (currentMap) {
             case MapId.APARTMENT:
-                return clampCamera(cameraX, APARTMENT_LEFT_COL * tileSize,
-                        APARTMENT_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth);
+                return clampApartmentCameraX(cameraX);
             case MapId.FOREST_DOUBTS:
                 return clampCamera(cameraX, FOREST_LEFT_COL * tileSize,
                         FOREST_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth);
@@ -290,8 +334,7 @@ public class GamePanel extends JPanel implements Runnable {
     private int clampCameraY(int cameraY) {
         switch (currentMap) {
             case MapId.APARTMENT:
-                return clampCamera(cameraY, APARTMENT_TOP_ROW * tileSize,
-                        APARTMENT_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight);
+                return clampApartmentCameraY(cameraY);
             case MapId.FOREST_DOUBTS:
                 return clampCamera(cameraY, FOREST_TOP_ROW * tileSize,
                         FOREST_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight);
@@ -300,6 +343,42 @@ public class GamePanel extends JPanel implements Runnable {
             default:
                 return cameraY;
         }
+    }
+
+    private int clampApartmentCameraX(int cameraX) {
+        ApartmentRoom room = getCurrentApartmentRoom();
+        int apartmentMin = APARTMENT_LEFT_COL * tileSize;
+        int apartmentMax = APARTMENT_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth;
+        if (room == null || !room.lockCamera) {
+            return clampCamera(cameraX, apartmentMin, apartmentMax);
+        }
+
+        int roomMin = Math.max(apartmentMin, room.leftCol * tileSize);
+        int roomMax = Math.min(apartmentMax, room.rightExclusiveCol * tileSize - screenWidth);
+        if (roomMax < roomMin) {
+            int anchoredCameraX = Math.max(apartmentMin,
+                    Math.min(room.leftCol * tileSize, room.rightExclusiveCol * tileSize - screenWidth));
+            return clampCamera(anchoredCameraX, apartmentMin, apartmentMax);
+        }
+        return clampCamera(cameraX, roomMin, roomMax);
+    }
+
+    private int clampApartmentCameraY(int cameraY) {
+        ApartmentRoom room = getCurrentApartmentRoom();
+        int apartmentMin = APARTMENT_TOP_ROW * tileSize;
+        int apartmentMax = APARTMENT_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight;
+        if (room == null || !room.lockCamera) {
+            return clampCamera(cameraY, apartmentMin, apartmentMax);
+        }
+
+        int roomMin = Math.max(apartmentMin, room.topRow * tileSize);
+        int roomMax = Math.min(apartmentMax, room.bottomExclusiveRow * tileSize - screenHeight);
+        if (roomMax < roomMin) {
+            int anchoredCameraY = Math.max(apartmentMin,
+                    Math.min(room.topRow * tileSize, room.bottomExclusiveRow * tileSize - screenHeight));
+            return clampCamera(anchoredCameraY, apartmentMin, apartmentMax);
+        }
+        return clampCamera(cameraY, roomMin, roomMax);
     }
 
     public void run() {
@@ -343,6 +422,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void update() {
+        story.update();
+
         if (gameState == playState) {
             player.update();
 
@@ -352,11 +433,54 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             }
 
+            updateApartmentRoomTransition();
+            updateFootstepSound();
             updateSwingSound();
         }
         else {
+            stopFootstepSound();
             stopSwingSound();
         }
+
+        if (gameState == playState || gameState == dialogueState) {
+            updateAmbientSounds();
+        }
+        else {
+            stopAmbientSounds();
+        }
+    }
+
+    private void updateApartmentRoomTransition() {
+        if (currentMap != MapId.APARTMENT) {
+            lastApartmentRoomId = -1;
+            apartmentRoomTransitionCounter = 0;
+            return;
+        }
+
+        ApartmentRoom room = getCurrentApartmentRoom();
+        int roomId = room == null ? -1 : room.id;
+        int previousRoomId = lastApartmentRoomId;
+        if (roomId != lastApartmentRoomId) {
+            lastApartmentRoomId = roomId;
+            if (previousRoomId != -1) {
+                if (room != null && room.id == ROOM_CORRIDOR) {
+                    playSE(Sound.DOOR_CLOSE);
+                }
+                else if (room != null) {
+                    playSE(Sound.DOOR_OPEN);
+                    startApartmentRoomTransition(room.title);
+                }
+            }
+        }
+
+        if (apartmentRoomTransitionCounter > 0) {
+            apartmentRoomTransitionCounter--;
+        }
+    }
+
+    private void startApartmentRoomTransition(String title) {
+        apartmentRoomTransitionTitle = title;
+        apartmentRoomTransitionCounter = APARTMENT_ROOM_TRANSITION_FRAMES;
     }
 
     private void updateSwingSound() {
@@ -396,6 +520,135 @@ public class GamePanel extends JPanel implements Runnable {
         if (swingSoundLoaded && swingSound.isRunning()) {
             swingSound.stop();
         }
+    }
+
+    private void updateFootstepSound() {
+        if (!isPlayerTryingToMove()) {
+            stopFootstepSound();
+            return;
+        }
+
+        int soundIndex = getFootstepSoundIndex();
+        if (soundIndex == -1 || soundIndex == unavailableFootstepSoundIndex) {
+            stopFootstepSound();
+            return;
+        }
+
+        if (activeFootstepSoundIndex != soundIndex) {
+            footstepSound.close();
+            activeFootstepSoundIndex = -1;
+            footstepSound.volumeScale = se.volumeScale;
+            if (!footstepSound.setFile(soundIndex)) {
+                unavailableFootstepSoundIndex = soundIndex;
+                return;
+            }
+            activeFootstepSoundIndex = soundIndex;
+        }
+
+        footstepSound.setVolumeDb(adjustedSoundEffectVolume(-9f));
+        if (!footstepSound.isRunning()) {
+            footstepSound.loop();
+        }
+    }
+
+    private void stopFootstepSound() {
+        if (footstepSound.isRunning()) {
+            footstepSound.stop();
+        }
+    }
+
+    private boolean isPlayerTryingToMove() {
+        return keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed;
+    }
+
+    private int getFootstepSoundIndex() {
+        switch (currentMap) {
+            case MapId.APARTMENT:
+                return Sound.FOOTSTEPS_WOOD;
+            case MapId.FOREST_DOUBTS:
+            case MapId.VILLAGE:
+            case MapId.MOUNTAIN:
+                return Sound.FOOTSTEPS_DIRT;
+            default:
+                return -1;
+        }
+    }
+
+    private void updateAmbientSounds() {
+        updateApartmentAmbienceSound();
+        updateWhisperSound();
+    }
+
+    private void updateApartmentAmbienceSound() {
+        if (currentMap != MapId.APARTMENT || apartmentAmbienceUnavailable) {
+            stopApartmentAmbienceSound();
+            return;
+        }
+
+        if (!apartmentAmbienceLoaded) {
+            apartmentAmbienceSound.volumeScale = se.volumeScale;
+            if (!apartmentAmbienceSound.setFile(Sound.APARTMENT_AMBIENCE)) {
+                apartmentAmbienceUnavailable = true;
+                return;
+            }
+            apartmentAmbienceLoaded = true;
+        }
+
+        apartmentAmbienceSound.setVolumeDb(adjustedSoundEffectVolume(-18f));
+        if (!apartmentAmbienceSound.isRunning()) {
+            apartmentAmbienceSound.loop();
+        }
+    }
+
+    private void updateWhisperSound() {
+        if (!shouldPlayWhispers() || whisperSoundUnavailable) {
+            stopWhisperSound();
+            return;
+        }
+
+        if (!whisperSoundLoaded) {
+            whisperSound.volumeScale = se.volumeScale;
+            if (!whisperSound.setFile(Sound.WHISPERS)) {
+                whisperSoundUnavailable = true;
+                return;
+            }
+            whisperSoundLoaded = true;
+        }
+
+        whisperSound.setVolumeDb(adjustedSoundEffectVolume(-23f));
+        if (!whisperSound.isRunning()) {
+            whisperSound.loop();
+        }
+    }
+
+    private boolean shouldPlayWhispers() {
+        return currentMap == MapId.FOREST_DOUBTS ||
+                (currentMap == MapId.APARTMENT && story.shouldPlayApartmentWhispers());
+    }
+
+    private void stopAmbientSounds() {
+        stopApartmentAmbienceSound();
+        stopWhisperSound();
+    }
+
+    private void stopApartmentAmbienceSound() {
+        if (apartmentAmbienceSound.isRunning()) {
+            apartmentAmbienceSound.stop();
+        }
+    }
+
+    public void stopWhispers() {
+        stopWhisperSound();
+    }
+
+    private void stopWhisperSound() {
+        if (whisperSound.isRunning()) {
+            whisperSound.stop();
+        }
+    }
+
+    private float adjustedSoundEffectVolume(float offsetDb) {
+        return Math.max(-80f, Math.min(6f, Sound.volumeScaleToDb(se.volumeScale) + offsetDb));
     }
 
     private Point getSwingSoundSource() {
@@ -474,6 +727,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         drawGameWorld(graphics);
+        drawApartmentRoomVisibility(graphics);
         drawForestMood(graphics);
     }
 
@@ -528,6 +782,78 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         entityList.clear();
+    }
+
+    private void drawApartmentRoomVisibility(Graphics2D g2) {
+        if (currentMap != MapId.APARTMENT) {
+            return;
+        }
+
+        ApartmentRoom room = getCurrentApartmentRoom();
+        if (room == null) {
+            return;
+        }
+
+        g2.setColor(room.id == ROOM_CORRIDOR ? APARTMENT_INACTIVE_ROOM_SHADOW : APARTMENT_ROOM_SHADOW);
+        fillOutsideWorldTileRect(g2,
+                room.leftCol,
+                room.topRow,
+                room.rightExclusiveCol,
+                room.bottomExclusiveRow);
+        drawWorldTileRectBorder(g2,
+                room.leftCol,
+                room.topRow,
+                room.rightExclusiveCol,
+                room.bottomExclusiveRow);
+    }
+
+    private ApartmentRoom getCurrentApartmentRoom() {
+        if (currentMap != MapId.APARTMENT || player == null) {
+            return null;
+        }
+
+        int playerCenterCol = (player.worldX + player.solidArea.x + player.solidArea.width / 2) / tileSize;
+        int playerCenterRow = (player.worldY + player.solidArea.y + player.solidArea.height / 2) / tileSize;
+        for (ApartmentRoom room : APARTMENT_ROOMS) {
+            if (room.contains(playerCenterCol, playerCenterRow)) {
+                return room;
+            }
+        }
+        return null;
+    }
+
+    private void drawWorldTileRectBorder(Graphics2D g2, int leftCol, int topRow, int rightExclusiveCol,
+                                         int bottomExclusiveRow) {
+        int screenX = worldToScreenX(leftCol * tileSize);
+        int screenY = worldToScreenY(topRow * tileSize);
+        int width = (rightExclusiveCol - leftCol) * tileSize;
+        int height = (bottomExclusiveRow - topRow) * tileSize;
+        Color oldColor = g2.getColor();
+        Stroke oldStroke = g2.getStroke();
+
+        g2.setColor(new Color(0, 0, 0, 82));
+        g2.setStroke(new BasicStroke(8));
+        g2.drawRect(screenX + 2, screenY + 2, width - 4, height - 4);
+
+        g2.setColor(oldColor);
+        g2.setStroke(oldStroke);
+    }
+
+    private void fillOutsideWorldTileRect(Graphics2D g2, int leftCol, int topRow, int rightExclusiveCol,
+                                          int bottomExclusiveRow) {
+        Rectangle visibleRoom = new Rectangle(
+                worldToScreenX(leftCol * tileSize),
+                worldToScreenY(topRow * tileSize),
+                (rightExclusiveCol - leftCol) * tileSize,
+                (bottomExclusiveRow - topRow) * tileSize
+        );
+        Area hiddenArea = new Area(new Rectangle(0, 0, screenWidth, screenHeight));
+        hiddenArea.subtract(new Area(visibleRoom));
+
+        Shape oldClip = g2.getClip();
+        g2.setClip(hiddenArea);
+        g2.fillRect(0, 0, screenWidth, screenHeight);
+        g2.setClip(oldClip);
     }
 
     private void drawForestMood(Graphics2D g2) {
@@ -742,7 +1068,46 @@ public class GamePanel extends JPanel implements Runnable {
         frameGraphics.setClip(0, 0, screenWidth, screenHeight);
         prepareUiGraphics(frameGraphics);
         ui.draw(frameGraphics);
+        drawApartmentRoomTransition(frameGraphics);
         frameGraphics.dispose();
+    }
+
+    private void drawApartmentRoomTransition(Graphics2D g2) {
+        if (apartmentRoomTransitionCounter <= 0 || apartmentRoomTransitionTitle.isEmpty()) {
+            return;
+        }
+
+        int elapsed = APARTMENT_ROOM_TRANSITION_FRAMES - apartmentRoomTransitionCounter;
+        float progress = elapsed / (float) APARTMENT_ROOM_TRANSITION_FRAMES;
+        int alpha;
+        if (progress < 0.35f) {
+            alpha = (int) (APARTMENT_ROOM_TRANSITION_MAX_ALPHA * (progress / 0.35f));
+        }
+        else {
+            alpha = (int) (APARTMENT_ROOM_TRANSITION_MAX_ALPHA * (1f - ((progress - 0.35f) / 0.65f)));
+        }
+        alpha = Math.max(0, Math.min(APARTMENT_ROOM_TRANSITION_MAX_ALPHA, alpha));
+
+        Composite oldComposite = g2.getComposite();
+        Font oldFont = g2.getFont();
+        g2.setColor(new Color(0, 0, 0, alpha));
+        g2.fillRect(0, 0, screenWidth, screenHeight);
+
+        int textAlpha = Math.max(0, Math.min(255, alpha + 45));
+        if (textAlpha > 45) {
+            g2.setFont(new Font("SansSerif", Font.BOLD, 34));
+            FontMetrics metrics = g2.getFontMetrics();
+            int textX = (screenWidth - metrics.stringWidth(apartmentRoomTransitionTitle)) / 2;
+            int textY = screenHeight / 2 + metrics.getAscent() / 2;
+
+            g2.setColor(new Color(0, 0, 0, Math.min(180, textAlpha)));
+            g2.drawString(apartmentRoomTransitionTitle, textX + 3, textY + 3);
+            g2.setColor(new Color(236, 241, 233, textAlpha));
+            g2.drawString(apartmentRoomTransitionTitle, textX, textY);
+        }
+
+        g2.setFont(oldFont);
+        g2.setComposite(oldComposite);
     }
 
     private boolean shouldDrawWorldBuffer() {
@@ -760,8 +1125,27 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void playSE(int i) {
-        se.setFile(i);
-        se.play();
+        playSEAndGetDurationFrames(i);
+    }
+
+    public int playSEAndGetDurationFrames(int i) {
+        Sound sound = oneShotSE[oneShotSECursor];
+        oneShotSECursor = (oneShotSECursor + 1) % oneShotSE.length;
+        sound.volumeScale = getSoundEffectVolume();
+        if (sound.setFile(i)) {
+            int durationFrames = sound.getDurationFrames(FPS);
+            sound.play();
+            return durationFrames;
+        }
+        return 0;
+    }
+
+    public void playConfirmSE() {
+        playSE(Sound.MENU_CONFIRM);
+    }
+
+    public void playBackSE() {
+        playSE(Sound.MENU_BACK);
     }
 
     public void playCursorSE() {
@@ -775,12 +1159,40 @@ public class GamePanel extends JPanel implements Runnable {
             cursorSE.playFromStart();
         }
         else {
-            playSE(SE_CURSOR);
+            playSE(FALLBACK_CURSOR_SOUND_INDEX);
         }
     }
 
     private void preloadCursorSound() {
         cursorSE.volumeScale = se.volumeScale;
         cursorSoundLoaded = cursorSE.setFile(SE_CURSOR);
+    }
+
+    private static final class ApartmentRoom {
+        final int id;
+        final String title;
+        final int leftCol;
+        final int topRow;
+        final int rightExclusiveCol;
+        final int bottomExclusiveRow;
+        final boolean lockCamera;
+
+        ApartmentRoom(int id, String title, int leftCol, int topRow, int rightExclusiveCol,
+                      int bottomExclusiveRow, boolean lockCamera) {
+            this.id = id;
+            this.title = title;
+            this.leftCol = leftCol;
+            this.topRow = topRow;
+            this.rightExclusiveCol = rightExclusiveCol;
+            this.bottomExclusiveRow = bottomExclusiveRow;
+            this.lockCamera = lockCamera;
+        }
+
+        boolean contains(int col, int row) {
+            return col >= leftCol &&
+                    col < rightExclusiveCol &&
+                    row >= topRow &&
+                    row < bottomExclusiveRow;
+        }
     }
 }

@@ -23,12 +23,18 @@ public class StaticObject extends Entity {
         drawHeight = (int) Math.round(gp.tileSize * heightTiles);
         down1 = loadImage(imagePath, drawWidth, drawHeight);
 
-        solidArea.x = 0;
-        solidArea.y = collision ? Math.max(0, drawHeight - gp.tileSize) : 0;
-        solidArea.width = drawWidth;
-        solidArea.height = collision ? gp.tileSize : 0;
+        setSolidArea(0, collision ? Math.max(0, drawHeight - gp.tileSize) : 0,
+                drawWidth, collision ? gp.tileSize : 0);
+    }
+
+    public StaticObject setSolidArea(int x, int y, int width, int height) {
+        solidArea.x = x;
+        solidArea.y = y;
+        solidArea.width = width;
+        solidArea.height = height;
         solidAreaDefaultX = solidArea.x;
         solidAreaDefaultY = solidArea.y;
+        return this;
     }
 
     private BufferedImage loadImage(String imagePath, int width, int height) {

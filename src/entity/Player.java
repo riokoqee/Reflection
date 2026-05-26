@@ -2,6 +2,7 @@ package entity;
 
 import main.GamePanel;
 import main.KeyHandler;
+import main.Sound;
 import main.UtilityTool;
 
 import javax.imageio.ImageIO;
@@ -60,8 +61,8 @@ public class Player extends Entity {
     }
 
     public void setDefaultPositions() {
-        worldX = gp.tileSize * 14;
-        worldY = gp.tileSize * 14;
+        worldX = gp.tileSize * 10;
+        worldY = gp.tileSize * 12;
         direction = "down";
     }
 
@@ -111,7 +112,7 @@ public class Player extends Entity {
         }
 
         if (keyH.enterPressed) {
-            interactNPC();
+            interact();
             keyH.enterPressed = false;
         }
 
@@ -139,15 +140,22 @@ public class Player extends Entity {
         if ("Lantern".equals(gp.obj[gp.currentMap][objectIndex].name)) {
             gp.hasLantern = true;
             gp.obj[gp.currentMap][objectIndex] = null;
+            gp.playSE(Sound.LANTERN_PICKUP);
             gp.ui.addMessage("Фонарь найден");
             gp.saveLoad.save();
         }
     }
 
-    private void interactNPC() {
+    private void interact() {
         int npcIndex = findFacingNPC();
         if (npcIndex != NO_TARGET) {
             gp.npc[gp.currentMap][npcIndex].speak();
+            return;
+        }
+
+        int objectIndex = findFacingObject();
+        if (objectIndex != NO_TARGET) {
+            gp.story.interactObject(gp.obj[gp.currentMap][objectIndex].name);
         }
         else {
             gp.story.showCurrentHint();
@@ -155,19 +163,7 @@ public class Player extends Entity {
     }
 
     private int findFacingNPC() {
-        Rectangle interactionArea = new Rectangle(
-                worldX + solidArea.x,
-                worldY + solidArea.y,
-                solidArea.width,
-                solidArea.height
-        );
-
-        switch (direction) {
-            case "up": interactionArea.y -= gp.tileSize / 2; break;
-            case "down": interactionArea.y += gp.tileSize / 2; break;
-            case "left": interactionArea.x -= gp.tileSize / 2; break;
-            case "right": interactionArea.x += gp.tileSize / 2; break;
-        }
+        Rectangle interactionArea = getFacingInteractionArea();
 
         for (int i = 0; i < gp.npc[gp.currentMap].length; i++) {
             Entity target = gp.npc[gp.currentMap][i];
@@ -184,6 +180,44 @@ public class Player extends Entity {
             }
         }
         return NO_TARGET;
+    }
+
+    private int findFacingObject() {
+        Rectangle interactionArea = getFacingInteractionArea();
+
+        for (int i = 0; i < gp.obj[gp.currentMap].length; i++) {
+            Entity target = gp.obj[gp.currentMap][i];
+            if (target != null) {
+                Rectangle targetArea = new Rectangle(
+                        target.worldX + target.solidArea.x,
+                        target.worldY + target.solidArea.y,
+                        target.solidArea.width,
+                        target.solidArea.height
+                );
+                if (interactionArea.intersects(targetArea)) {
+                    return i;
+                }
+            }
+        }
+        return NO_TARGET;
+    }
+
+    private Rectangle getFacingInteractionArea() {
+        Rectangle interactionArea = new Rectangle(
+                worldX + solidArea.x,
+                worldY + solidArea.y,
+                solidArea.width,
+                solidArea.height
+        );
+
+        switch (direction) {
+            case "up": interactionArea.y -= gp.tileSize / 2; break;
+            case "down": interactionArea.y += gp.tileSize / 2; break;
+            case "left": interactionArea.x -= gp.tileSize / 2; break;
+            case "right": interactionArea.x += gp.tileSize / 2; break;
+        }
+
+        return interactionArea;
     }
 
     @Override

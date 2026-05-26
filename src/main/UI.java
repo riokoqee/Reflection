@@ -16,6 +16,7 @@ public class UI {
     private String checkpointLocation = "";
     private int checkpointCounter = 0;
     private int checkpointSpinnerFrame = 0;
+    private int dialogueSpinnerFrame = 0;
 
     public UI(GamePanel gp) {
         this.gp = gp;
@@ -277,6 +278,7 @@ public class UI {
     private void drawDialogueScreen() {
         StoryManager.StoryPrompt prompt = gp.story.getActivePrompt();
         boolean hasChoices = prompt != null;
+        boolean lockedInteraction = gp.story.isDialogueLocked();
 
         int x = gp.tileSize;
         int width = gp.screenWidth - gp.tileSize * 2;
@@ -307,6 +309,9 @@ public class UI {
             if (hasChoices) {
                 contentHeight += 14 + measureChoicesHeight(prompt, textWidth, choiceFont, choiceLineHeight, choiceGap);
             }
+            if (lockedInteraction) {
+                contentHeight += 44;
+            }
 
             if (contentHeight <= maxHeight || bodySize <= 18) {
                 break;
@@ -327,7 +332,7 @@ public class UI {
 
         int textX = x + 28;
         int textY = y + 42;
-        int bottomY = y + height - 28;
+        int bottomY = y + height - (lockedInteraction ? 70 : 28);
 
         g2.setFont(new Font("SansSerif", Font.BOLD, 22));
         g2.setColor(new Color(174, 215, 196));
@@ -342,7 +347,37 @@ public class UI {
             drawChoices(prompt, textX, Math.max(nextY + 12, y + 134), textWidth,
                     choiceFont, choiceLineHeight, choiceGap, bottomY);
         }
+        if (lockedInteraction) {
+            drawDialogueProgress(textX, y + height - 42, textWidth);
+        }
         g2.setClip(oldClip);
+    }
+
+    private void drawDialogueProgress(int x, int y, int width) {
+        int spinnerSize = 20;
+        int barX = x + spinnerSize + 18;
+        int barY = y - 12;
+        int barWidth = width - spinnerSize - 18;
+        int barHeight = 10;
+        float progress = gp.story.getDialogueLockProgress();
+        int fillWidth = Math.max(0, Math.min(barWidth, Math.round(barWidth * progress)));
+
+        Stroke oldStroke = g2.getStroke();
+        g2.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.setColor(new Color(255, 255, 255, 42));
+        g2.drawOval(x, y - spinnerSize, spinnerSize, spinnerSize);
+        g2.setColor(new Color(174, 215, 196, 230));
+        g2.drawArc(x, y - spinnerSize, spinnerSize, spinnerSize, (dialogueSpinnerFrame * 18) % 360, 240);
+        g2.setStroke(oldStroke);
+
+        g2.setColor(new Color(255, 255, 255, 38));
+        g2.fillRoundRect(barX, barY, barWidth, barHeight, 8, 8);
+        g2.setColor(new Color(174, 215, 196, 220));
+        g2.fillRoundRect(barX, barY, fillWidth, barHeight, 8, 8);
+        g2.setColor(new Color(255, 255, 255, 52));
+        g2.drawRoundRect(barX, barY, barWidth, barHeight, 8, 8);
+
+        dialogueSpinnerFrame++;
     }
 
     private void drawResultScreen() {

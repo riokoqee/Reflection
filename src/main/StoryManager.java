@@ -9,14 +9,18 @@ public class StoryManager {
     public static final String ELDER = "elder";
     public static final String WARRIOR = "warrior";
 
-    private static final int STAGE_SHADOW_FIRST = 0;
-    private static final int STAGE_SHADOW_SECOND = 1;
-    private static final int STAGE_CHILD = 2;
-    private static final int STAGE_FOREST_SHADOW = 3;
-    private static final int STAGE_FRIEND = 4;
-    private static final int STAGE_ELDER = 5;
-    private static final int STAGE_WARRIOR = 6;
-    private static final int STAGE_DONE = 7;
+    private static final int STAGE_MAKE_BED = 0;
+    private static final int STAGE_MAKE_TEA = 1;
+    private static final int STAGE_WASH_FACE = 2;
+    private static final int STAGE_REST_IN_HALL = 3;
+    private static final int STAGE_SHADOW_FIRST = 4;
+    private static final int STAGE_SHADOW_SECOND = 5;
+    private static final int STAGE_CHILD = 6;
+    private static final int STAGE_FOREST_SHADOW = 7;
+    private static final int STAGE_FRIEND = 8;
+    private static final int STAGE_ELDER = 9;
+    private static final int STAGE_WARRIOR = 10;
+    private static final int STAGE_DONE = 11;
 
     private final GamePanel gp;
     private StoryPrompt activePrompt;
@@ -26,13 +30,16 @@ public class StoryManager {
     private int pendingCol;
     private int pendingRow;
     private boolean pendingResult = false;
+    private int dialogueLockCounter = 0;
+    private int dialogueLockTotalFrames = 0;
+    private boolean apartmentShadowConversationStarted = false;
 
     public int growth;
     public int calm;
     public int empathy;
     public int confidence;
     public int selectedChoice = 0;
-    private int stage = STAGE_SHADOW_FIRST;
+    private int stage = STAGE_MAKE_BED;
 
     public StoryManager(GamePanel gp) {
         this.gp = gp;
@@ -41,16 +48,23 @@ public class StoryManager {
 
     public void startNewGame() {
         resetMetrics();
-        stage = STAGE_SHADOW_FIRST;
+        stage = STAGE_MAKE_BED;
+        apartmentShadowConversationStarted = false;
         clearDialogue();
         gp.currentMap = MapId.APARTMENT;
         gp.hasLantern = false;
-        gp.player.setPosition(14, 14);
+        gp.player.setPosition(10, 12);
         gp.player.direction = "down";
         gp.aSetter.setObject();
         gp.aSetter.setNPC();
         gp.gameState = gp.playState;
         gp.ui.commandNum = 0;
+    }
+
+    public void update() {
+        if (dialogueLockCounter > 0) {
+            dialogueLockCounter--;
+        }
     }
 
     public void loadState(int stage, int growth, int calm, int empathy, int confidence) {
@@ -59,11 +73,20 @@ public class StoryManager {
         this.calm = calm;
         this.empathy = empathy;
         this.confidence = confidence;
+        apartmentShadowConversationStarted = stage > STAGE_SHADOW_FIRST;
         clearDialogue();
     }
 
     public int getStage() {
         return stage;
+    }
+
+    public boolean shouldShowApartmentShadow() {
+        return stage >= STAGE_SHADOW_FIRST;
+    }
+
+    public boolean shouldPlayApartmentWhispers() {
+        return shouldShowApartmentShadow() && !apartmentShadowConversationStarted;
     }
 
     public void interact(String role) {
@@ -93,8 +116,64 @@ public class StoryManager {
         }
     }
 
+    public void interactObject(String objectName) {
+        if (objectName == null) {
+            showCurrentHint();
+            return;
+        }
+
+        if (stage == STAGE_MAKE_BED && matchesObject(objectName, "Bed")) {
+            stage = STAGE_MAKE_TEA;
+            openTimedMessage("Квартира",
+                    "Кровать приведена в порядок. В квартире стало чуть спокойнее. Теперь можно пройти на кухню.",
+                    gp.playSEAndGetDurationFrames(Sound.BED_INTERACT));
+        }
+        else if (stage == STAGE_MAKE_TEA && matchesObject(objectName, "Kitchen Table", "Phone Table")) {
+            stage = STAGE_WASH_FACE;
+            openTimedMessage("Кухня",
+                    "Чайник тихо щелкнул. Тепло от кружки держит руки на месте. Осталось умыться.",
+                    gp.playSEAndGetDurationFrames(Sound.KETTLE));
+        }
+        else if (stage == STAGE_WASH_FACE && matchesObject(objectName, "Bathroom Mirror")) {
+            stage = STAGE_REST_IN_HALL;
+            openTimedMessage("Санузел",
+                    "Холодная вода возвращает ощущение утра. В зале стало необычно тихо.",
+                    gp.playSEAndGetDurationFrames(Sound.WATER_SINK));
+        }
+        else if (stage == STAGE_REST_IN_HALL && matchesObject(objectName, "Sofa")) {
+            stage = STAGE_SHADOW_FIRST;
+            gp.aSetter.setNPC();
+            int sofaFrames = gp.playSEAndGetDurationFrames(Sound.SOFA_SIT);
+            int shadowFrames = gp.playSEAndGetDurationFrames(Sound.SHADOW_WHOOSH);
+            openTimedMessage("Зал",
+                    "Тишина затянулась слишком надолго. Из спальни донесся едва слышный шорох у зеркала.",
+                    Math.max(sofaFrames, shadowFrames));
+        }
+        else if (matchesObject(objectName, "Door")) {
+            interactApartmentDoor();
+        }
+        else if (matchesObject(objectName, "Mirror") && shouldShowApartmentShadow()) {
+            interact(SHADOW_APARTMENT);
+        }
+        else {
+            showCurrentHint();
+        }
+    }
+
     public void showCurrentHint() {
         switch (stage) {
+            case STAGE_MAKE_BED:
+                openMessage("Мысль", "Сначала заправь кровать в спальне. Дом должен проснуться раньше, чем день.");
+                break;
+            case STAGE_MAKE_TEA:
+                openMessage("Мысль", "На кухне можно сделать чай. Это обычное дело, но оно держит утро в руках.");
+                break;
+            case STAGE_WASH_FACE:
+                openMessage("Мысль", "Зайди в санузел и умойся. После этого можно будет спокойно выдохнуть.");
+                break;
+            case STAGE_REST_IN_HALL:
+                openMessage("Мысль", "Присядь в зале на диван. Несколько секунд тишины не должны пугать.");
+                break;
             case STAGE_SHADOW_FIRST:
             case STAGE_SHADOW_SECOND:
                 openMessage("Мысль", "Зеркало будто ждёт, когда ты посмотришь прямо в него.");
@@ -118,6 +197,30 @@ public class StoryManager {
                 openMessage("Внутренний мир", "Путь уже пройден. Осталось только посмотреть на результат.");
                 break;
         }
+    }
+
+    private void interactApartmentDoor() {
+        if (stage < STAGE_SHADOW_FIRST) {
+            gp.playSE(Sound.DOOR_CLOSE);
+            openMessage("Дверь", "Двор никуда не денется. Сначала нужно закончить утренние дела дома.");
+        }
+        else if (stage == STAGE_SHADOW_FIRST || stage == STAGE_SHADOW_SECOND) {
+            gp.playSE(Sound.DOOR_CLOSE);
+            openMessage("Дверь", "Ручка холодная. Кажется, сначала надо вернуться к зеркалу.");
+        }
+        else {
+            gp.playSE(Sound.DOOR_OPEN);
+            finishChoice("Дверь", "Ты выходишь во двор. За ним уже шумит Лес Сомнений.", MapId.FOREST_DOUBTS, 23, 43, false);
+        }
+    }
+
+    private boolean matchesObject(String objectName, String... names) {
+        for (String name : names) {
+            if (name.equals(objectName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean hasChoices() {
@@ -199,6 +302,10 @@ public class StoryManager {
     }
 
     public void continueDialogue() {
+        if (!canContinueDialogue()) {
+            return;
+        }
+
         if (activePrompt != null) {
             return;
         }
@@ -228,6 +335,22 @@ public class StoryManager {
         }
     }
 
+    public boolean canContinueDialogue() {
+        return dialogueLockCounter <= 0;
+    }
+
+    public boolean isDialogueLocked() {
+        return dialogueLockCounter > 0;
+    }
+
+    public float getDialogueLockProgress() {
+        if (dialogueLockTotalFrames <= 0) {
+            return 1f;
+        }
+        float progress = 1f - dialogueLockCounter / (float) dialogueLockTotalFrames;
+        return Math.max(0f, Math.min(1f, progress));
+    }
+
     public String getLocationTitle() {
         switch (gp.currentMap) {
             case MapId.APARTMENT: return "Квартира";
@@ -240,6 +363,14 @@ public class StoryManager {
 
     public String getObjective() {
         switch (stage) {
+            case STAGE_MAKE_BED:
+                return "Заправь кровать в спальне";
+            case STAGE_MAKE_TEA:
+                return "Завари чай на кухне";
+            case STAGE_WASH_FACE:
+                return "Умойся в санузле";
+            case STAGE_REST_IN_HALL:
+                return "Присядь в зале";
             case STAGE_SHADOW_FIRST:
             case STAGE_SHADOW_SECOND:
                 return "Поговори с Тенью у зеркала";
@@ -307,6 +438,8 @@ public class StoryManager {
     }
 
     private void openShadowFirst() {
+        apartmentShadowConversationStarted = true;
+        gp.stopWhispers();
         openPrompt(
                 "shadow_first",
                 "Тень",
@@ -448,6 +581,8 @@ public class StoryManager {
         activePrompt = new StoryPrompt(id, speaker, text, choices);
         messageSpeaker = "";
         messageText = "";
+        dialogueLockCounter = 0;
+        dialogueLockTotalFrames = 0;
         selectedChoice = 0;
         gp.gameState = gp.dialogueState;
     }
@@ -456,6 +591,17 @@ public class StoryManager {
         activePrompt = null;
         messageSpeaker = speaker;
         messageText = text;
+        dialogueLockCounter = 0;
+        dialogueLockTotalFrames = 0;
+        gp.gameState = gp.dialogueState;
+    }
+
+    private void openTimedMessage(String speaker, String text, int lockFrames) {
+        activePrompt = null;
+        messageSpeaker = speaker;
+        messageText = text;
+        dialogueLockCounter = Math.max(0, lockFrames);
+        dialogueLockTotalFrames = dialogueLockCounter;
         gp.gameState = gp.dialogueState;
     }
 
@@ -463,6 +609,8 @@ public class StoryManager {
         activePrompt = null;
         messageSpeaker = speaker;
         messageText = text;
+        dialogueLockCounter = 0;
+        dialogueLockTotalFrames = 0;
         pendingMap = map;
         pendingCol = col;
         pendingRow = row;
@@ -496,6 +644,8 @@ public class StoryManager {
         activePrompt = null;
         messageSpeaker = "";
         messageText = "";
+        dialogueLockCounter = 0;
+        dialogueLockTotalFrames = 0;
         pendingMap = -1;
         pendingResult = false;
         selectedChoice = 0;

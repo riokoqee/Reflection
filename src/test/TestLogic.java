@@ -106,15 +106,53 @@ public class TestLogic {
         GamePanel gp = new GamePanel();
         String objective = gp.story.getObjective();
 
-        if (!objective.contains("Тенью")) {
-            throw new AssertionError("Стартовая цель должна вести к Тени, получено: " + objective);
+        if (!objective.contains("кровать")) {
+            throw new AssertionError("Стартовая цель должна начинаться с бытового задания, получено: " + objective);
         }
     }
 
     public static void testFirstStoryStep() {
         GamePanel gp = new GamePanel();
+        gp.setupGame();
+
+        if (gp.npc[0][0] != null) {
+            throw new AssertionError("Тень не должна появляться до домашних заданий");
+        }
+
+        gp.story.interactObject("Bed");
+        if (gp.story.canContinueDialogue()) {
+            throw new AssertionError("Bed interaction must stay open until its sound ends");
+        }
+        finishLockedDialogue(gp);
+        if (!gp.story.getObjective().contains("кухне")) {
+            throw new AssertionError("После кровати цель должна вести на кухню, получено: " + gp.story.getObjective());
+        }
+
+        gp.story.interactObject("Kitchen Table");
+        finishLockedDialogue(gp);
+        if (!gp.story.getObjective().contains("санузле")) {
+            throw new AssertionError("После кухни цель должна вести в санузел, получено: " + gp.story.getObjective());
+        }
+
+        gp.story.interactObject("Bathroom Mirror");
+        finishLockedDialogue(gp);
+        if (!gp.story.getObjective().contains("зале")) {
+            throw new AssertionError("После санузла цель должна вести в зал, получено: " + gp.story.getObjective());
+        }
+
+        gp.story.interactObject("Sofa");
+        finishLockedDialogue(gp);
+        if (gp.npc[0][0] == null) {
+            throw new AssertionError("Тень должна появиться после домашней рутины");
+        }
+        if (!gp.story.shouldPlayApartmentWhispers()) {
+            throw new AssertionError("Apartment whispers must play before the shadow conversation starts");
+        }
 
         gp.story.interact("shadow_apartment");
+        if (gp.story.shouldPlayApartmentWhispers()) {
+            throw new AssertionError("Apartment whispers must stop after starting the shadow conversation");
+        }
         gp.story.chooseSelected();
 
         if (!gp.story.hasChoices()) {
@@ -141,17 +179,26 @@ public class TestLogic {
         GamePanel gp = new GamePanel();
 
         assertBlocked(gp, 14, 6, "Top apartment wall");
-        assertBlocked(gp, 14, 20, "Bottom apartment wall");
+        assertBlocked(gp, 14, 24, "Bottom apartment wall");
         assertBlocked(gp, 5, 14, "Left apartment wall");
-        assertBlocked(gp, 25, 14, "Right apartment wall");
+        assertBlocked(gp, 37, 14, "Right apartment wall");
         assertWalkable(gp, 14, 14, "Apartment floor");
+        assertBlocked(gp, 22, 9, "Bedroom right wall");
+        assertWalkable(gp, 22, 11, "Bedroom doorway");
+        assertBlocked(gp, 10, 15, "Bedroom bottom wall");
+        assertBlocked(gp, 22, 18, "Lower-left room partition");
+        assertWalkable(gp, 22, 20, "Lower-left room doorway");
+        assertBlocked(gp, 26, 9, "Living room partition");
+        assertWalkable(gp, 26, 11, "Living room doorway");
+        assertBlocked(gp, 30, 15, "Right room split wall");
+        assertWalkable(gp, 26, 20, "Right lower room doorway");
 
         assertPlayerBlocked(gp, gp.tileSize * 14, gp.tileSize * 7 - gp.player.solidArea.y, "up", "Top boundary");
         assertPlayerBlocked(gp, gp.tileSize * 14,
-                gp.tileSize * 20 - gp.player.solidArea.y - gp.player.solidArea.height - gp.player.speed + 1,
+                gp.tileSize * 24 - gp.player.solidArea.y - gp.player.solidArea.height - gp.player.speed + 1,
                 "down", "Bottom boundary");
         assertPlayerBlocked(gp, gp.tileSize * 6 - gp.player.solidArea.x, gp.tileSize * 14, "left", "Left boundary");
-        assertPlayerBlocked(gp, gp.tileSize * 25 - gp.player.solidArea.x - gp.player.solidArea.width - gp.player.speed + 1,
+        assertPlayerBlocked(gp, gp.tileSize * 37 - gp.player.solidArea.x - gp.player.solidArea.width - gp.player.speed + 1,
                 gp.tileSize * 14, "right", "Right boundary");
     }
 
@@ -166,8 +213,8 @@ public class TestLogic {
             throw new AssertionError("Bed must block movement");
         }
 
-        assertEquals(gp.tileSize * 21, gp.obj[0][0].worldX, "Bed X position");
-        assertEquals(gp.tileSize * 9, gp.obj[0][0].worldY, "Bed Y position");
+        assertEquals(gp.tileSize * 19, gp.obj[0][0].worldX, "Bed X position");
+        assertEquals(gp.tileSize * 8, gp.obj[0][0].worldY, "Bed Y position");
         assertEquals(gp.tileSize * 3 / 4, gp.obj[0][0].solidArea.x, "Bed collision X offset");
         assertEquals(gp.tileSize / 4, gp.obj[0][0].solidArea.y, "Bed collision Y offset");
         assertEquals(gp.tileSize + gp.tileSize / 12, gp.obj[0][0].solidArea.width, "Bed collision width");
@@ -196,14 +243,20 @@ public class TestLogic {
         gp.player.worldX = gp.tileSize * 6;
         assertEquals(gp.tileSize * 5, gp.getCameraX(), "Apartment camera must stop at the left wall");
 
-        gp.player.worldX = gp.tileSize * 24;
-        assertEquals(gp.tileSize * 26 - gp.screenWidth, gp.getCameraX(), "Apartment camera must stop at the right wall");
+        gp.player.worldX = gp.tileSize * 9;
+        gp.player.worldY = gp.tileSize * 12;
+        assertEquals(gp.tileSize * 5, gp.getCameraX(), "Bedroom camera must fill the screen horizontally");
+        assertEquals(gp.tileSize * 6, gp.getCameraY(), "Bedroom camera must fill the screen vertically");
+
+        gp.player.worldX = gp.tileSize * 36;
+        gp.player.worldY = gp.tileSize * 20;
+        assertEquals(gp.tileSize * 38 - gp.screenWidth, gp.getCameraX(), "Apartment camera must stop at the right wall");
 
         gp.player.worldY = gp.tileSize * 7;
         assertEquals(gp.tileSize * 6, gp.getCameraY(), "Apartment camera must stop at the top wall");
 
-        gp.player.worldY = gp.tileSize * 19;
-        assertEquals(gp.tileSize * 21 - gp.screenHeight, gp.getCameraY(), "Apartment camera must stop at the bottom wall");
+        gp.player.worldY = gp.tileSize * 24;
+        assertEquals(gp.tileSize * 25 - gp.screenHeight, gp.getCameraY(), "Apartment camera must stop at the bottom wall");
     }
 
     public static void testForestDoubtsMap() {
@@ -502,6 +555,18 @@ public class TestLogic {
             }
         }
         return 999;
+    }
+
+    private static void finishLockedDialogue(GamePanel gp) {
+        int guard = 2000;
+        while (!gp.story.canContinueDialogue() && guard > 0) {
+            gp.story.update();
+            guard--;
+        }
+        if (!gp.story.canContinueDialogue()) {
+            throw new AssertionError("Timed interaction dialogue did not unlock");
+        }
+        gp.story.continueDialogue();
     }
 
     private static void assertTreeLeavesBlockMovement(GamePanel gp) {

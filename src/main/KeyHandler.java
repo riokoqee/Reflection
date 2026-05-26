@@ -53,10 +53,12 @@ public class KeyHandler implements KeyListener {
         }
         if (isConfirm(code)) {
             if (gp.ui.commandNum == 0) {
+                gp.playConfirmSE();
                 gp.story.startNewGame();
                 gp.saveLoad.save();
             }
             else if (gp.ui.commandNum == 1) {
+                gp.playConfirmSE();
                 if (!gp.saveLoad.load()) {
                     gp.story.startNewGame();
                 }
@@ -66,6 +68,7 @@ public class KeyHandler implements KeyListener {
                 gp.openOptionsMenu(gp.titleState);
             }
             else if (gp.ui.commandNum == 3) {
+                gp.playConfirmSE();
                 System.exit(0);
             }
         }
@@ -107,10 +110,12 @@ public class KeyHandler implements KeyListener {
                 gp.closePauseMenu();
             }
             else if (gp.ui.commandNum == 1) {
+                gp.playConfirmSE();
                 gp.saveLoad.save();
                 gp.ui.setPauseNotice("Игра сохранена");
             }
             else if (gp.ui.commandNum == 2) {
+                gp.playConfirmSE();
                 if (gp.saveLoad.load()) {
                     gp.gameState = gp.playState;
                 }
@@ -122,11 +127,13 @@ public class KeyHandler implements KeyListener {
                 gp.openOptionsMenu(gp.pauseState);
             }
             else if (gp.ui.commandNum == 4) {
+                gp.playConfirmSE();
                 gp.story.startNewGame();
                 gp.saveLoad.save();
                 gp.gameState = gp.playState;
             }
             else if (gp.ui.commandNum == 5) {
+                gp.playBackSE();
                 gp.saveLoad.save();
                 gp.gameState = gp.titleState;
                 gp.ui.commandNum = 0;
@@ -169,11 +176,15 @@ public class KeyHandler implements KeyListener {
                 gp.story.moveChoice(1);
             }
             if (isAction(code)) {
+                gp.playConfirmSE();
                 gp.story.chooseSelected();
             }
         }
         else if (isAction(code) || code == KeyEvent.VK_SPACE) {
-            gp.story.continueDialogue();
+            if (gp.story.canContinueDialogue()) {
+                gp.playConfirmSE();
+                gp.story.continueDialogue();
+            }
         }
     }
 
@@ -183,6 +194,7 @@ public class KeyHandler implements KeyListener {
             gp.playCursorSE();
         }
         if (isConfirm(code)) {
+            gp.playConfirmSE();
             if (gp.ui.commandNum == 0) {
                 gp.story.startNewGame();
                 gp.saveLoad.save();
