@@ -20,9 +20,6 @@ public class Config {
 
             bw.write(String.valueOf(gp.se.volumeScale));
             bw.newLine();
-
-            bw.write(gp.hudVisible ? "On" : "Off");
-            bw.newLine();
         }
         catch (IOException e) {
             System.err.println("Config save failed: " + e.getMessage());
@@ -34,7 +31,7 @@ public class Config {
             gp.fullScreenOn = "On".equals(br.readLine());
             gp.music.volumeScale = parseVolume(br.readLine(), gp.music.volumeScale);
             gp.se.volumeScale = parseVolume(br.readLine(), gp.se.volumeScale);
-            gp.hudVisible = parseToggle(br.readLine(), gp.hudVisible);
+            gp.hudVisible = false;
         }
         catch (Exception e) {
             System.err.println("Config load failed: " + e.getMessage());
@@ -51,13 +48,4 @@ public class Config {
         }
     }
 
-    private boolean parseToggle(String value, boolean fallback) {
-        if ("On".equals(value)) {
-            return true;
-        }
-        if ("Off".equals(value)) {
-            return false;
-        }
-        return fallback;
-    }
 }

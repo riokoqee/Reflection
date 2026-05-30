@@ -78,7 +78,7 @@ public class CollisionChecker {
                 if (object.collision) {
                     entity.collisionOn = true;
                 }
-                if (player) {
+                if (player && !object.isFloorLayer()) {
                     index = i;
                 }
             }

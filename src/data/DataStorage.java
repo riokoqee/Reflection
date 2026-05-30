@@ -14,5 +14,19 @@ public class DataStorage implements Serializable {
     int calm;
     int empathy;
     int confidence;
+    int responsibility;
+    int avoidance;
+    int selfWorth;
     boolean hasLantern;
+    boolean bedroomLampOn;
+    boolean tvOn;
+    boolean phoneEventDone;
+    boolean photoEventDone;
+    boolean mirrorEventDone;
+    boolean lostLanternEventDone;
+    boolean woundedBirdEventDone;
+    boolean oldLetterEventDone;
+    boolean helpRequestEventDone;
+    boolean forkEventDone;
+    boolean travelerEventDone;
 }

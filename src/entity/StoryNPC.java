@@ -1,15 +1,19 @@
 package entity;
 
 import main.GamePanel;
+import main.GameFonts;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 
 public class StoryNPC extends Entity {
 
     private static final String CHARACTER_PREFIX = "character:";
+    private static final double DRAW_SCALE = 1.15;
 
     private final String role;
     private final String displayName;
+    private int drawSize;
 
     public StoryNPC(GamePanel gp, String role, String displayName, String spriteSet) {
         super(gp);
@@ -38,7 +42,8 @@ public class StoryNPC extends Entity {
     }
 
     private void loadStaticSprite(String path) {
-        up1 = setup(path, gp.tileSize, gp.tileSize);
+        drawSize = (int) Math.round(gp.tileSize * DRAW_SCALE);
+        up1 = setup(path, drawSize, drawSize);
         up2 = up1;
         down1 = up1;
         down2 = up1;
@@ -55,18 +60,21 @@ public class StoryNPC extends Entity {
 
     @Override
     public void draw(Graphics2D g2) {
-        super.draw(g2);
-
         int screenX = gp.worldToScreenX(worldX);
         int screenY = gp.worldToScreenY(worldY);
+        int drawX = screenX - (drawSize - gp.tileSize) / 2;
+        int drawY = screenY - (drawSize - gp.tileSize);
 
-        if (gp.isInCamera(worldX, worldY, gp.tileSize, gp.tileSize)) {
+        if (gp.isInCamera(worldX - (drawSize - gp.tileSize) / 2,
+                worldY - (drawSize - gp.tileSize), drawSize, drawSize)) {
+            BufferedImage image = down1;
+            g2.drawImage(image, drawX, drawY, null);
 
             Font oldFont = g2.getFont();
-            g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+            g2.setFont(GameFonts.bold(13));
             FontMetrics fm = g2.getFontMetrics();
-            int textX = screenX + gp.tileSize / 2 - fm.stringWidth(displayName) / 2;
-            int textY = screenY - 8;
+            int textX = drawX + drawSize / 2 - fm.stringWidth(displayName) / 2;
+            int textY = drawY - 8;
 
             g2.setColor(new Color(0, 0, 0, 170));
             g2.fillRoundRect(textX - 6, textY - fm.getAscent(), fm.stringWidth(displayName) + 12, 18, 8, 8);

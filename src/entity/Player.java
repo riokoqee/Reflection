@@ -12,12 +12,22 @@ import java.io.IOException;
 
 public class Player extends Entity {
 
-    private static final int FRAME_SIZE = 32;
-    private static final int ROW_DOWN = 0;
-    private static final int ROW_SIDE = 1;
-    private static final int ROW_UP = 2;
-    private static final double DRAW_SCALE = 2.1;
+    private static final String HERO_SPRITE = "/player/new/Amelia";
+    private static final int SOURCE_FRAME_WIDTH = 16;
+    private static final int SOURCE_FRAME_HEIGHT = 32;
+    private static final int DIRECTION_RIGHT = 0;
+    private static final int DIRECTION_UP = 1;
+    private static final int DIRECTION_LEFT = 2;
+    private static final int DIRECTION_DOWN = 3;
+    private static final int DIRECTION_COUNT = 4;
+    private static final int FRAMES_PER_DIRECTION = 6;
+    private static final double DRAW_WIDTH_TILES = 0.82;
+    private static final double DRAW_HEIGHT_TILES = 1.64;
     private static final int NO_TARGET = 999;
+    private static final int SOFA_SIT_X_COL = 33;
+    private static final int SOFA_SIT_Y_ROW = 12;
+    private static final int WALK_SPEED = 4;
+    private static final int SPRINT_SPEED = 7;
 
     private final KeyHandler keyH;
     public final int screenX;
@@ -25,12 +35,14 @@ public class Player extends Entity {
     private BufferedImage[][] idleFrames;
     private BufferedImage[][] walkFrames;
     private BufferedImage[][] hurtFrames;
-    private BufferedImage[] idleLeftFrames;
-    private BufferedImage[] walkLeftFrames;
-    private BufferedImage[] hurtLeftFrames;
+    private BufferedImage sofaSitBackFrame;
     private BufferedImage[] deathFrames;
     private int animationCounter = 0;
     private int animationFrame = 0;
+    private int sittingCounter = 0;
+    private int sittingReturnX = 0;
+    private int sittingReturnY = 0;
+    private boolean persistentSitting = false;
 
     public Player(GamePanel gp, KeyHandler keyH) {
         super(gp);
@@ -41,19 +53,19 @@ public class Player extends Entity {
         screenY = gp.screenHeight / 2 - (gp.tileSize / 2);
 
         solidArea = new Rectangle();
-        solidArea.x = 10;
-        solidArea.y = 10;
+        solidArea.x = 12;
+        solidArea.y = 32;
         solidAreaDefaultX = solidArea.x;
         solidAreaDefaultY = solidArea.y;
-        solidArea.width = 28;
-        solidArea.height = 10;
+        solidArea.width = 24;
+        solidArea.height = 12;
 
         setDefaultValues();
         getPlayerImage();
     }
 
     public void setDefaultValues() {
-        speed = 4;
+        speed = WALK_SPEED;
         direction = "down";
         maxLife = 6;
         life = maxLife;
@@ -71,32 +83,86 @@ public class Player extends Entity {
         worldY = gp.tileSize * row;
     }
 
+    public void setPixelPosition(int x, int y) {
+        worldX = x;
+        worldY = y;
+    }
+
+    public void startSittingOnSofa(int frames) {
+        sittingCounter = Math.max(1, frames);
+        persistentSitting = false;
+        sittingReturnX = gp.tileSize * SOFA_SIT_X_COL;
+        sittingReturnY = getSofaFrontExitY();
+        setPixelPosition(gp.tileSize * SOFA_SIT_X_COL, gp.tileSize * SOFA_SIT_Y_ROW - gp.tileSize / 3);
+        direction = "up";
+        animationCounter = 0;
+        animationFrame = 0;
+    }
+
+    private int getSofaFrontExitY() {
+        return gp.tileSize * SOFA_SIT_Y_ROW - solidArea.y - solidArea.height;
+    }
+
+    public void sitOnSofaUntilMoved() {
+        startSittingOnSofa(1);
+        persistentSitting = true;
+    }
+
+    public void updatePoseState() {
+        if (sittingCounter <= 0) {
+            return;
+        }
+
+        if (persistentSitting) {
+            if (keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed) {
+                finishSitting();
+            }
+            return;
+        }
+
+        sittingCounter--;
+        if (sittingCounter == 0) {
+            finishSitting();
+        }
+    }
+
+    private void finishSitting() {
+        sittingCounter = 0;
+        persistentSitting = false;
+        setPixelPosition(sittingReturnX, sittingReturnY);
+        direction = "up";
+    }
+
     public void restoreStatus() {
         invincible = false;
     }
 
     public void getPlayerImage() {
-        idleFrames = loadDirectionalSheet("/player/idle", 2);
-        walkFrames = loadDirectionalSheet("/player/walk", 4);
-        hurtFrames = loadDirectionalSheet("/player/hurt", 2);
-        deathFrames = loadFlatSheet("/player/death", 3, 3);
-        idleLeftFrames = flipFrames(idleFrames[ROW_SIDE]);
-        walkLeftFrames = flipFrames(walkFrames[ROW_SIDE]);
-        hurtLeftFrames = flipFrames(hurtFrames[ROW_SIDE]);
+        idleFrames = loadDirectionalStrip(HERO_SPRITE + "_idle_anim_16x16", FRAMES_PER_DIRECTION);
+        walkFrames = loadDirectionalStrip(HERO_SPRITE + "_run_16x16", FRAMES_PER_DIRECTION);
+        sofaSitBackFrame = loadSingleFrame(HERO_SPRITE + "_sofa_sit_back_16x16");
+        hurtFrames = idleFrames;
+        deathFrames = new BufferedImage[] { idleFrames[DIRECTION_DOWN][0] };
 
-        down1 = idleFrames[ROW_DOWN][0];
-        down2 = idleFrames[ROW_DOWN][1];
-        left1 = idleLeftFrames[0];
-        left2 = idleLeftFrames[1];
-        right1 = idleFrames[ROW_SIDE][0];
-        right2 = idleFrames[ROW_SIDE][1];
-        up1 = idleFrames[ROW_UP][0];
-        up2 = idleFrames[ROW_UP][1];
+        down1 = idleFrames[DIRECTION_DOWN][0];
+        down2 = idleFrames[DIRECTION_DOWN][1];
+        left1 = idleFrames[DIRECTION_LEFT][0];
+        left2 = idleFrames[DIRECTION_LEFT][1];
+        right1 = idleFrames[DIRECTION_RIGHT][0];
+        right2 = idleFrames[DIRECTION_RIGHT][1];
+        up1 = idleFrames[DIRECTION_UP][0];
+        up2 = idleFrames[DIRECTION_UP][1];
     }
 
     @Override
     public void update() {
-        boolean moving = keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed;
+        boolean moving = isMovingInputActive();
+        speed = isSprinting() ? SPRINT_SPEED : WALK_SPEED;
+
+        if (sittingCounter > 0) {
+            keyH.enterPressed = false;
+            return;
+        }
 
         if (keyH.upPressed) {
             direction = "up";
@@ -156,9 +222,6 @@ public class Player extends Entity {
         int objectIndex = findFacingObject();
         if (objectIndex != NO_TARGET) {
             gp.story.interactObject(gp.obj[gp.currentMap][objectIndex].name);
-        }
-        else {
-            gp.story.showCurrentHint();
         }
     }
 
@@ -230,7 +293,7 @@ public class Player extends Entity {
 
     private void updateAnimation(boolean moving) {
         BufferedImage[] frames = getAnimationFrames(moving);
-        int frameDelay = moving ? 9 : 18;
+        int frameDelay = moving ? (isSprinting() ? 6 : 9) : 18;
         if (life <= 0 || invincible) {
             frameDelay = 10;
         }
@@ -246,64 +309,73 @@ public class Player extends Entity {
     }
 
     private BufferedImage getCurrentFrame() {
-        boolean moving = keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed;
+        boolean moving = isMovingInputActive();
         BufferedImage[] frames = getAnimationFrames(moving);
         int frameIndex = life <= 0 ? Math.min(animationFrame, frames.length - 1) : animationFrame % frames.length;
         return frames[frameIndex];
+    }
+
+    public boolean isSprinting() {
+        return keyH.shiftPressed && isMovingInputActive();
+    }
+
+    private boolean isMovingInputActive() {
+        return keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed;
     }
 
     private BufferedImage[] getAnimationFrames(boolean moving) {
         if (life <= 0) {
             return deathFrames;
         }
+        if (sittingCounter > 0) {
+            return new BufferedImage[] { sofaSitBackFrame };
+        }
         if (invincible) {
-            return getDirectionalFrames(hurtFrames, hurtLeftFrames);
+            return getDirectionalFrames(hurtFrames);
         }
         if (moving) {
-            return getDirectionalFrames(walkFrames, walkLeftFrames);
+            return getDirectionalFrames(walkFrames);
         }
-        return getDirectionalFrames(idleFrames, idleLeftFrames);
+        return getDirectionalFrames(idleFrames);
     }
 
-    private BufferedImage[] getDirectionalFrames(BufferedImage[][] frames, BufferedImage[] leftFrames) {
+    private BufferedImage[] getDirectionalFrames(BufferedImage[][] frames) {
         switch (direction) {
-            case "up": return frames[ROW_UP];
-            case "left": return leftFrames;
-            case "right": return frames[ROW_SIDE];
-            default: return frames[ROW_DOWN];
+            case "up": return frames[DIRECTION_UP];
+            case "left": return frames[DIRECTION_LEFT];
+            case "right": return frames[DIRECTION_RIGHT];
+            default: return frames[DIRECTION_DOWN];
         }
     }
 
-    private BufferedImage[][] loadDirectionalSheet(String path, int columns) {
-        BufferedImage[][] frames = new BufferedImage[3][columns];
+    private BufferedImage[][] loadDirectionalStrip(String path, int framesPerDirection) {
+        BufferedImage[][] frames = new BufferedImage[DIRECTION_COUNT][framesPerDirection];
         BufferedImage sheet = loadImage(path);
         UtilityTool uTool = new UtilityTool();
-        int drawSize = (int) (gp.tileSize * DRAW_SCALE);
+        int drawWidth = (int) Math.round(gp.tileSize * DRAW_WIDTH_TILES);
+        int drawHeight = (int) Math.round(gp.tileSize * DRAW_HEIGHT_TILES);
 
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < columns; col++) {
-                BufferedImage frame = sheet.getSubimage(col * FRAME_SIZE, row * FRAME_SIZE, FRAME_SIZE, FRAME_SIZE);
-                frames[row][col] = uTool.scaleImage(frame, drawSize, drawSize);
+        for (int directionIndex = 0; directionIndex < DIRECTION_COUNT; directionIndex++) {
+            for (int frameIndex = 0; frameIndex < framesPerDirection; frameIndex++) {
+                int sourceColumn = directionIndex * framesPerDirection + frameIndex;
+                BufferedImage frame = sheet.getSubimage(
+                        sourceColumn * SOURCE_FRAME_WIDTH,
+                        0,
+                        SOURCE_FRAME_WIDTH,
+                        SOURCE_FRAME_HEIGHT
+                );
+                frames[directionIndex][frameIndex] = uTool.scaleImage(frame, drawWidth, drawHeight);
             }
         }
         return frames;
     }
 
-    private BufferedImage[] loadFlatSheet(String path, int columns, int rows) {
-        BufferedImage[] frames = new BufferedImage[columns * rows];
-        BufferedImage sheet = loadImage(path);
+    private BufferedImage loadSingleFrame(String path) {
         UtilityTool uTool = new UtilityTool();
-        int drawSize = (int) (gp.tileSize * DRAW_SCALE);
-        int index = 0;
-
-        for (int row = 0; row < rows; row++) {
-            for (int col = 0; col < columns; col++) {
-                BufferedImage frame = sheet.getSubimage(col * FRAME_SIZE, row * FRAME_SIZE, FRAME_SIZE, FRAME_SIZE);
-                frames[index] = uTool.scaleImage(frame, drawSize, drawSize);
-                index++;
-            }
-        }
-        return frames;
+        BufferedImage frame = loadImage(path);
+        int drawWidth = (int) Math.round(gp.tileSize * DRAW_WIDTH_TILES);
+        int drawHeight = (int) Math.round(gp.tileSize * DRAW_HEIGHT_TILES);
+        return uTool.scaleImage(frame, drawWidth, drawHeight);
     }
 
     private BufferedImage loadImage(String path) {
@@ -315,19 +387,4 @@ public class Player extends Entity {
         }
     }
 
-    private BufferedImage[] flipFrames(BufferedImage[] frames) {
-        BufferedImage[] flipped = new BufferedImage[frames.length];
-        for (int i = 0; i < frames.length; i++) {
-            flipped[i] = flipHorizontal(frames[i]);
-        }
-        return flipped;
-    }
-
-    private BufferedImage flipHorizontal(BufferedImage image) {
-        BufferedImage flipped = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = flipped.createGraphics();
-        g2.drawImage(image, image.getWidth(), 0, -image.getWidth(), image.getHeight(), null);
-        g2.dispose();
-        return flipped;
-    }
 }

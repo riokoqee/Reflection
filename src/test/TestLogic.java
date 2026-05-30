@@ -3,8 +3,10 @@ package test;
 import entity.Entity;
 import entity.SwingChildNPC;
 import main.GamePanel;
+import main.StoryManager;
 
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,6 +34,9 @@ public class TestLogic {
             runTest("Test 10: forest lantern pickup", TestLogic::testForestLanternPickup);
             runTest("Test 11: village map layout", TestLogic::testVillageMapLayout);
             runTest("Test 12: settings menu controls", TestLogic::testSettingsMenuControls);
+            runTest("Test 13: optional story events", TestLogic::testOptionalStoryEvents);
+            runTest("Test 14: player sprint", TestLogic::testPlayerSprint);
+            runTest("Test 15: mouse menu controls", TestLogic::testMouseMenuControls);
         }
         finally {
             restoreFile(saveFile, hadSave, saveBackup);
@@ -88,6 +93,9 @@ public class TestLogic {
         assertEquals(35, gp.story.calm, "Покой должен начинаться с 35");
         assertEquals(35, gp.story.empathy, "Эмпатия должна начинаться с 35");
         assertEquals(35, gp.story.confidence, "Уверенность должна начинаться с 35");
+        assertEquals(35, gp.story.responsibility, "Ответственность должна начинаться с 35");
+        assertEquals(35, gp.story.avoidance, "Избегание должно начинаться с 35");
+        assertEquals(35, gp.story.selfWorth, "Самооценка должна начинаться с 35");
     }
 
     public static void testGrowthProfile() {
@@ -128,10 +136,10 @@ public class TestLogic {
             throw new AssertionError("После кровати цель должна вести на кухню, получено: " + gp.story.getObjective());
         }
 
-        gp.story.interactObject("Kitchen Table");
+        gp.story.interactObject("Kitchen Stove");
         finishLockedDialogue(gp);
-        if (!gp.story.getObjective().contains("санузле")) {
-            throw new AssertionError("После кухни цель должна вести в санузел, получено: " + gp.story.getObjective());
+        if (!gp.story.getObjective().contains("ванной")) {
+            throw new AssertionError("После кухни цель должна вести в ванную, получено: " + gp.story.getObjective());
         }
 
         gp.story.interactObject("Bathroom Mirror");
@@ -180,14 +188,19 @@ public class TestLogic {
 
         assertBlocked(gp, 14, 6, "Top apartment wall");
         assertBlocked(gp, 14, 24, "Bottom apartment wall");
-        assertBlocked(gp, 5, 14, "Left apartment wall");
+        assertBlocked(gp, 5, 20, "Removed kitchen left side");
         assertBlocked(gp, 37, 14, "Right apartment wall");
         assertWalkable(gp, 14, 14, "Apartment floor");
+        assertBlocked(gp, 10, 10, "Removed bedroom left side");
+        assertBlocked(gp, 13, 10, "Bedroom left wall");
         assertBlocked(gp, 22, 9, "Bedroom right wall");
         assertWalkable(gp, 22, 11, "Bedroom doorway");
-        assertBlocked(gp, 10, 15, "Bedroom bottom wall");
-        assertBlocked(gp, 22, 18, "Lower-left room partition");
-        assertWalkable(gp, 22, 20, "Lower-left room doorway");
+        assertBlocked(gp, 17, 15, "Bedroom bottom wall");
+        assertBlocked(gp, 10, 20, "Removed kitchen left half");
+        assertBlocked(gp, 13, 20, "Kitchen left wall");
+        assertWalkable(gp, 14, 20, "Compact kitchen floor");
+        assertBlocked(gp, 22, 18, "Kitchen partition");
+        assertWalkable(gp, 22, 20, "Kitchen doorway");
         assertBlocked(gp, 26, 9, "Living room partition");
         assertWalkable(gp, 26, 11, "Living room doorway");
         assertBlocked(gp, 30, 15, "Right room split wall");
@@ -197,7 +210,7 @@ public class TestLogic {
         assertPlayerBlocked(gp, gp.tileSize * 14,
                 gp.tileSize * 24 - gp.player.solidArea.y - gp.player.solidArea.height - gp.player.speed + 1,
                 "down", "Bottom boundary");
-        assertPlayerBlocked(gp, gp.tileSize * 6 - gp.player.solidArea.x, gp.tileSize * 14, "left", "Left boundary");
+        assertPlayerBlocked(gp, gp.tileSize * 6 - gp.player.solidArea.x, gp.tileSize * 20, "left", "Left boundary");
         assertPlayerBlocked(gp, gp.tileSize * 37 - gp.player.solidArea.x - gp.player.solidArea.width - gp.player.speed + 1,
                 gp.tileSize * 14, "right", "Right boundary");
     }
@@ -213,12 +226,13 @@ public class TestLogic {
             throw new AssertionError("Bed must block movement");
         }
 
-        assertEquals(gp.tileSize * 19, gp.obj[0][0].worldX, "Bed X position");
-        assertEquals(gp.tileSize * 8, gp.obj[0][0].worldY, "Bed Y position");
-        assertEquals(gp.tileSize * 3 / 4, gp.obj[0][0].solidArea.x, "Bed collision X offset");
-        assertEquals(gp.tileSize / 4, gp.obj[0][0].solidArea.y, "Bed collision Y offset");
-        assertEquals(gp.tileSize + gp.tileSize / 12, gp.obj[0][0].solidArea.width, "Bed collision width");
-        assertEquals(gp.tileSize + gp.tileSize * 5 / 8, gp.obj[0][0].solidArea.height, "Bed collision height");
+        assertEquals(gp.tileSize * 22 - (int) Math.round(gp.tileSize * 2.8), gp.obj[0][0].worldX,
+                "Bed X position");
+        assertEquals(gp.tileSize * 7, gp.obj[0][0].worldY, "Bed Y position");
+        assertEquals(gp.tileSize / 2, gp.obj[0][0].solidArea.x, "Bed collision X offset");
+        assertEquals(gp.tileSize / 5, gp.obj[0][0].solidArea.y, "Bed collision Y offset");
+        assertEquals(gp.tileSize * 7 / 4, gp.obj[0][0].solidArea.width, "Bed collision width");
+        assertEquals(gp.tileSize * 2, gp.obj[0][0].solidArea.height, "Bed collision height");
         assertObjectCollisionAtBedEdge(gp);
 
         if (gp.obj[0][1] == null) {
@@ -227,14 +241,161 @@ public class TestLogic {
         if (!gp.obj[0][1].collision) {
             throw new AssertionError("Mirror must block its visible body");
         }
-        assertEquals(gp.tileSize * 7, gp.obj[0][1].worldX, "Mirror X position");
-        assertEquals(gp.tileSize * 8, gp.obj[0][1].worldY, "Mirror Y position");
+        int expectedDresserX = gp.obj[0][0].worldX - (int) Math.round(gp.tileSize * 1.25) - gp.tileSize / 8;
+        int expectedMirrorX = expectedDresserX - (int) Math.round(gp.tileSize * 1.6) - gp.tileSize / 4;
+        assertEquals(expectedMirrorX, gp.obj[0][1].worldX, "Mirror X position");
+        assertEquals(gp.tileSize * 6 + gp.tileSize / 4, gp.obj[0][1].worldY, "Mirror Y position");
         assertEquals(gp.tileSize / 3, gp.obj[0][1].solidArea.x, "Mirror collision X offset");
         assertEquals(gp.tileSize / 3, gp.obj[0][1].solidArea.y, "Mirror collision Y offset");
         assertEquals(gp.tileSize, gp.obj[0][1].solidArea.width, "Mirror collision width");
         assertEquals(gp.tileSize * 13 / 8, gp.obj[0][1].solidArea.height, "Mirror collision height");
         assertObjectBlocksFromTop(gp, gp.obj[0][1], "Mirror top");
         assertObjectBlocksFromLeft(gp, gp.obj[0][1], "Mirror left side");
+
+        if (findObject(gp, 0, "Bedroom Window") != 999) {
+            throw new AssertionError("Bedroom window must be removed");
+        }
+        if (findObject(gp, 0, "Bedroom Wardrobe") != 999) {
+            throw new AssertionError("Bedroom wardrobe must be removed");
+        }
+        if (findObject(gp, 0, "Bedroom Dresser") != 999) {
+            throw new AssertionError("Bedroom table must be removed");
+        }
+        int plantIndex = findObject(gp, 0, "Bedroom Plant");
+        if (plantIndex == 999) {
+            throw new AssertionError("Bedroom plant must exist");
+        }
+        if (!gp.obj[0][plantIndex].collision) {
+            throw new AssertionError("Bedroom plant must block movement near the pot");
+        }
+        int lampIndex = findObject(gp, 0, "Bedroom Lamp");
+        if (lampIndex == 999) {
+            throw new AssertionError("Bedroom lamp must exist");
+        }
+        if (gp.obj[0][lampIndex].solidArea.height <= 0) {
+            throw new AssertionError("Bedroom lamp must be interactable");
+        }
+        if (gp.bedroomLampOn) {
+            throw new AssertionError("Bedroom lamp must start switched off");
+        }
+        gp.gameState = gp.playState;
+        gp.story.interactObject("Bedroom Lamp");
+        if (!gp.bedroomLampOn || gp.gameState != gp.playState) {
+            throw new AssertionError("Bedroom lamp interaction must switch light on without opening a task");
+        }
+        gp.story.interactObject("Bedroom Lamp");
+        if (gp.bedroomLampOn || gp.gameState != gp.playState) {
+            throw new AssertionError("Bedroom lamp interaction must switch light off without opening a task");
+        }
+        gp.story.interactObject("Dresser");
+        if (!gp.bedroomLampOn || gp.gameState != gp.playState) {
+            throw new AssertionError("Bedroom dresser interaction must switch the lamp from any side");
+        }
+        gp.story.interactObject("Dresser");
+        if (gp.bedroomLampOn || gp.gameState != gp.playState) {
+            throw new AssertionError("Bedroom dresser interaction must switch the lamp off again");
+        }
+        gp.player.setPosition(15, 12);
+        gp.player.direction = "left";
+        gp.keyH.playState(KeyEvent.VK_E);
+        gp.player.update();
+        if (gp.gameState != gp.playState) {
+            throw new AssertionError("Pressing E away from objects must not open the current objective");
+        }
+        if (findObject(gp, 0, "Kitchen Table") != 999 ||
+                findObject(gp, 0, "Kitchen Side Counter") != 999 ||
+                findObject(gp, 0, "Kitchen Low Cabinet") != 999 ||
+                findObject(gp, 0, "Kitchen Plant") != 999) {
+            throw new AssertionError("Kitchen must not contain chairs, wooden cabinet, plant, or book table");
+        }
+        if (findObject(gp, 0, "Kitchen Stove") == 999 ||
+                findObject(gp, 0, "Kitchen Counter Left") == 999 ||
+                findObject(gp, 0, "Kitchen Counter Right") == 999 ||
+                findObject(gp, 0, "Kitchen Fridge") == 999) {
+            throw new AssertionError("Kitchen must keep the functional cooking area");
+        }
+        int kitchenSinkIndex = findObject(gp, 0, "Kitchen Wall Sink");
+        int kitchenCounterLeftIndex = findObject(gp, 0, "Kitchen Counter Left");
+        int kitchenCounterRightIndex = findObject(gp, 0, "Kitchen Counter Right");
+        int kitchenFridgeIndex = findObject(gp, 0, "Kitchen Fridge");
+        int kitchenStoveIndex = findObject(gp, 0, "Kitchen Stove");
+        if (kitchenSinkIndex == 999) {
+            throw new AssertionError("Kitchen sink must stay in the kitchen");
+        }
+        assertEquals(gp.tileSize * 18 - gp.tileSize / 2, gp.obj[0][kitchenStoveIndex].worldX,
+                "Kitchen stove must shift left to avoid overlapping the counters");
+        assertEquals(gp.tileSize * 19 - gp.tileSize / 3, gp.obj[0][kitchenCounterRightIndex].worldX,
+                "Kitchen standalone counter must sit cleanly between the stove and sink");
+        assertEquals(gp.tileSize * 20 - gp.tileSize / 6, gp.obj[0][kitchenCounterLeftIndex].worldX,
+                "Kitchen left L counter must move to the right wall area");
+        assertEquals(gp.tileSize * 21, gp.obj[0][kitchenFridgeIndex].worldX,
+                "Returned kitchen table must close the right edge");
+        assertEquals(gp.obj[0][kitchenCounterLeftIndex].worldX + gp.tileSize / 3,
+                gp.obj[0][kitchenSinkIndex].worldX,
+                "Kitchen sink must sit farther right on the left counter");
+        assertEquals(gp.obj[0][kitchenCounterLeftIndex].worldY - gp.tileSize / 6,
+                gp.obj[0][kitchenSinkIndex].worldY,
+                "Kitchen sink must sit slightly above the left counter");
+        if (findObject(gp, 0, "Hall Bookshelf") != 999 ||
+                findObject(gp, 0, "Hall Coffee Table") != 999 ||
+                findObject(gp, 0, "Hall Wall Shelf") != 999 ||
+                findObject(gp, 0, "Hall Floor Lamp") != 999) {
+            throw new AssertionError("Hall must keep only the carpet, TV, and sofa");
+        }
+        int sofaIndex = findObject(gp, 0, "Sofa");
+        if (findObject(gp, 0, "TV") == 999 || sofaIndex == 999 || findObject(gp, 0, "Living Carpet") == 999) {
+            throw new AssertionError("Hall must still contain TV, sofa, and carpet");
+        }
+        Entity sofaObject = gp.obj[0][sofaIndex];
+        assertEquals(0, sofaObject.solidArea.y, "Sofa collision must start at the visible back");
+        assertEquals((int) Math.round(gp.tileSize * 1.75), sofaObject.solidArea.height,
+                "Sofa collision must cover the full visible depth");
+        assertObjectBlocksFromTop(gp, sofaObject, "Sofa back");
+        if (gp.tvOn) {
+            throw new AssertionError("TV must start switched off");
+        }
+        gp.story.interactObject("TV");
+        if (!gp.tvOn || gp.gameState != gp.playState) {
+            throw new AssertionError("TV interaction must switch TV on without opening a task");
+        }
+        gp.story.interactObject("TV");
+        if (gp.tvOn || gp.gameState != gp.playState) {
+            throw new AssertionError("TV interaction must switch TV off without opening a task");
+        }
+        int stageBeforeSofaInteraction = gp.story.getStage();
+        int sofaFrontY = sofaObject.worldY + sofaObject.solidArea.y
+                - gp.player.solidArea.y - gp.player.solidArea.height;
+        gp.player.setPixelPosition(gp.tileSize * 33, sofaFrontY);
+        gp.player.direction = "down";
+        gp.keyH.playState(KeyEvent.VK_E);
+        gp.player.update();
+        if (gp.story.getStage() != stageBeforeSofaInteraction || gp.gameState != gp.playState) {
+            throw new AssertionError("Generic sofa interaction must sit without advancing the story");
+        }
+        int expectedSofaSitY = gp.tileSize * 12 - gp.tileSize / 3;
+        if (gp.player.worldY != expectedSofaSitY || !"up".equals(gp.player.direction)) {
+            throw new AssertionError("Pressing E in front of the sofa must put the player into the sitting pose");
+        }
+        if (gp.obj[0][sofaIndex].getRenderSortY() <= gp.player.worldY ||
+                gp.obj[0][sofaIndex].getRenderSortY() >= gp.tileSize * 14) {
+            throw new AssertionError("Sofa must render over the seated body without covering the standing player");
+        }
+        for (int i = 0; i < 120; i++) {
+            gp.player.updatePoseState();
+        }
+        if (gp.player.worldY != expectedSofaSitY || !"up".equals(gp.player.direction)) {
+            throw new AssertionError("Generic sofa sitting must stay stable until the player moves");
+        }
+        gp.keyH.rightPressed = true;
+        gp.player.updatePoseState();
+        gp.keyH.rightPressed = false;
+        if (gp.player.worldY != sofaFrontY || !"up".equals(gp.player.direction)) {
+            throw new AssertionError("Moving after sofa sitting must return the player to the TV side of the sofa");
+        }
+        assertFloorLayer(gp, "Living Carpet");
+        assertFloorLayer(gp, "Bedroom Rug");
+        assertFloorLayer(gp, "Kitchen Rug");
+        assertFloorLayer(gp, "Bathroom Rug");
     }
 
     public static void testApartmentCameraBounds() {
@@ -243,10 +404,15 @@ public class TestLogic {
         gp.player.worldX = gp.tileSize * 6;
         assertEquals(gp.tileSize * 5, gp.getCameraX(), "Apartment camera must stop at the left wall");
 
-        gp.player.worldX = gp.tileSize * 9;
+        gp.player.worldX = gp.tileSize * 16;
         gp.player.worldY = gp.tileSize * 12;
-        assertEquals(gp.tileSize * 5, gp.getCameraX(), "Bedroom camera must fill the screen horizontally");
+        assertEquals(gp.tileSize * 13, gp.getCameraX(), "Bedroom camera must start at the smaller room wall");
         assertEquals(gp.tileSize * 6, gp.getCameraY(), "Bedroom camera must fill the screen vertically");
+
+        gp.player.worldX = gp.tileSize * 16;
+        gp.player.worldY = gp.tileSize * 20;
+        assertEquals(gp.tileSize * 13, gp.getCameraX(), "Kitchen camera must start at the smaller room wall");
+        assertEquals(gp.tileSize * 25 - gp.screenHeight, gp.getCameraY(), "Kitchen camera must stop at the bottom room wall");
 
         gp.player.worldX = gp.tileSize * 36;
         gp.player.worldY = gp.tileSize * 20;
@@ -380,21 +546,52 @@ public class TestLogic {
 
         assertBlocked(gp, 2, 0, 0, "Village outer edge");
         assertBlocked(gp, 2, 49, 25, "Village right edge");
-        assertWalkable(gp, 2, 23, 15, "Village entrance road");
-        assertWalkable(gp, 2, 15, 16, "Friend house doorway");
-        assertWalkable(gp, 2, 36, 14, "Library entrance");
+        assertStoneRoad(gp, 23, 15, "Village entrance road");
+        assertStoneRoad(gp, 13, 10, "Friend house doorway");
+        assertStoneRoad(gp, 36, 14, "Library entrance");
 
-        if (countObjectsByPrefix(gp, 2, "village_house") < 6) {
+        if (countObjectsByPrefix(gp, 2, "village_house") < 13) {
             throw new AssertionError("Village must contain several house objects");
         }
         if (findObject(gp, 2, "village_library") == 999) {
             throw new AssertionError("Village must contain the library building");
         }
+        if (countObjects(gp, 2) != 14 ||
+                findObject(gp, 2, "Old Letter") != 999 ||
+                findObject(gp, 2, "Help Request") != 999) {
+            throw new AssertionError("Village must contain only houses, the library, and NPCs");
+        }
+        assertEquals(gp.tileSize * 12, gp.obj[2][findObject(gp, 2, "village_house_friend")].worldX,
+                "Friend house must anchor the north-west village row");
+        assertEquals(gp.tileSize * 42, gp.obj[2][findObject(gp, 2, "village_house_east_upper")].worldX,
+                "East house must anchor the right side of the village");
+        assertEquals(gp.tileSize * 38, gp.obj[2][findObject(gp, 2, "village_house_south_east")].worldX,
+                "South houses must frame the lower village road");
+        assertEquals(gp.tileSize * 15, gp.obj[2][findObject(gp, 2, "village_house_center_west")].worldX,
+                "Center west house must frame the village square");
+        assertEquals(gp.tileSize * 32, gp.obj[2][findObject(gp, 2, "village_house_center_east")].worldX,
+                "Center east house must frame the village square");
+        assertObjectDoesNotOverlapTile(gp, 2, "village_house_south_west", 12,
+                "South-west village house must not stand in the pond");
+        assertVillageHousesDoNotBlockStoneRoads(gp);
+        assertVillageHouseScale(gp, "village_house_north_center");
+        assertVillageHouseScale(gp, "village_house_south_center");
+        assertVillageHouseScale(gp, "village_house_center_west");
 
-        assertEquals(gp.tileSize * 13, gp.npc[2][0].worldX, "Friend must stand inside the friend house");
-        assertEquals(gp.tileSize * 14, gp.npc[2][0].worldY, "Friend must stand inside the friend house doorway");
+        assertStoneRoad(gp, 24, 24, "Village center road must exist");
+        assertStoneRoad(gp, 9, 24, "Village west road must connect");
+        assertStoneRoad(gp, 40, 24, "Village east road must connect");
+        assertStoneRoad(gp, 24, 42, "Village south road must connect");
+        assertNotStoneRoad(gp, 22, 21, "Village vertical road must stay narrow above the square");
+        assertNotStoneRoad(gp, 12, 23, "Village west road must stay narrow");
+
+        assertEquals(gp.tileSize * 13, gp.npc[2][0].worldX, "Friend must stand in front of the friend house");
+        assertEquals(gp.tileSize * 10, gp.npc[2][0].worldY, "Friend must stand by the friend house doorway");
         assertEquals(gp.tileSize * 36, gp.npc[2][1].worldX, "Elder must stand near the library");
         assertEquals(gp.tileSize * 14, gp.npc[2][1].worldY, "Elder must stand near the library entrance");
+        if (gp.npc[2][0].down1.getWidth() <= gp.tileSize || gp.npc[2][1].down1.getHeight() <= gp.tileSize) {
+            throw new AssertionError("Village NPC sprites must render slightly larger than one tile");
+        }
 
         gp.player.worldX = 0;
         assertEquals(0, gp.getCameraX(), "Village camera must stop at the left edge");
@@ -409,6 +606,38 @@ public class TestLogic {
         assertEquals(gp.maxWorldRow * gp.tileSize - gp.screenHeight, gp.getCameraY(), "Village camera must stop at the bottom edge");
     }
 
+    public static void testPlayerSprint() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+        gp.currentMap = 2;
+        if (!new File("res/sound/new/stone_footstep_walk_loop.wav").isFile() ||
+                !new File("res/sound/new/stone_footstep_sprint_loop.wav").isFile()) {
+            throw new AssertionError("Stone footsteps must have faster loop assets");
+        }
+
+        int startX = gp.tileSize * 23;
+        int startY = gp.tileSize * 15;
+
+        gp.player.worldX = startX;
+        gp.player.worldY = startY;
+        gp.keyH.rightPressed = true;
+        gp.player.update();
+        assertEquals(startX + 4, gp.player.worldX, "Walking right must use the base speed");
+
+        gp.player.worldX = startX;
+        gp.player.worldY = startY;
+        gp.keyH.shiftPressed = true;
+        gp.player.update();
+        assertEquals(startX + 7, gp.player.worldX, "Holding Shift must sprint faster than walking");
+        if (!gp.player.isSprinting()) {
+            throw new AssertionError("Player sprint state must be active while Shift and movement are held");
+        }
+
+        gp.keyH.rightPressed = false;
+        gp.player.update();
+        assertEquals(4, gp.player.speed, "Player speed must return to walking when movement stops");
+    }
+
     public static void testSettingsMenuControls() {
         GamePanel gp = new GamePanel();
         gp.setupGame();
@@ -418,6 +647,9 @@ public class TestLogic {
         gp.keyH.titleState(KeyEvent.VK_ENTER);
         assertEquals(gp.optionsState, gp.gameState, "Title settings command must open the settings menu");
         assertEquals(0, gp.ui.commandNum, "Settings menu must open on music volume");
+        if (gp.hudVisible) {
+            throw new AssertionError("HUD must stay hidden during the game");
+        }
 
         int startMusicVolume = gp.getMusicVolume();
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
@@ -435,14 +667,147 @@ public class TestLogic {
         assertEquals(fullScreenBefore ? 0 : 1, gp.fullScreenOn ? 1 : 0, "Enter must toggle fullscreen setting");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
-        boolean hudBefore = gp.hudVisible;
-        gp.keyH.optionsState(KeyEvent.VK_ENTER);
-        assertEquals(hudBefore ? 0 : 1, gp.hudVisible ? 1 : 0, "Enter must toggle HUD setting");
-
-        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        assertEquals(3, gp.ui.commandNum, "Down from fullscreen must move directly to Back");
         gp.keyH.optionsState(KeyEvent.VK_ENTER);
         assertEquals(gp.titleState, gp.gameState, "Back must return to title menu");
         assertEquals(2, gp.ui.commandNum, "Returning from settings must restore the previous menu command");
+    }
+
+    public static void testMouseMenuControls() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+
+        if (!gp.shouldShowMouseCursor()) {
+            throw new AssertionError("Mouse cursor must be visible on the title menu");
+        }
+
+        int titleSettingsY = gp.tileSize * 6 + 24 + 44 * 2;
+        gp.mouseH.mouseMoved(mouseEvent(gp, MouseEvent.MOUSE_MOVED, gp.screenWidth / 2, titleSettingsY));
+        assertEquals(2, gp.ui.commandNum, "Hovering title settings must select that command");
+        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, gp.screenWidth / 2, titleSettingsY));
+        assertEquals(gp.optionsState, gp.gameState, "Clicking title settings must open options");
+
+        int optionsPanelY = gp.screenHeight / 2 - 360 / 2;
+        int optionsBackY = optionsPanelY + 124 + 55 * 3;
+        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, gp.screenWidth / 2, optionsBackY));
+        assertEquals(gp.titleState, gp.gameState, "Clicking options back must return to title");
+        assertEquals(2, gp.ui.commandNum, "Returning from mouse-opened settings must restore title selection");
+
+        gp.gameState = gp.playState;
+        gp.syncMouseCursor();
+        if (gp.shouldShowMouseCursor()) {
+            throw new AssertionError("Mouse cursor must be hidden while playing");
+        }
+
+        gp.gameState = gp.pauseState;
+        int pausePanelY = gp.screenHeight / 2 - 470 / 2;
+        int pauseResumeY = pausePanelY + 158;
+        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, gp.screenWidth / 2, pauseResumeY));
+        assertEquals(gp.playState, gp.gameState, "Clicking pause resume must return to play");
+    }
+
+    private static MouseEvent mouseEvent(GamePanel gp, int id, int x, int y) {
+        return new MouseEvent(gp, id, System.currentTimeMillis(), 0, x, y, 1, false, MouseEvent.BUTTON1);
+    }
+
+    public static void testOptionalStoryEvents() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+
+        if (findObject(gp, 0, "Phone Message") == 999 || findObject(gp, 0, "Old Photo") == 999) {
+            throw new AssertionError("Apartment must contain optional phone and photo events");
+        }
+        if (findObject(gp, 1, "Lost Lantern") == 999 || findObject(gp, 1, "Wounded Bird") == 999) {
+            throw new AssertionError("Forest must contain optional lantern and bird events");
+        }
+        if (findObject(gp, 2, "Old Letter") != 999 || findObject(gp, 2, "Help Request") != 999) {
+            throw new AssertionError("Village optional objects must stay removed while the map is house-only");
+        }
+        if (findObject(gp, 3, "Mountain Fork") == 999 || findObject(gp, 3, "Traveler Pack") == 999) {
+            throw new AssertionError("Mountain must contain optional fork and traveler events");
+        }
+
+        gp.story.interactObject("Phone Message");
+        if (!gp.story.hasChoices()) {
+            throw new AssertionError("Phone event must open an optional prompt");
+        }
+        gp.story.chooseSelected();
+        if (!gp.story.phoneEventDone) {
+            throw new AssertionError("Phone event must be marked as completed after choosing");
+        }
+        if (!gp.story.isPhoneResultOpen()) {
+            throw new AssertionError("Phone reply must stay inside the phone screen");
+        }
+        if (!gp.story.getPhoneResultMomText().contains("рядом")) {
+            throw new AssertionError("Mom's reply must be shown as a phone message");
+        }
+        assertEquals(49, gp.story.empathy, "Answering the phone must raise empathy");
+        assertEquals(47, gp.story.responsibility, "Answering the phone must raise responsibility");
+        assertEquals(27, gp.story.avoidance, "Answering the phone must lower avoidance");
+        gp.story.continueDialogue();
+
+        gp.story.interactObject("Phone Message");
+        if (gp.story.hasChoices()) {
+            throw new AssertionError("Completed optional phone event must not grant choices again");
+        }
+        gp.story.continueDialogue();
+        assertEquals(49, gp.story.empathy, "Completed phone event must not apply metrics twice");
+
+        gp.story.interactObject("Old Photo");
+        gp.story.selectedChoice = 1;
+        gp.story.chooseSelected();
+        if (!gp.story.photoEventDone) {
+            throw new AssertionError("Photo event must be marked as completed");
+        }
+        assertEquals(45, gp.story.calm, "Putting the photo back must raise calm");
+        gp.story.continueDialogue();
+
+        gp.currentMap = 1;
+        gp.story.interactObject("Wounded Bird");
+        gp.story.chooseSelected();
+        if (!gp.story.woundedBirdEventDone) {
+            throw new AssertionError("Wounded bird event must be marked as completed");
+        }
+        if (gp.story.empathy <= 49 || gp.story.responsibility <= 47) {
+            throw new AssertionError("Helping the bird must deepen empathy and responsibility");
+        }
+        gp.story.continueDialogue();
+
+        gp.currentMap = 3;
+        gp.story.interactObject("Mountain Fork");
+        gp.story.selectedChoice = 1;
+        gp.story.chooseSelected();
+        if (!gp.story.forkEventDone || gp.story.growth <= 35 || gp.story.calm <= 45) {
+            throw new AssertionError("Long mountain path must affect growth and calm");
+        }
+        gp.story.continueDialogue();
+
+        gp.story.interact(StoryManager.TRAVELER);
+        gp.story.selectedChoice = 1;
+        gp.story.chooseSelected();
+        if (!gp.story.travelerEventDone) {
+            throw new AssertionError("Traveler event must be marked as completed");
+        }
+        gp.story.continueDialogue();
+
+        gp.story.responsibility = 80;
+        gp.story.avoidance = 30;
+        gp.story.selfWorth = 60;
+        gp.story.empathy = 78;
+        gp.story.growth = 45;
+        gp.story.calm = 50;
+        gp.story.confidence = 45;
+        if (!"Заботливый тип".equals(gp.story.getProfileTitle())) {
+            throw new AssertionError("Hidden metrics must be able to produce the caring profile");
+        }
+
+        gp.story.responsibility = 35;
+        gp.story.avoidance = 82;
+        gp.story.selfWorth = 45;
+        gp.story.empathy = 45;
+        if (!"Избегающий тип".equals(gp.story.getProfileTitle())) {
+            throw new AssertionError("Hidden metrics must be able to produce the avoidant profile");
+        }
     }
 
     private static void assertEquals(int expected, int actual, String message) {
@@ -473,6 +838,78 @@ public class TestLogic {
         int tileNum = gp.tileM.mapTileNum[map][col][row];
         if (gp.tileM.tile[tileNum].collision) {
             throw new AssertionError(label + " must be walkable");
+        }
+    }
+
+    private static void assertStoneRoad(GamePanel gp, int col, int row, String label) {
+        int tileNum = gp.tileM.mapTileNum[2][col][row];
+        if (tileNum < 54 || tileNum > 56) {
+            throw new AssertionError(label + " must use a stone road tile");
+        }
+        if (gp.tileM.tile[tileNum].collision) {
+            throw new AssertionError(label + " must be walkable");
+        }
+    }
+
+    private static void assertNotStoneRoad(GamePanel gp, int col, int row, String label) {
+        int tileNum = gp.tileM.mapTileNum[2][col][row];
+        if (tileNum >= 54 && tileNum <= 56) {
+            throw new AssertionError(label);
+        }
+    }
+
+    private static void assertObjectDoesNotOverlapTile(GamePanel gp, int map, String name, int forbiddenTile,
+                                                       String label) {
+        int index = findObject(gp, map, name);
+        if (index == 999) {
+            throw new AssertionError(name + " must exist");
+        }
+
+        Entity object = gp.obj[map][index];
+        int leftCol = (object.worldX + object.solidArea.x) / gp.tileSize;
+        int rightCol = (object.worldX + object.solidArea.x + object.solidArea.width - 1) / gp.tileSize;
+        int topRow = (object.worldY + object.solidArea.y) / gp.tileSize;
+        int bottomRow = (object.worldY + object.solidArea.y + object.solidArea.height - 1) / gp.tileSize;
+
+        for (int col = leftCol; col <= rightCol; col++) {
+            for (int row = topRow; row <= bottomRow; row++) {
+                if (gp.tileM.mapTileNum[map][col][row] == forbiddenTile) {
+                    throw new AssertionError(label);
+                }
+            }
+        }
+    }
+
+    private static void assertVillageHousesDoNotBlockStoneRoads(GamePanel gp) {
+        for (int i = 0; i < gp.obj[2].length; i++) {
+            Entity object = gp.obj[2][i];
+            if (object == null || (!object.name.startsWith("village_house") && !"village_library".equals(object.name))) {
+                continue;
+            }
+
+            int leftCol = (object.worldX + object.solidArea.x) / gp.tileSize;
+            int rightCol = (object.worldX + object.solidArea.x + object.solidArea.width - 1) / gp.tileSize;
+            int topRow = (object.worldY + object.solidArea.y) / gp.tileSize;
+            int bottomRow = (object.worldY + object.solidArea.y + object.solidArea.height - 1) / gp.tileSize;
+
+            for (int col = leftCol; col <= rightCol; col++) {
+                for (int row = topRow; row <= bottomRow; row++) {
+                    int tileNum = gp.tileM.mapTileNum[2][col][row];
+                    if (tileNum >= 54 && tileNum <= 56) {
+                        throw new AssertionError(object.name + " must not block stone road tile at " + col + "," + row);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void assertVillageHouseScale(GamePanel gp, String name) {
+        int index = findObject(gp, 2, name);
+        if (index == 999) {
+            throw new AssertionError(name + " must exist");
+        }
+        if (gp.obj[2][index].solidArea.height < gp.tileSize * 5) {
+            throw new AssertionError(name + " must be visibly larger after the village scale-up");
         }
     }
 
@@ -555,6 +992,19 @@ public class TestLogic {
             }
         }
         return 999;
+    }
+
+    private static void assertFloorLayer(GamePanel gp, String name) {
+        int index = findObject(gp, 0, name);
+        if (index == 999) {
+            throw new AssertionError(name + " must exist");
+        }
+        if (!gp.obj[0][index].isFloorLayer()) {
+            throw new AssertionError(name + " must render below the player");
+        }
+        if (gp.obj[0][index].collision) {
+            throw new AssertionError(name + " must be walkable");
+        }
     }
 
     private static void finishLockedDialogue(GamePanel gp) {

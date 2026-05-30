@@ -23,6 +23,8 @@ public class Sound {
     public static final int LANTERN_PICKUP = 28;
     public static final int SHADOW_WHOOSH = 29;
     public static final int WHISPERS = 30;
+    public static final int FOOTSTEPS_STONE = 31;
+    public static final int FOOTSTEPS_STONE_SPRINT = 32;
 
     private Clip clip;
     private final URL[] soundURL = new URL[64];
@@ -54,6 +56,8 @@ public class Sound {
         register(DOOR_CLOSE, "new/door_close.wav");
         register(FOOTSTEPS_WOOD, "new/footsteps_wood.wav");
         register(FOOTSTEPS_DIRT, "new/footsteps_dirt.wav");
+        register(FOOTSTEPS_STONE, "new/stone_footstep_walk_loop.wav");
+        register(FOOTSTEPS_STONE_SPRINT, "new/stone_footstep_sprint_loop.wav");
         register(APARTMENT_AMBIENCE, "new/apartment_ambience.wav");
         register(BED_INTERACT, "new/bed_interact.wav");
         register(KETTLE, "new/kettle.wav");

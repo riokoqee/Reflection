@@ -7,6 +7,8 @@ import object.StaticObject;
 
 public class AssetSetter {
 
+    private static final double VILLAGE_HOUSE_SCALE = 1.5;
+
     private static final TreePlacement[] FOREST_TREES = {
             tree("tree_05", 2.9, 3.2, 5, 4),
             tree("tree_11", 2.4, 3.0, 10, 5),
@@ -114,13 +116,20 @@ public class AssetSetter {
     };
 
     private static final VillageHousePlacement[] VILLAGE_HOUSES = {
-            house("village_house_friend", "building_020_x956_y563_73x93", 2.0, 2.7, 13, 12),
-            house("village_house_blue", "building_014_x13_y464_86x80", 2.7, 2.5, 25, 10),
-            house("village_house_red", "building_022_x13_y568_86x80", 2.7, 2.5, 35, 12),
-            house("village_house_green", "building_029_x13_y668_86x80", 2.7, 2.5, 10, 25),
-            house("village_house_black", "building_038_x13_y758_86x80", 2.7, 2.5, 29, 28),
-            house("village_house_white", "building_050_x13_y941_86x80", 2.7, 2.5, 38, 23),
-            house("village_library", "building_006_x218_y93_360x183", 6.2, 3.2, 31, 7)
+            house("village_house_friend", "building_020_x956_y563_73x93", 3.0, 3.8, 12, 3),
+            house("village_house_north_west", "building_014_x13_y464_86x80", 4.0, 3.75, 5, 3),
+            house("village_house_north_center", "building_022_x13_y568_86x80", 4.0, 3.75, 17, 3),
+            house("village_house_north_east", "building_029_x13_y668_86x80", 4.0, 3.75, 25, 3),
+            house("village_house_west_upper", "building_038_x13_y758_86x80", 4.0, 3.75, 1, 15),
+            house("village_house_west_lower", "building_050_x13_y941_86x80", 4.0, 3.75, 1, 26),
+            house("village_house_center_west", "building_018_x791_y563_73x93", 3.0, 3.8, 15, 16),
+            house("village_house_center_east", "building_019_x871_y563_73x93", 3.0, 3.8, 32, 16),
+            house("village_house_east_upper", "building_029_x13_y668_86x80", 4.0, 3.75, 42, 15),
+            house("village_house_east_lower", "building_038_x13_y758_86x80", 4.0, 3.75, 42, 42),
+            house("village_house_south_west", "building_050_x13_y941_86x80", 4.0, 3.75, 12, 36),
+            house("village_house_south_center", "building_014_x13_y464_86x80", 4.0, 3.75, 25, 36),
+            house("village_house_south_east", "building_022_x13_y568_86x80", 4.0, 3.75, 38, 36),
+            house("village_library", "building_006_x218_y93_360x183", 8.5, 4.1, 31, 3)
     };
 
     private static final VillagePropPlacement[] VILLAGE_PROPS = {
@@ -167,30 +176,15 @@ public class AssetSetter {
     };
 
     private static final StaticPlacement[] HOME_DECORATIONS = {
-            homeInterior("Bedroom Window", "if_window_curtains", 1.8, 1.2, 11, 7, false),
-            homeInterior("Bedroom Wardrobe", "if_bedroom_wardrobe", 1.1, 2.0, 17, 7, true),
-            homeInterior("Bedroom Dresser", "if_bedroom_dresser", 1.9, 0.9, 11, 13, true),
-            homeDecoration("Bedroom Lamp", "bedroom_lamp_gold", 0.65, 0.75, 18, 11, false),
-            homeInterior("Bedroom Plant", "if_plant_tall", 0.7, 1.0, 15, 12, false),
-            homeDecoration("Bedroom Rug", "carpet_striped", 1.2, 1.75, 13, 10, false),
+            homeDecoration("Bedroom Rug", "carpet_striped", 1.55, 1.15, 19, 10, false),
 
-            homeInterior("Hall Bookshelf", "if_living_bookshelf", 1.5, 1.5, 27, 7, true),
-            homeInterior("Hall Coffee Table", "if_living_coffee_table", 1.6, 1.0, 31, 11, false),
-            homeInterior("Hall Wall Shelf", "if_living_wall_shelf", 1.4, 1.0, 30, 7, false),
-            homeInterior("Hall Globe", "if_living_globe", 1.6, 1.6, 36, 9, false),
-            homeDecoration("Hall Floor Lamp", "floor_lamp_gold", 0.7, 1.25, 28, 11, false),
-            homeDecoration("Hall Window", "window_wide", 1.5, 1.5, 33, 7, false),
-
-            homeDecoration("Kitchen Fridge", "kitchen_fridge", 1.0, 2.3, 6, 16, true),
-            homeDecoration("Kitchen Counter Left", "kitchen_counter_left", 1.15, 1.1, 10, 16, true),
-            homeDecoration("Kitchen Counter Right", "kitchen_counter_right", 1.15, 1.1, 12, 16, true),
-            homeDecoration("Kitchen Stove", "kitchen_stove", 1.15, 1.1, 14, 16, true),
-            homeInterior("Kitchen Low Cabinet", "if_kitchen_low_cabinet", 1.8, 0.85, 17, 16, true),
+            homeDecoration("Kitchen Counter Left", "kitchen_counter_left", 1.15, 1.1, 20, 16, true),
+            homeDecoration("Kitchen Counter Right", "kitchen_counter_right", 1.15, 1.1, 19, 16, true),
+            homeDecoration("Kitchen Stove", "kitchen_stove", 1.15, 1.1, 18, 16, true),
             homeDecoration("Kitchen Wall Sink", "kitchen_sink_wall", 0.8, 0.75, 20, 16, false),
-            homeInterior("Kitchen Food Crate", "if_kitchen_food_crate", 0.75, 1.0, 7, 22, false),
-            homeInterior("Kitchen Side Counter", "if_kitchen_side_counter", 0.85, 1.0, 8, 16, true),
-            homeDecoration("Kitchen Rug", "carpet_green", 1.6, 1.25, 15, 21, false),
-            homeInterior("Kitchen Plant", "if_plant_table", 0.75, 0.95, 20, 21, false),
+            homeDecoration("Kitchen Fridge", "kitchen_fridge", 1.0, 2.3, 21, 16, true),
+            homeDecoration("Kitchen Rug", "carpet_green", 1.6, 1.25, 17, 21, false),
+            homeInterior("Kitchen Food Crate", "if_kitchen_food_crate", 0.75, 1.0, 21, 22, false),
 
             homeDecoration("Bathroom Toilet", "bathroom_toilet", 0.8, 1.35, 34, 16, true),
             homeDecoration("Bathroom Tub", "bathroom_tub", 2.0, 1.0, 28, 22, true),
@@ -223,55 +217,87 @@ public class AssetSetter {
         clear(gp.npc);
 
         if (gp.story.shouldShowApartmentShadow()) {
-            placeNPC(MapId.APARTMENT, 0, new StoryNPC(gp, StoryManager.SHADOW_APARTMENT, "Тень", "character:shadow"), 11, 12);
+            placeNPC(MapId.APARTMENT, 0, new StoryNPC(gp, StoryManager.SHADOW_APARTMENT, "Тень", "character:shadow"), 15, 12);
         }
 
         placeNPC(MapId.FOREST_DOUBTS, 0, new SwingChildNPC(gp, "Ребёнок"), 30, 8);
         placeNPC(MapId.FOREST_DOUBTS, 1, new StoryNPC(gp, StoryManager.SHADOW_FOREST, "Тень", "character:shadow"), 31, 21);
 
-        placeNPC(MapId.VILLAGE, 0, new StoryNPC(gp, StoryManager.FRIEND, "Друг", "character:friend"), 13, 14);
+        placeNPC(MapId.VILLAGE, 0, new StoryNPC(gp, StoryManager.FRIEND, "Друг", "character:friend"), 13, 10);
         placeNPC(MapId.VILLAGE, 1, new StoryNPC(gp, StoryManager.ELDER, "Старик", "character:elder"), 36, 14);
 
         placeNPC(MapId.MOUNTAIN, 0, new StoryNPC(gp, StoryManager.WARRIOR, "Воин", "character:warrior"), 35, 29);
+        placeNPC(MapId.MOUNTAIN, 1, new StoryNPC(gp, StoryManager.TRAVELER, "Путник", "character:friend"), 28, 34);
     }
 
     private void placeApartmentObjects() {
         int index = 0;
 
-        StaticObject bed = new StaticObject(gp, "Bed", "/objects/home/bed", 2.5, 2.5, true);
-        bed.setSolidArea(gp.tileSize * 3 / 4, gp.tileSize / 4,
-                gp.tileSize + gp.tileSize / 12, gp.tileSize + gp.tileSize * 5 / 8);
-        index = placeObject(MapId.APARTMENT, index, bed, 19, 8);
+        StaticObject bed = new StaticObject(gp, "Bed", "/objects/home/bed", 2.8, 2.8, true);
+        bed.setSolidArea(gp.tileSize / 2, gp.tileSize / 5, gp.tileSize * 7 / 4, gp.tileSize * 2);
+        int bedX = gp.tileSize * 22 - (int) Math.round(gp.tileSize * 2.8);
+        int bedY = gp.tileSize * 7;
+        index = placeObjectAtPixel(MapId.APARTMENT, index, bed, bedX, bedY);
+
+        int dresserWidth = (int) Math.round(gp.tileSize * 1.25);
+        int dresserX = bedX - dresserWidth - gp.tileSize / 8;
+        int dresserY = gp.tileSize * 7;
 
         StaticObject mirror = new StaticObject(gp, "Mirror",
                 "/objects/home/mirrors/mirror_floor_wood_brown", 1.6, 2.4, true);
         mirror.setSolidArea(gp.tileSize / 3, gp.tileSize / 3, gp.tileSize, gp.tileSize * 13 / 8);
-        index = placeObject(MapId.APARTMENT, index, mirror, 7, 8);
+        int mirrorWidth = (int) Math.round(gp.tileSize * 1.6);
+        index = placeObjectAtPixel(MapId.APARTMENT, index, mirror,
+                dresserX - mirrorWidth - gp.tileSize / 4,
+                gp.tileSize * 6 + gp.tileSize / 4);
+
+        StaticObject bedroomLamp = new StaticObject(gp, "Bedroom Lamp", "/objects/home/decor/bedroom_lamp_gold",
+                0.65, 0.75, false);
+        bedroomLamp.setSolidArea(gp.tileSize / 8, gp.tileSize / 8,
+                gp.tileSize * 2 / 5, gp.tileSize / 2);
+        bedroomLamp.setRenderSortY(dresserY + gp.tileSize);
+        int lampWidth = (int) Math.round(gp.tileSize * 0.65);
+        index = placeObjectAtPixel(MapId.APARTMENT, index, bedroomLamp,
+                dresserX + (dresserWidth - lampWidth) / 2,
+                dresserY - gp.tileSize / 3);
 
         StaticObject dresser = new StaticObject(gp, "Dresser", "/objects/home/dresser", 1.25, 1.25, true);
-        index = placeObject(MapId.APARTMENT, index, dresser, 6, 13);
+        index = placeObjectAtPixel(MapId.APARTMENT, index, dresser, dresserX, dresserY);
 
-        StaticObject kitchenTable = new StaticObject(gp, "Kitchen Table",
-                "/objects/home/interiors/if_dining_table_chairs", 2.2, 1.35, true);
-        kitchenTable.setSolidArea(gp.tileSize / 8, gp.tileSize / 2,
-                gp.tileSize * 2, gp.tileSize * 3 / 4);
-        index = placeObject(MapId.APARTMENT, index, kitchenTable, 9, 21);
+        StaticObject bedroomPlant = new StaticObject(gp, "Bedroom Plant", "/objects/home/decor/plant_tall_green",
+                0.85, 1.25, true);
+        bedroomPlant.setSolidArea(gp.tileSize / 6, gp.tileSize * 5 / 6,
+                gp.tileSize / 2, gp.tileSize / 3);
+        index = placeObjectAtPixel(MapId.APARTMENT, index, bedroomPlant,
+                gp.tileSize * 22 - (int) Math.round(gp.tileSize * 0.85),
+                gp.tileSize * 15 - (int) Math.round(gp.tileSize * 1.25));
 
-        StaticObject carpet = new StaticObject(gp, "Living Carpet", "/objects/home/carpet", 2.7, 2.0, false);
-        index = placeObject(MapId.APARTMENT, index, carpet, 29, 10);
+        index = placeObject(MapId.APARTMENT, index,
+                createStoryObject("Old Photo", "old_photo", 0.7, 0.55), 18, 14);
+        index = placeObject(MapId.APARTMENT, index,
+                createStoryObject("Phone Message", "phone_message", 0.65, 0.65), 23, 18);
+
+        StaticObject carpet = new StaticObject(gp, "Living Carpet", "/objects/home/carpet", 2.7, 2.0, false, true);
+        index = placeObject(MapId.APARTMENT, index, carpet, 31, 10);
 
         StaticObject sofa = new StaticObject(gp, "Sofa", "/objects/home/interiors/if_living_sofa_gray",
                 2.8, 1.75, true);
-        sofa.setSolidArea(gp.tileSize / 5, gp.tileSize * 3 / 5,
-                gp.tileSize * 2 + gp.tileSize / 3, gp.tileSize);
-        index = placeObject(MapId.APARTMENT, index, sofa, 28, 12);
+        int sofaWidth = (int) Math.round(gp.tileSize * 2.8);
+        int sofaHeight = (int) Math.round(gp.tileSize * 1.75);
+        sofa.setSolidArea(0, 0, sofaWidth, sofaHeight);
+        sofa.setRenderSortY(gp.tileSize * 13);
+        index = placeObject(MapId.APARTMENT, index, sofa, 32, 12);
 
-        StaticObject tv = new StaticObject(gp, "TV", "/objects/home/tv", 1.7, 1.0, true);
-        tv.setSolidArea(gp.tileSize / 6, gp.tileSize / 2, gp.tileSize * 4 / 3, gp.tileSize / 2);
-        index = placeObject(MapId.APARTMENT, index, tv, 34, 8);
-
-        StaticObject window = new StaticObject(gp, "Window", "/objects/home/window", 1.5, 1.5, false);
-        index = placeObject(MapId.APARTMENT, index, window, 33, 7);
+        StaticObject tv = new StaticObject(gp, "TV", "/objects/home/tv_plasma_off", 2.45, 1.35, true)
+                .setAlternateImage("/objects/home/tv_plasma_on", () -> gp.tvOn);
+        int tvWidth = (int) Math.round(gp.tileSize * 2.45);
+        int tvHeight = (int) Math.round(gp.tileSize * 1.35);
+        tv.setSolidArea(gp.tileSize / 8, gp.tileSize / 8,
+                tvWidth - gp.tileSize / 4, tvHeight - gp.tileSize / 4);
+        int sofaCenterX = gp.tileSize * 32 + (int) Math.round(gp.tileSize * 2.8) / 2;
+        index = placeObjectAtPixel(MapId.APARTMENT, index, tv,
+                sofaCenterX - tvWidth / 2,
+                gp.tileSize * 8);
 
         StaticObject bathroomMirror = new StaticObject(gp, "Bathroom Mirror", "/objects/home/mirror_sink",
                 1.2, 1.35, true);
@@ -293,6 +319,10 @@ public class AssetSetter {
             index = placeObject(MapId.FOREST_DOUBTS, index, createTree(placement), placement.col, placement.row);
         }
         index = placeStaticObjects(MapId.FOREST_DOUBTS, index, FOREST_DECORATIONS);
+        index = placeObject(MapId.FOREST_DOUBTS, index,
+                createStoryObject("Lost Lantern", "lost_lantern", 0.8, 0.9), 18, 35);
+        index = placeObject(MapId.FOREST_DOUBTS, index,
+                createStoryObject("Wounded Bird", "wounded_bird", 0.75, 0.55), 28, 28);
         if (!gp.hasLantern) {
             placeForestLantern(index, 23, 41);
         }
@@ -304,13 +334,14 @@ public class AssetSetter {
         for (VillageHousePlacement placement : VILLAGE_HOUSES) {
             index = placeVillageHouse(index, placement);
         }
-        for (VillagePropPlacement placement : VILLAGE_PROPS) {
-            index = placeVillageProp(index, placement);
-        }
     }
 
     private void placeMountainObjects() {
-        placeStaticObjects(MapId.MOUNTAIN, 0, MOUNTAIN_DECORATIONS);
+        int index = placeStaticObjects(MapId.MOUNTAIN, 0, MOUNTAIN_DECORATIONS);
+        index = placeObject(MapId.MOUNTAIN, index,
+                createStoryObject("Mountain Fork", "mountain_fork", 0.9, 0.9), 31, 33);
+        placeObject(MapId.MOUNTAIN, index,
+                createStoryObject("Traveler Pack", "traveler_pack", 0.75, 0.75), 29, 34);
     }
 
     private void placeNPC(int map, int index, Entity npc, int col, int row) {
@@ -320,18 +351,41 @@ public class AssetSetter {
     }
 
     private int placeObject(int map, int index, StaticObject object, int col, int row) {
+        return placeObjectAtPixel(map, index, object, gp.tileSize * col, gp.tileSize * row);
+    }
+
+    private int placeObjectAtPixel(int map, int index, StaticObject object, int worldX, int worldY) {
         if (index >= gp.obj[map].length) {
             throw new IllegalStateException("Too many objects on map " + map);
         }
         gp.obj[map][index] = object;
-        gp.obj[map][index].worldX = gp.tileSize * col;
-        gp.obj[map][index].worldY = gp.tileSize * row;
+        gp.obj[map][index].worldX = worldX;
+        gp.obj[map][index].worldY = worldY;
         return index + 1;
     }
 
     private int placeStaticObjects(int map, int index, StaticPlacement[] placements) {
         for (StaticPlacement placement : placements) {
-            index = placeObject(map, index, createStaticObject(placement), placement.col, placement.row);
+            StaticObject object = createStaticObject(placement);
+            int worldX = gp.tileSize * placement.col;
+            int worldY = gp.tileSize * placement.row;
+
+            if ("Kitchen Wall Sink".equals(placement.name)) {
+                worldX += gp.tileSize / 6;
+                worldY -= gp.tileSize / 6;
+                object.setRenderSortY(gp.tileSize * placement.row + 1);
+            }
+            else if ("Kitchen Counter Right".equals(placement.name)) {
+                worldX -= gp.tileSize / 3;
+            }
+            else if ("Kitchen Counter Left".equals(placement.name)) {
+                worldX -= gp.tileSize / 6;
+            }
+            else if ("Kitchen Stove".equals(placement.name)) {
+                worldX -= gp.tileSize / 2;
+            }
+
+            index = placeObjectAtPixel(map, index, object, worldX, worldY);
         }
         return index;
     }
@@ -360,8 +414,28 @@ public class AssetSetter {
                 placement.imagePath,
                 placement.widthTiles,
                 placement.heightTiles,
-                placement.collision
+                placement.collision,
+                isFloorPlacement(placement)
         );
+    }
+
+    private StaticObject createStoryObject(String name, String imageName, double widthTiles, double heightTiles) {
+        StaticObject object = new StaticObject(
+                gp,
+                name,
+                "/objects/story/" + imageName,
+                widthTiles,
+                heightTiles,
+                false
+        );
+        object.setSolidArea(0, 0,
+                Math.max(1, (int) Math.round(gp.tileSize * widthTiles)),
+                Math.max(1, (int) Math.round(gp.tileSize * heightTiles)));
+        return object;
+    }
+
+    private boolean isFloorPlacement(StaticPlacement placement) {
+        return placement.name.contains("Rug") || placement.name.contains("Carpet");
     }
 
     private int placeVillageHouse(int index, VillageHousePlacement placement) {
@@ -431,7 +505,10 @@ public class AssetSetter {
 
     private static VillageHousePlacement house(String name, String imageName, double widthTiles, double heightTiles,
                                                int col, int row) {
-        return new VillageHousePlacement(name, imageName, widthTiles, heightTiles, col, row);
+        return new VillageHousePlacement(name, imageName,
+                widthTiles * VILLAGE_HOUSE_SCALE,
+                heightTiles * VILLAGE_HOUSE_SCALE,
+                col, row);
     }
 
     private static VillagePropPlacement prop(String name, String imageName, double widthTiles, double heightTiles,

@@ -44,10 +44,10 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int ROOM_BATHROOM = 3;
     private static final int ROOM_CORRIDOR = 4;
     private static final ApartmentRoom[] APARTMENT_ROOMS = {
-            new ApartmentRoom(ROOM_BEDROOM, "Спальня", 5, 6, 23, 16, true),
+            new ApartmentRoom(ROOM_BEDROOM, "Спальня", 13, 6, 23, 16, true),
             new ApartmentRoom(ROOM_HALL, "Зал", 26, 6, 38, 16, true),
-            new ApartmentRoom(ROOM_KITCHEN, "Кухня", 5, 15, 23, 25, true),
-            new ApartmentRoom(ROOM_BATHROOM, "Санузел", 26, 15, 38, 25, true),
+            new ApartmentRoom(ROOM_KITCHEN, "Кухня", 13, 15, 23, 25, true),
+            new ApartmentRoom(ROOM_BATHROOM, "Ванная", 26, 15, 38, 25, true),
             new ApartmentRoom(ROOM_CORRIDOR, "Коридор", 22, 6, 27, 25, false)
     };
     private static final Color APARTMENT_ROOM_SHADOW = new Color(5, 7, 10, 178);
@@ -58,6 +58,10 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int FOREST_RIGHT_EXCLUSIVE_COL = 46;
     private static final int FOREST_TOP_ROW = 4;
     private static final int FOREST_BOTTOM_EXCLUSIVE_ROW = 46;
+    private static final int FOOTSTEP_WALK_INTERVAL_FRAMES = 22;
+    private static final int FOOTSTEP_SPRINT_INTERVAL_FRAMES = 14;
+    private static final int VILLAGE_STONE_ROAD_FIRST_TILE = 54;
+    private static final int VILLAGE_STONE_ROAD_LAST_TILE = 56;
 
     int screenWidth2 = screenWidth;
     int screenHeight2 = screenHeight;
@@ -70,15 +74,17 @@ public class GamePanel extends JPanel implements Runnable {
     private BufferedImage lanternLightMask;
     private BufferedImage playerGlowImage;
     private BufferedImage lanternGlowImage;
+    private BufferedImage bedroomLampGlowImage;
     private BufferedImage forestVignetteLantern;
     private BufferedImage forestVignetteDark;
     public boolean fullScreenOn = false;
-    public boolean hudVisible = true;
+    public boolean hudVisible = false;
 
     int FPS = 60;
 
     public TileManager tileM = new TileManager(this);
     public KeyHandler keyH = new KeyHandler(this);
+    public MouseHandler mouseH = new MouseHandler(this);
     Sound music = new Sound();
     Sound se = new Sound();
     Sound cursorSE = new Sound();
@@ -92,6 +98,7 @@ public class GamePanel extends JPanel implements Runnable {
     private boolean swingSoundUnavailable = false;
     private int activeFootstepSoundIndex = -1;
     private int unavailableFootstepSoundIndex = -1;
+    private int footstepFrameCounter = 0;
     private boolean apartmentAmbienceLoaded = false;
     private boolean apartmentAmbienceUnavailable = false;
     private boolean whisperSoundLoaded = false;
@@ -107,6 +114,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     public Player player = new Player(this, keyH);
     public boolean hasLantern = false;
+    public boolean bedroomLampOn = false;
+    public boolean tvOn = false;
     public Entity obj[][] = new Entity[maxMap][120];
     public Entity npc[][] = new Entity[maxMap][10];
     private final ArrayList<Entity> entityList = new ArrayList<>();
@@ -114,6 +123,8 @@ public class GamePanel extends JPanel implements Runnable {
     private int lastApartmentRoomId = -1;
     private int apartmentRoomTransitionCounter = 0;
     private String apartmentRoomTransitionTitle = "";
+    private final Cursor visibleCursor = Cursor.getDefaultCursor();
+    private final Cursor hiddenCursor = createHiddenCursor();
 
     public int gameState;
     public final int titleState = 0;
@@ -133,6 +144,8 @@ public class GamePanel extends JPanel implements Runnable {
         this.setBackground(Color.black);
         this.setDoubleBuffered(true);
         this.addKeyListener(keyH);
+        this.addMouseListener(mouseH);
+        this.addMouseMotionListener(mouseH);
         this.setFocusable(true);
     }
 
@@ -140,6 +153,7 @@ public class GamePanel extends JPanel implements Runnable {
         aSetter.setObject();
         aSetter.setNPC();
         gameState = titleState;
+        syncMouseCursor();
 
         tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         renderScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
@@ -217,11 +231,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     public int getSoundEffectVolume() {
         return se.volumeScale;
-    }
-
-    public void toggleHud() {
-        hudVisible = !hudVisible;
-        config.saveConfig();
     }
 
     private int clampVolume(int value) {
@@ -356,9 +365,7 @@ public class GamePanel extends JPanel implements Runnable {
         int roomMin = Math.max(apartmentMin, room.leftCol * tileSize);
         int roomMax = Math.min(apartmentMax, room.rightExclusiveCol * tileSize - screenWidth);
         if (roomMax < roomMin) {
-            int anchoredCameraX = Math.max(apartmentMin,
-                    Math.min(room.leftCol * tileSize, room.rightExclusiveCol * tileSize - screenWidth));
-            return clampCamera(anchoredCameraX, apartmentMin, apartmentMax);
+            return clampCamera(room.leftCol * tileSize, apartmentMin, apartmentMax);
         }
         return clampCamera(cameraX, roomMin, roomMax);
     }
@@ -423,6 +430,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void update() {
         story.update();
+        player.updatePoseState();
+        syncMouseCursor();
 
         if (gameState == playState) {
             player.update();
@@ -543,11 +552,25 @@ public class GamePanel extends JPanel implements Runnable {
                 return;
             }
             activeFootstepSoundIndex = soundIndex;
+            footstepFrameCounter = 0;
         }
 
-        footstepSound.setVolumeDb(adjustedSoundEffectVolume(-9f));
-        if (!footstepSound.isRunning()) {
-            footstepSound.loop();
+        footstepSound.setVolumeDb(adjustedSoundEffectVolume(player.isSprinting() ? -7f : -9f));
+        if (isLoopingFootstepSound(soundIndex)) {
+            if (!footstepSound.isRunning()) {
+                footstepSound.loop();
+            }
+            return;
+        }
+
+        int interval = getFootstepIntervalFrames();
+        footstepFrameCounter = Math.min(footstepFrameCounter, interval);
+        if (footstepFrameCounter <= 0) {
+            footstepSound.playFromStart();
+            footstepFrameCounter = interval;
+        }
+        else {
+            footstepFrameCounter--;
         }
     }
 
@@ -555,6 +578,7 @@ public class GamePanel extends JPanel implements Runnable {
         if (footstepSound.isRunning()) {
             footstepSound.stop();
         }
+        footstepFrameCounter = 0;
     }
 
     private boolean isPlayerTryingToMove() {
@@ -565,13 +589,39 @@ public class GamePanel extends JPanel implements Runnable {
         switch (currentMap) {
             case MapId.APARTMENT:
                 return Sound.FOOTSTEPS_WOOD;
-            case MapId.FOREST_DOUBTS:
             case MapId.VILLAGE:
+                if (isPlayerOnVillageStoneRoad()) {
+                    return player.isSprinting() ? Sound.FOOTSTEPS_STONE_SPRINT : Sound.FOOTSTEPS_STONE;
+                }
+                return Sound.FOOTSTEPS_DIRT;
+            case MapId.FOREST_DOUBTS:
             case MapId.MOUNTAIN:
                 return Sound.FOOTSTEPS_DIRT;
             default:
                 return -1;
         }
+    }
+
+    private int getFootstepIntervalFrames() {
+        return player.isSprinting() ? FOOTSTEP_SPRINT_INTERVAL_FRAMES : FOOTSTEP_WALK_INTERVAL_FRAMES;
+    }
+
+    private boolean isLoopingFootstepSound(int soundIndex) {
+        return soundIndex == Sound.FOOTSTEPS_STONE || soundIndex == Sound.FOOTSTEPS_STONE_SPRINT;
+    }
+
+    private boolean isPlayerOnVillageStoneRoad() {
+        int footX = player.worldX + player.solidArea.x + player.solidArea.width / 2;
+        int footY = player.worldY + player.solidArea.y + player.solidArea.height;
+        int col = footX / tileSize;
+        int row = footY / tileSize;
+
+        if (col < 0 || row < 0 || col >= maxWorldCol || row >= maxWorldRow) {
+            return false;
+        }
+
+        int tileNum = tileM.mapTileNum[MapId.VILLAGE][col][row];
+        return tileNum >= VILLAGE_STONE_ROAD_FIRST_TILE && tileNum <= VILLAGE_STONE_ROAD_LAST_TILE;
     }
 
     private void updateAmbientSounds() {
@@ -728,6 +778,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         drawGameWorld(graphics);
         drawApartmentRoomVisibility(graphics);
+        drawApartmentObjectLights(graphics);
         drawForestMood(graphics);
     }
 
@@ -761,6 +812,12 @@ public class GamePanel extends JPanel implements Runnable {
     private void drawGameWorld(Graphics2D g2) {
         tileM.draw(g2);
 
+        for (int i = 0; i < obj[currentMap].length; i++) {
+            if (obj[currentMap][i] != null && obj[currentMap][i].isFloorLayer()) {
+                obj[currentMap][i].draw(g2);
+            }
+        }
+
         entityList.add(player);
 
         for (int i = 0; i < npc[currentMap].length; i++) {
@@ -770,12 +827,12 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         for (int i = 0; i < obj[currentMap].length; i++) {
-            if (obj[currentMap][i] != null) {
+            if (obj[currentMap][i] != null && !obj[currentMap][i].isFloorLayer()) {
                 entityList.add(obj[currentMap][i]);
             }
         }
 
-        entityList.sort(Comparator.comparingInt(e -> e.worldY));
+        entityList.sort(Comparator.comparingInt(Entity::getRenderSortY));
 
         for (int i = 0; i < entityList.size(); i++) {
             entityList.get(i).draw(g2);
@@ -805,6 +862,35 @@ public class GamePanel extends JPanel implements Runnable {
                 room.topRow,
                 room.rightExclusiveCol,
                 room.bottomExclusiveRow);
+    }
+
+    private void drawApartmentObjectLights(Graphics2D g2) {
+        if (currentMap != MapId.APARTMENT) {
+            return;
+        }
+
+        ApartmentRoom room = getCurrentApartmentRoom();
+        if (room == null) {
+            return;
+        }
+
+        if (bedroomLampOn && room.id == ROOM_BEDROOM) {
+            drawBedroomLampLight(g2);
+        }
+    }
+
+    private void drawBedroomLampLight(Graphics2D g2) {
+        if (bedroomLampGlowImage == null) {
+            bedroomLampGlowImage = createRadialImage(tileSize * 3.2f,
+                    alphaColor(255, 225, 142, 135, 1f),
+                    alphaColor(226, 151, 64, 58, 1f),
+                    new Color(226, 151, 64, 0));
+        }
+
+        Point lampLight = getObjectLightPoint("Bedroom Lamp");
+        if (lampLight != null) {
+            drawCenteredImage(g2, bedroomLampGlowImage, lampLight.x, lampLight.y);
+        }
     }
 
     private ApartmentRoom getCurrentApartmentRoom() {
@@ -988,6 +1074,18 @@ public class GamePanel extends JPanel implements Runnable {
         return null;
     }
 
+    private Point getObjectLightPoint(String objectName) {
+        for (int i = 0; i < obj[currentMap].length; i++) {
+            Entity object = obj[currentMap][i];
+            if (object != null && objectName.equals(object.name)) {
+                int centerX = object.worldX + object.solidArea.x + object.solidArea.width / 2;
+                int centerY = object.worldY + object.solidArea.y + object.solidArea.height / 2;
+                return new Point(worldToScreenX(centerX), worldToScreenY(centerY));
+            }
+        }
+        return null;
+    }
+
     private void presentFrame() {
         if (shouldUseActiveRender()) {
             drawWithBufferStrategy();
@@ -1072,6 +1170,49 @@ public class GamePanel extends JPanel implements Runnable {
         frameGraphics.dispose();
     }
 
+    public Point toGameScreenPoint(int componentX, int componentY) {
+        int targetWidth = getWidth() > 0 ? getWidth() : screenWidth2;
+        int targetHeight = getHeight() > 0 ? getHeight() : screenHeight2;
+        if (targetWidth <= 0 || targetHeight <= 0) {
+            targetWidth = screenWidth;
+            targetHeight = screenHeight;
+        }
+
+        double scale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
+        int drawWidth = (int) Math.ceil(screenWidth * scale);
+        int drawHeight = (int) Math.ceil(screenHeight * scale);
+        int drawX = (targetWidth - drawWidth) / 2;
+        int drawY = (targetHeight - drawHeight) / 2;
+
+        int gameX = (int) Math.floor((componentX - drawX) / scale);
+        int gameY = (int) Math.floor((componentY - drawY) / scale);
+        return new Point(gameX, gameY);
+    }
+
+    public boolean shouldShowMouseCursor() {
+        return gameState == titleState ||
+                gameState == pauseState ||
+                gameState == optionsState ||
+                gameState == resultState;
+    }
+
+    public void syncMouseCursor() {
+        Cursor targetCursor = shouldShowMouseCursor() ? visibleCursor : hiddenCursor;
+        if (getCursor() != targetCursor) {
+            setCursor(targetCursor);
+        }
+    }
+
+    private Cursor createHiddenCursor() {
+        try {
+            BufferedImage cursorImage = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+            return Toolkit.getDefaultToolkit().createCustomCursor(cursorImage, new Point(0, 0), "hidden");
+        }
+        catch (RuntimeException e) {
+            return Cursor.getDefaultCursor();
+        }
+    }
+
     private void drawApartmentRoomTransition(Graphics2D g2) {
         if (apartmentRoomTransitionCounter <= 0 || apartmentRoomTransitionTitle.isEmpty()) {
             return;
@@ -1089,24 +1230,8 @@ public class GamePanel extends JPanel implements Runnable {
         alpha = Math.max(0, Math.min(APARTMENT_ROOM_TRANSITION_MAX_ALPHA, alpha));
 
         Composite oldComposite = g2.getComposite();
-        Font oldFont = g2.getFont();
         g2.setColor(new Color(0, 0, 0, alpha));
         g2.fillRect(0, 0, screenWidth, screenHeight);
-
-        int textAlpha = Math.max(0, Math.min(255, alpha + 45));
-        if (textAlpha > 45) {
-            g2.setFont(new Font("SansSerif", Font.BOLD, 34));
-            FontMetrics metrics = g2.getFontMetrics();
-            int textX = (screenWidth - metrics.stringWidth(apartmentRoomTransitionTitle)) / 2;
-            int textY = screenHeight / 2 + metrics.getAscent() / 2;
-
-            g2.setColor(new Color(0, 0, 0, Math.min(180, textAlpha)));
-            g2.drawString(apartmentRoomTransitionTitle, textX + 3, textY + 3);
-            g2.setColor(new Color(236, 241, 233, textAlpha));
-            g2.drawString(apartmentRoomTransitionTitle, textX, textY);
-        }
-
-        g2.setFont(oldFont);
         g2.setComposite(oldComposite);
     }
 

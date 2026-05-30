@@ -35,6 +35,14 @@ public class Entity {
 
     public void update() {}
 
+    public boolean isFloorLayer() {
+        return false;
+    }
+
+    public int getRenderSortY() {
+        return worldY;
+    }
+
     public void draw(Graphics2D g2) {
         BufferedImage image = null;
 

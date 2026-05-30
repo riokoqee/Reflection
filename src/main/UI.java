@@ -20,7 +20,7 @@ public class UI {
 
     public UI(GamePanel gp) {
         this.gp = gp;
-        titleFont = new Font("SansSerif", Font.BOLD, 72);
+        titleFont = GameFonts.bold(72);
     }
 
     public void addMessage(String text) {
@@ -51,9 +51,6 @@ public class UI {
             drawTitleScreen();
         }
         else if (gp.gameState == gp.playState) {
-            if (gp.hudVisible) {
-                drawHud();
-            }
             drawMessage();
             drawCheckpointNotice();
         }
@@ -64,9 +61,6 @@ public class UI {
             drawOptionsScreen();
         }
         else if (gp.gameState == gp.dialogueState) {
-            if (gp.hudVisible) {
-                drawHud();
-            }
             drawDialogueScreen();
         }
         else if (gp.gameState == gp.resultState) {
@@ -85,10 +79,8 @@ public class UI {
         int y = gp.tileSize * 3;
         drawShadowedString(text, x, y, Color.white, new Color(0, 0, 0, 140));
 
-        g2.drawImage(gp.player.down1, gp.screenWidth / 2 - gp.tileSize, gp.tileSize * 5, gp.tileSize * 2, gp.tileSize * 2, null);
-
-        g2.setFont(new Font("SansSerif", Font.BOLD, 30));
-        y = gp.tileSize * 8 + 12;
+        g2.setFont(GameFonts.bold(30));
+        y = gp.tileSize * 6 + 24;
         drawMenuItem("НОВАЯ ИГРА", 0, y);
         y += 44;
         drawMenuItem("ПРОДОЛЖИТЬ", 1, y);
@@ -105,7 +97,7 @@ public class UI {
         int height = 110;
         drawSubWindow(x, y, width, height, new Color(8, 12, 16, 165));
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 18));
+        g2.setFont(GameFonts.bold(18));
         g2.setColor(new Color(231, 240, 235));
         g2.drawString(gp.story.getLocationTitle(), x + 18, y + 30);
 
@@ -119,7 +111,7 @@ public class UI {
     private void drawMessage() {
         int messageX = gp.tileSize;
         int messageY = gp.tileSize * 4;
-        g2.setFont(new Font("SansSerif", Font.BOLD, 22));
+        g2.setFont(GameFonts.bold(22));
 
         for (int i = 0; i < message.size(); i++) {
             if (message.get(i) != null) {
@@ -169,16 +161,16 @@ public class UI {
         g2.setStroke(oldStroke);
 
         int textX = x + 68;
-        g2.setFont(new Font("SansSerif", Font.BOLD, 17));
+        g2.setFont(GameFonts.bold(17));
         g2.setColor(new Color(236, 248, 242, Math.min(255, alpha + 30)));
         g2.drawString("Контрольная точка", textX, y + 31);
 
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        g2.setFont(GameFonts.regular(15));
         g2.setColor(new Color(174, 215, 196, Math.min(240, alpha + 20)));
         g2.drawString("Сохранение...", textX, y + 55);
 
         if (!checkpointLocation.isEmpty()) {
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            g2.setFont(GameFonts.regular(13));
             g2.setColor(new Color(206, 219, 212, Math.min(220, alpha + 10)));
             g2.drawString(trimToWidth(checkpointLocation, width - 88), textX, y + 76);
         }
@@ -206,11 +198,11 @@ public class UI {
         g2.setColor(new Color(174, 215, 196, 75));
         g2.fillRoundRect(panelX + 24, panelY + 24, panelWidth - 48, 82, 18, 18);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 38));
+        g2.setFont(GameFonts.bold(38));
         String text = "ПАУЗА";
         drawShadowedString(text, getXforCenteredText(text), panelY + 66, Color.white, new Color(0, 0, 0, 160));
 
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        g2.setFont(GameFonts.regular(15));
         g2.setColor(new Color(210, 225, 218));
         String place = gp.story.getLocationTitle();
         g2.drawString(place, panelX + 34, panelY + 94);
@@ -223,12 +215,12 @@ public class UI {
         drawPauseMenuItem("НОВАЯ ИГРА", 4, panelX + 54, menuY + 184, panelWidth - 108);
         drawPauseMenuItem("В ГЛАВНОЕ МЕНЮ", 5, panelX + 54, menuY + 230, panelWidth - 108);
 
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(195, 208, 202));
         g2.drawString("Esc - вернуться    Enter - выбрать", panelX + 54, panelY + panelHeight - 28);
 
         if (!pauseNotice.isEmpty() && pauseNoticeCounter > 0) {
-            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
+            g2.setFont(GameFonts.bold(16));
             int noticeWidth = g2.getFontMetrics().stringWidth(pauseNotice) + 36;
             int noticeX = gp.screenWidth / 2 - noticeWidth / 2;
             int noticeY = panelY - 46;
@@ -251,7 +243,7 @@ public class UI {
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 
         int panelWidth = 560;
-        int panelHeight = 420;
+        int panelHeight = 360;
         int panelX = gp.screenWidth / 2 - panelWidth / 2;
         int panelY = gp.screenHeight / 2 - panelHeight / 2;
 
@@ -259,7 +251,7 @@ public class UI {
         g2.fillRoundRect(panelX + 10, panelY + 12, panelWidth, panelHeight, 28, 28);
         drawSubWindow(panelX, panelY, panelWidth, panelHeight, new Color(8, 14, 17, 232));
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 38));
+        g2.setFont(GameFonts.bold(38));
         String title = "НАСТРОЙКИ";
         drawShadowedString(title, getXforCenteredText(title), panelY + 62, Color.white, new Color(0, 0, 0, 160));
 
@@ -271,12 +263,20 @@ public class UI {
         drawVolumeOption("Музыка", gp.music.volumeScale, 0, rowX, rowY, rowWidth);
         drawVolumeOption("Звуки", gp.se.volumeScale, 1, rowX, rowY + rowStep, rowWidth);
         drawToggleOption("Полный экран", gp.fullScreenOn, 2, rowX, rowY + rowStep * 2, rowWidth);
-        drawToggleOption("Интерфейс", gp.hudVisible, 3, rowX, rowY + rowStep * 3, rowWidth);
-        drawBackOption("НАЗАД", 4, rowX, rowY + rowStep * 4, rowWidth);
+        drawBackOption("НАЗАД", 3, rowX, rowY + rowStep * 3, rowWidth);
     }
 
     private void drawDialogueScreen() {
         StoryManager.StoryPrompt prompt = gp.story.getActivePrompt();
+        if (gp.story.isPhoneResultOpen()) {
+            drawPhoneResultScreen();
+            return;
+        }
+        if (gp.story.isPhonePrompt(prompt)) {
+            drawPhoneDialogueScreen(prompt);
+            return;
+        }
+
         boolean hasChoices = prompt != null;
         boolean lockedInteraction = gp.story.isDialogueLocked();
 
@@ -299,8 +299,8 @@ public class UI {
         int contentHeight;
 
         while (true) {
-            bodyFont = new Font("SansSerif", Font.PLAIN, bodySize);
-            choiceFont = new Font("SansSerif", Font.BOLD, choiceSize);
+            bodyFont = GameFonts.regular(bodySize);
+            choiceFont = GameFonts.bold(choiceSize);
             bodyLineHeight = Math.max(23, bodySize + 6);
             choiceLineHeight = Math.max(20, choiceSize + 4);
             textLines = wrapTextLines(text, textWidth, bodyFont);
@@ -334,7 +334,7 @@ public class UI {
         int textY = y + 42;
         int bottomY = y + height - (lockedInteraction ? 70 : 28);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 22));
+        g2.setFont(GameFonts.bold(22));
         g2.setColor(new Color(174, 215, 196));
         g2.drawString(trimToWidth(speaker, textWidth), textX, textY);
 
@@ -351,6 +351,208 @@ public class UI {
             drawDialogueProgress(textX, y + height - 42, textWidth);
         }
         g2.setClip(oldClip);
+    }
+
+    private void drawPhoneDialogueScreen(StoryManager.StoryPrompt prompt) {
+        Rectangle phoneScreen = drawPhoneFrame();
+        int screenX = phoneScreen.x;
+        int screenY = phoneScreen.y;
+        int screenWidth = phoneScreen.width;
+        int screenHeight = phoneScreen.height;
+
+        drawPhoneStatusBar(screenX, screenY, screenWidth);
+        drawPhoneHeader(prompt.speaker, screenX, screenY + 30, screenWidth);
+
+        Shape oldClip = g2.getClip();
+        g2.clipRect(screenX + 10, screenY + 74, screenWidth - 20, screenHeight - 86);
+
+        int contentX = screenX + 18;
+        int contentY = screenY + 92;
+        int messageWidth = screenWidth - 78;
+        g2.setFont(GameFonts.regular(15));
+
+        String[] messages = prompt.text.split("\\n");
+        for (String messageLine : messages) {
+            contentY = drawPhoneBubble(stripPhoneSpeaker(messageLine), contentX, contentY, messageWidth, true);
+        }
+
+        int choicesY = screenY + screenHeight - 166;
+        g2.setClip(oldClip);
+        g2.clipRect(screenX + 10, choicesY - 8, screenWidth - 20, screenY + screenHeight - choicesY - 8);
+
+        drawPhoneChoices(prompt, screenX + 18, choicesY, screenWidth - 36);
+        g2.setClip(oldClip);
+    }
+
+    private void drawPhoneResultScreen() {
+        Rectangle phoneScreen = drawPhoneFrame();
+        int screenX = phoneScreen.x;
+        int screenY = phoneScreen.y;
+        int screenWidth = phoneScreen.width;
+        int screenHeight = phoneScreen.height;
+
+        drawPhoneStatusBar(screenX, screenY, screenWidth);
+        drawPhoneHeader("Мама", screenX, screenY + 30, screenWidth);
+
+        Shape oldClip = g2.getClip();
+        g2.clipRect(screenX + 10, screenY + 74, screenWidth - 20, screenHeight - 86);
+
+        int contentX = screenX + 18;
+        int contentY = screenY + 92;
+        int messageWidth = screenWidth - 78;
+
+        for (String messageLine : gp.story.getPhoneIntroMessages()) {
+            contentY = drawPhoneBubble(stripPhoneSpeaker(messageLine), contentX, contentY, messageWidth, true);
+        }
+
+        String playerText = gp.story.getPhoneResultPlayerText();
+        if (playerText.isEmpty()) {
+            contentY = drawPhoneSystemLine("чат закрыт без ответа", contentX, contentY + 2, messageWidth);
+        }
+        else {
+            contentY = drawPhoneBubble(playerText, contentX, contentY + 2, messageWidth, false);
+        }
+
+        String momText = gp.story.getPhoneResultMomText();
+        if (!momText.isEmpty()) {
+            drawPhoneBubble(momText, contentX, contentY + 4, messageWidth, true);
+        }
+
+        g2.setClip(oldClip);
+    }
+
+    private Rectangle drawPhoneFrame() {
+        g2.setColor(new Color(0, 0, 0, 145));
+        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+
+        int phoneWidth = Math.min(390, gp.screenWidth - 80);
+        int phoneHeight = Math.min(560, gp.screenHeight - 48);
+        int phoneX = gp.screenWidth / 2 - phoneWidth / 2;
+        int phoneY = gp.screenHeight / 2 - phoneHeight / 2;
+
+        g2.setColor(new Color(0, 0, 0, 120));
+        g2.fillRoundRect(phoneX + 12, phoneY + 14, phoneWidth, phoneHeight, 34, 34);
+        g2.setColor(new Color(18, 22, 29));
+        g2.fillRoundRect(phoneX, phoneY, phoneWidth, phoneHeight, 34, 34);
+        g2.setColor(new Color(58, 65, 77));
+        g2.setStroke(new BasicStroke(3));
+        g2.drawRoundRect(phoneX + 2, phoneY + 2, phoneWidth - 4, phoneHeight - 4, 31, 31);
+
+        int screenX = phoneX + 16;
+        int screenY = phoneY + 18;
+        int screenWidth = phoneWidth - 32;
+        int screenHeight = phoneHeight - 36;
+
+        g2.setColor(new Color(12, 18, 23));
+        g2.fillRoundRect(screenX, screenY, screenWidth, screenHeight, 22, 22);
+
+        return new Rectangle(screenX, screenY, screenWidth, screenHeight);
+    }
+
+    private String stripPhoneSpeaker(String messageLine) {
+        int colon = messageLine.indexOf(':');
+        if (colon >= 0 && colon + 1 < messageLine.length()) {
+            return messageLine.substring(colon + 1).trim();
+        }
+        return messageLine;
+    }
+
+    private void drawPhoneStatusBar(int x, int y, int width) {
+        g2.setFont(GameFonts.bold(12));
+        g2.setColor(new Color(203, 213, 214));
+        g2.drawString("09:17", x + 18, y + 20);
+
+        int batteryX = x + width - 42;
+        int batteryY = y + 10;
+        g2.drawRoundRect(batteryX, batteryY, 20, 10, 4, 4);
+        g2.fillRect(batteryX + 22, batteryY + 3, 2, 4);
+        g2.setColor(new Color(174, 215, 196));
+        g2.fillRoundRect(batteryX + 3, batteryY + 3, 14, 4, 3, 3);
+    }
+
+    private void drawPhoneHeader(String contact, int x, int y, int width) {
+        g2.setColor(new Color(20, 29, 36));
+        g2.fillRoundRect(x + 8, y, width - 16, 44, 16, 16);
+        g2.setColor(new Color(174, 215, 196, 70));
+        g2.fillOval(x + 22, y + 8, 28, 28);
+        g2.setColor(new Color(174, 215, 196));
+        g2.fillOval(x + 31, y + 16, 10, 10);
+        g2.fillArc(x + 27, y + 23, 18, 13, 0, 180);
+
+        g2.setFont(GameFonts.bold(18));
+        g2.setColor(new Color(236, 244, 240));
+        g2.drawString(contact, x + 62, y + 21);
+        g2.setFont(GameFonts.regular(12));
+        g2.setColor(new Color(153, 170, 166));
+        g2.drawString("сообщение от мамы", x + 62, y + 36);
+    }
+
+    private int drawPhoneBubble(String text, int x, int y, int maxWidth, boolean incoming) {
+        Font font = GameFonts.regular(15);
+        FontMetrics metrics = g2.getFontMetrics(font);
+        ArrayList<String> lines = wrapTextLines(text, maxWidth - 24, font);
+        int bubbleWidth = 0;
+        for (String line : lines) {
+            bubbleWidth = Math.max(bubbleWidth, metrics.stringWidth(line));
+        }
+        bubbleWidth = Math.min(maxWidth, Math.max(86, bubbleWidth + 24));
+        int bubbleHeight = Math.max(34, measureLinesHeight(lines, 20) + 14);
+        int bubbleX = incoming ? x : x + maxWidth - bubbleWidth;
+
+        g2.setColor(incoming ? new Color(35, 47, 56) : new Color(65, 101, 88));
+        g2.fillRoundRect(bubbleX, y, bubbleWidth, bubbleHeight, 14, 14);
+        g2.setColor(new Color(255, 255, 255, 24));
+        g2.drawRoundRect(bubbleX + 1, y + 1, bubbleWidth - 2, bubbleHeight - 2, 13, 13);
+
+        g2.setFont(font);
+        g2.setColor(new Color(239, 244, 241));
+        int textY = y + 22;
+        for (String line : lines) {
+            g2.drawString(line, bubbleX + 12, textY);
+            textY += 20;
+        }
+        return y + bubbleHeight + 10;
+    }
+
+    private int drawPhoneSystemLine(String text, int x, int y, int width) {
+        Font font = GameFonts.regular(12);
+        FontMetrics metrics = g2.getFontMetrics(font);
+        int textX = x + Math.max(0, (width - metrics.stringWidth(text)) / 2);
+
+        g2.setFont(font);
+        g2.setColor(new Color(153, 170, 166));
+        g2.drawString(text, textX, y + 16);
+
+        return y + 26;
+    }
+
+    private void drawPhoneChoices(StoryManager.StoryPrompt prompt, int x, int y, int width) {
+        Font font = GameFonts.bold(14);
+        int lineHeight = 18;
+        int gap = 7;
+
+        for (int i = 0; i < prompt.choices.length; i++) {
+            StoryManager.Choice choice = prompt.choices[i];
+            ArrayList<String> lines = wrapTextLines(choice.text, width - 44, font);
+            int rowHeight = Math.max(38, measureLinesHeight(lines, lineHeight) + 14);
+            boolean selected = gp.story.selectedChoice == i;
+
+            g2.setColor(selected ? new Color(174, 215, 196, 88) : new Color(255, 255, 255, 28));
+            g2.fillRoundRect(x, y, width, rowHeight, 14, 14);
+            if (selected) {
+                g2.setColor(new Color(174, 215, 196));
+                g2.fillRoundRect(x, y, 4, rowHeight, 4, 4);
+            }
+
+            g2.setFont(font);
+            g2.setColor(selected ? new Color(240, 250, 246) : new Color(212, 222, 218));
+            int textY = y + 23;
+            for (String line : lines) {
+                g2.drawString(line, x + 18, textY);
+                textY += lineHeight;
+            }
+            y += rowHeight + gap;
+        }
     }
 
     private void drawDialogueProgress(int x, int y, int width) {
@@ -384,7 +586,7 @@ public class UI {
         g2.setColor(new Color(10, 12, 15, 235));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 46));
+        g2.setFont(GameFonts.bold(46));
         String text = "РЕЗУЛЬТАТ";
         drawShadowedString(text, getXforCenteredText(text), 74, Color.white, Color.black);
 
@@ -402,23 +604,23 @@ public class UI {
         int frameHeight = 290;
         drawSubWindow(frameX, frameY, frameWidth, frameHeight, new Color(18, 24, 28, 210));
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 25));
+        g2.setFont(GameFonts.bold(25));
         g2.setColor(new Color(174, 215, 196));
         g2.drawString(gp.story.getProfileTitle(), frameX + 26, frameY + 42);
 
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 20));
+        g2.setFont(GameFonts.regular(20));
         g2.setColor(Color.white);
         int textY = drawWrappedText(gp.story.getProfileText(), frameX + 26, frameY + 78, frameWidth - 52, 27);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 20));
+        g2.setFont(GameFonts.bold(20));
         g2.setColor(new Color(174, 215, 196));
         g2.drawString("Рекомендация", frameX + 26, textY + 18);
 
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 19));
+        g2.setFont(GameFonts.regular(19));
         g2.setColor(Color.white);
         drawWrappedText(gp.story.getRecommendation(), frameX + 26, textY + 48, frameWidth - 52, 26);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 27));
+        g2.setFont(GameFonts.bold(27));
         drawResultMenuItem("ПРОЙТИ ЕЩЁ РАЗ", 0, gp.screenHeight - 96);
         drawResultMenuItem("В ГЛАВНОЕ МЕНЮ", 1, gp.screenHeight - 54);
     }
@@ -483,12 +685,12 @@ public class UI {
             g2.fillRoundRect(x - 16, y - 29, 5, 38, 5, 5);
         }
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 22));
+        g2.setFont(GameFonts.bold(22));
         Color color = selected ? new Color(235, 250, 242) : new Color(205, 216, 211);
         drawShadowedString(text, x + 18, y, color, new Color(0, 0, 0, 140));
 
         if (selected) {
-            g2.setFont(new Font("SansSerif", Font.BOLD, 20));
+            g2.setFont(GameFonts.bold(20));
             g2.setColor(new Color(174, 215, 196));
             g2.drawString(">", x - 2, y);
         }
@@ -497,7 +699,7 @@ public class UI {
     private void drawVolumeOption(String label, int value, int command, int x, int y, int width) {
         drawOptionShell(command, x, y, width);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 21));
+        g2.setFont(GameFonts.bold(21));
         g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
         g2.drawString(label, x + 18, y);
 
@@ -506,7 +708,7 @@ public class UI {
         int blockWidth = 28;
         int blockHeight = 18;
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 20));
+        g2.setFont(GameFonts.bold(20));
         g2.drawString("<", barX - 34, y);
         for (int i = 0; i < 5; i++) {
             boolean filled = i < value;
@@ -520,7 +722,7 @@ public class UI {
     private void drawToggleOption(String label, boolean enabled, int command, int x, int y, int width) {
         drawOptionShell(command, x, y, width);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 21));
+        g2.setFont(GameFonts.bold(21));
         g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
         g2.drawString(label, x + 18, y);
 
@@ -534,14 +736,14 @@ public class UI {
         int knobX = enabled ? toggleX + toggleWidth - 31 : toggleX + 7;
         g2.fillOval(knobX, toggleY + 6, 22, 22);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
+        g2.setFont(GameFonts.bold(15));
         g2.setColor(Color.white);
         g2.drawString(value, toggleX + 42 - g2.getFontMetrics().stringWidth(value) / 2, y - 6);
     }
 
     private void drawBackOption(String label, int command, int x, int y, int width) {
         drawOptionShell(command, x, y, width);
-        g2.setFont(new Font("SansSerif", Font.BOLD, 22));
+        g2.setFont(GameFonts.bold(22));
         Color color = commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211);
         drawShadowedString(label, x + 18, y, color, new Color(0, 0, 0, 140));
     }
@@ -553,13 +755,13 @@ public class UI {
             g2.fillRoundRect(x - 16, y - 31, width, 42, 15, 15);
             g2.setColor(new Color(174, 215, 196));
             g2.fillRoundRect(x - 16, y - 31, 5, 42, 5, 5);
-            g2.setFont(new Font("SansSerif", Font.BOLD, 20));
+            g2.setFont(GameFonts.bold(20));
             g2.drawString(">", x - 2, y);
         }
     }
 
     private void drawMiniMetric(String label, int value, int x, int y) {
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g2.setFont(GameFonts.regular(12));
         g2.setColor(new Color(210, 220, 216));
         g2.drawString(label, x, y);
 
@@ -573,7 +775,7 @@ public class UI {
     }
 
     private void drawMetricBar(String label, int value, int x, int y, int width) {
-        g2.setFont(new Font("SansSerif", Font.BOLD, 22));
+        g2.setFont(GameFonts.bold(22));
         g2.setColor(Color.white);
         g2.drawString(label, x, y);
 

@@ -7,10 +7,10 @@ public class KeyHandler implements KeyListener {
 
     private static final int TITLE_LAST_COMMAND = 3;
     private static final int PAUSE_LAST_COMMAND = 5;
-    private static final int OPTIONS_LAST_COMMAND = 4;
+    private static final int OPTIONS_LAST_COMMAND = 3;
 
     private final GamePanel gp;
-    public boolean upPressed, downPressed, leftPressed, rightPressed, enterPressed;
+    public boolean upPressed, downPressed, leftPressed, rightPressed, shiftPressed, enterPressed;
 
     public KeyHandler(GamePanel gp) {
         this.gp = gp;
@@ -87,6 +87,9 @@ public class KeyHandler implements KeyListener {
         if (isRight(code)) {
             rightPressed = true;
         }
+        if (code == KeyEvent.VK_SHIFT) {
+            shiftPressed = true;
+        }
         if (isAction(code)) {
             enterPressed = true;
         }
@@ -158,7 +161,7 @@ public class KeyHandler implements KeyListener {
             changeOption(1);
         }
         if (isConfirm(code)) {
-            if (gp.ui.commandNum == 4) {
+            if (gp.ui.commandNum == 3) {
                 gp.closeOptionsMenu();
             }
             else {
@@ -251,9 +254,6 @@ public class KeyHandler implements KeyListener {
         else if (gp.ui.commandNum == 2) {
             gp.toggleFullScreen();
         }
-        else if (gp.ui.commandNum == 3) {
-            gp.toggleHud();
-        }
         gp.playCursorSE();
     }
 
@@ -272,6 +272,9 @@ public class KeyHandler implements KeyListener {
         }
         if (isRight(code)) {
             rightPressed = false;
+        }
+        if (code == KeyEvent.VK_SHIFT) {
+            shiftPressed = false;
         }
     }
 }

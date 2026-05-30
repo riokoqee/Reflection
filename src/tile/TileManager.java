@@ -83,6 +83,9 @@ public class TileManager {
         setup(51, "forest_generated/path", false);
         setup(52, "forest_generated/edge", true);
         setup(53, "forest_generated/flowers", false);
+        setup(54, "village_stone_road", false);
+        setup(55, "village_stone_road_alt", false);
+        setup(56, "village_stone_road_dark", false);
     }
     private void setup(int index, String imageName, boolean collision) {
         try {

@@ -1,6 +1,7 @@
 package entity;
 
 import main.GamePanel;
+import main.GameFonts;
 import main.StoryManager;
 
 import java.awt.*;
@@ -8,6 +9,8 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 
 public class SwingChildNPC extends Entity {
+
+    private static final double CHILD_DRAW_SCALE = 1.15;
 
     private final String displayName;
     private final BufferedImage childSprite;
@@ -18,7 +21,8 @@ public class SwingChildNPC extends Entity {
         this.displayName = displayName;
         direction = "down";
         speed = 0;
-        childSprite = setup("/player/characters/child", gp.tileSize, gp.tileSize);
+        int childDrawSize = (int) Math.round(gp.tileSize * CHILD_DRAW_SCALE);
+        childSprite = setup("/player/characters/child", childDrawSize, childDrawSize);
 
         solidArea = new Rectangle();
         solidArea.x = 8;
@@ -96,19 +100,19 @@ public class SwingChildNPC extends Entity {
     }
 
     private void drawChild(Graphics2D g2, int seatCenterX, int seatY, double swing) {
-        int childX = seatCenterX - gp.tileSize / 2;
-        int childY = seatY - gp.tileSize + 4;
+        int childX = seatCenterX - childSprite.getWidth() / 2;
+        int childY = seatY - childSprite.getHeight() + 4;
         double rotation = swing * 0.10;
         AffineTransform oldTransform = g2.getTransform();
 
-        g2.rotate(rotation, seatCenterX, childY + gp.tileSize / 2);
+        g2.rotate(rotation, seatCenterX, childY + childSprite.getHeight() / 2);
         g2.drawImage(childSprite, childX, childY, null);
         g2.setTransform(oldTransform);
     }
 
     private void drawName(Graphics2D g2, int centerX, int y) {
         Font oldFont = g2.getFont();
-        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+        g2.setFont(GameFonts.bold(13));
         FontMetrics fm = g2.getFontMetrics();
         int textX = centerX - fm.stringWidth(displayName) / 2;
 
