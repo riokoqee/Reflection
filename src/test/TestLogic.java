@@ -37,6 +37,7 @@ public class TestLogic {
             runTest("Test 13: optional story events", TestLogic::testOptionalStoryEvents);
             runTest("Test 14: player sprint", TestLogic::testPlayerSprint);
             runTest("Test 15: mouse menu controls", TestLogic::testMouseMenuControls);
+            runTest("Test 16: mountain map layout", TestLogic::testMountainMapLayout);
         }
         finally {
             restoreFile(saveFile, hadSave, saveBackup);
@@ -810,6 +811,33 @@ public class TestLogic {
         }
     }
 
+    public static void testMountainMapLayout() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+        gp.currentMap = 3;
+
+        assertBlocked(gp, 3, 0, 0, "Mountain outer void");
+        assertBlocked(gp, 3, 10, 12, "Mountain rocks");
+        assertWalkable(gp, 3, 35, 31, "Mountain entrance");
+        assertWalkable(gp, 3, 35, 29, "Warrior approach");
+        assertWalkable(gp, 3, 28, 34, "Traveler approach");
+        assertWalkable(gp, 3, 31, 33, "Mountain fork");
+        assertWalkable(gp, 3, 35, 13, "Snow summit path");
+        assertEquals(gp.tileSize * 35, gp.npc[3][0].worldX, "Warrior must wait on the summit path");
+        assertEquals(gp.tileSize * 13, gp.npc[3][0].worldY, "Warrior must wait on the summit path");
+        assertEquals(gp.tileSize * 26, gp.npc[3][1].worldX, "Traveler must wait on the side camp");
+        assertEquals(gp.tileSize * 34, gp.npc[3][1].worldY, "Traveler must wait on the side camp");
+
+        assertReachableOnMap(gp, 3, 35, 31, 35, 13, "Warrior must be reachable from the mountain entrance");
+        assertReachableOnMap(gp, 3, 35, 31, 26, 34, "Traveler must be reachable from the mountain entrance");
+        assertReachableOnMap(gp, 3, 35, 31, 31, 33, "Mountain fork must be reachable from the entrance");
+        assertReachableOnMap(gp, 3, 35, 31, 29, 34, "Traveler pack must be reachable from the entrance");
+
+        if (countTiles(gp, 3, 57, 63) < 700) {
+            throw new AssertionError("Mountain map must use the dedicated mountain tiles");
+        }
+    }
+
     private static void assertEquals(int expected, int actual, String message) {
         if (expected != actual) {
             throw new AssertionError(message + ". Ожидалось " + expected + ", получено " + actual);
@@ -839,6 +867,66 @@ public class TestLogic {
         if (gp.tileM.tile[tileNum].collision) {
             throw new AssertionError(label + " must be walkable");
         }
+    }
+
+    private static void assertReachableOnMap(GamePanel gp, int map, int startCol, int startRow,
+                                             int targetCol, int targetRow, String label) {
+        boolean[][] visited = new boolean[gp.maxWorldCol][gp.maxWorldRow];
+        int[] queueCol = new int[gp.maxWorldCol * gp.maxWorldRow];
+        int[] queueRow = new int[gp.maxWorldCol * gp.maxWorldRow];
+        int head = 0;
+        int tail = 0;
+
+        queueCol[tail] = startCol;
+        queueRow[tail] = startRow;
+        tail++;
+        visited[startCol][startRow] = true;
+
+        while (head < tail) {
+            int col = queueCol[head];
+            int row = queueRow[head];
+            head++;
+
+            if (col == targetCol && row == targetRow) {
+                return;
+            }
+
+            int[] dc = {1, -1, 0, 0};
+            int[] dr = {0, 0, 1, -1};
+            for (int i = 0; i < dc.length; i++) {
+                int nextCol = col + dc[i];
+                int nextRow = row + dr[i];
+                if (nextCol < 0 || nextRow < 0 || nextCol >= gp.maxWorldCol || nextRow >= gp.maxWorldRow ||
+                        visited[nextCol][nextRow]) {
+                    continue;
+                }
+
+                int tileNum = gp.tileM.mapTileNum[map][nextCol][nextRow];
+                if (gp.tileM.tile[tileNum].collision) {
+                    continue;
+                }
+
+                visited[nextCol][nextRow] = true;
+                queueCol[tail] = nextCol;
+                queueRow[tail] = nextRow;
+                tail++;
+            }
+        }
+
+        throw new AssertionError(label);
+    }
+
+    private static int countTiles(GamePanel gp, int map, int firstTile, int lastTile) {
+        int count = 0;
+        for (int row = 0; row < gp.maxWorldRow; row++) {
+            for (int col = 0; col < gp.maxWorldCol; col++) {
+                int tileNum = gp.tileM.mapTileNum[map][col][row];
+                if (tileNum >= firstTile && tileNum <= lastTile) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     private static void assertStoneRoad(GamePanel gp, int col, int row, String label) {

@@ -334,6 +334,7 @@ public class GamePanel extends JPanel implements Runnable {
                 return clampCamera(cameraX, FOREST_LEFT_COL * tileSize,
                         FOREST_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth);
             case MapId.VILLAGE:
+            case MapId.MOUNTAIN:
                 return clampCamera(cameraX, 0, maxWorldCol * tileSize - screenWidth);
             default:
                 return cameraX;
@@ -348,6 +349,7 @@ public class GamePanel extends JPanel implements Runnable {
                 return clampCamera(cameraY, FOREST_TOP_ROW * tileSize,
                         FOREST_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight);
             case MapId.VILLAGE:
+            case MapId.MOUNTAIN:
                 return clampCamera(cameraY, 0, maxWorldRow * tileSize - screenHeight);
             default:
                 return cameraY;

@@ -86,6 +86,13 @@ public class TileManager {
         setup(54, "village_stone_road", false);
         setup(55, "village_stone_road_alt", false);
         setup(56, "village_stone_road_dark", false);
+        setup(57, "mountain_void", true);
+        setup(58, "mountain_ground", false);
+        setup(59, "mountain_path", false);
+        setup(60, "mountain_cliff", true);
+        setup(61, "mountain_snow", false);
+        setup(62, "mountain_rock", true);
+        setup(63, "mountain_stairs", false);
     }
     private void setup(int index, String imageName, boolean collision) {
         try {

@@ -153,26 +153,26 @@ public class AssetSetter {
     };
 
     private static final StaticPlacement[] MOUNTAIN_DECORATIONS = {
-            mountainDecoration("mountain_crystal_blue_01", "decoration_00_crystal_blue", 1.0, 1.0, 20, 38),
-            mountainDecoration("mountain_crystal_blue_02", "decoration_00_crystal_blue", 1.0, 1.0, 34, 37),
-            mountainDecoration("mountain_blue_bulb_01", "decoration_04_blue_bulb", 1.0, 1.0, 25, 39),
-            mountainDecoration("mountain_blue_bulb_02", "decoration_04_blue_bulb", 1.0, 1.0, 37, 31),
-            mountainDecoration("mountain_mushroom_gold_01", "decoration_01_mushroom_gold", 0.9, 0.9, 12, 31),
-            mountainDecoration("mountain_mushroom_blue_01", "decoration_07_mushroom_blue", 0.8, 0.8, 20, 8),
-            mountainDecoration("mountain_mushroom_purple_01", "decoration_03_mushroom_purple", 0.9, 0.9, 35, 41),
-            mountainDecoration("mountain_mushroom_orange_01", "decoration_08_mushroom_orange", 0.9, 0.9, 38, 37),
-            mountainDecoration("mountain_sprout_01", "decoration_02_sprout", 0.8, 0.9, 21, 20),
-            mountainDecoration("mountain_sprout_02", "decoration_02_sprout", 0.8, 0.9, 36, 20),
-            mountainDecoration("mountain_leaf_01", "decoration_11_leaf_curled", 0.9, 0.9, 29, 20),
-            mountainDecoration("mountain_leaf_02", "decoration_15_leaves_green", 0.9, 0.9, 23, 24),
-            mountainDecoration("mountain_flowers_pink_01", "decoration_10_flowers_pink", 0.9, 0.9, 20, 36),
-            mountainDecoration("mountain_flowers_purple_01", "decoration_14_flowers_purple", 0.9, 0.9, 26, 36),
-            mountainDecoration("mountain_berries_red_01", "decoration_09_berries_red", 0.9, 0.9, 34, 36),
-            mountainDecoration("mountain_berries_green_01", "decoration_13_berries_green", 0.9, 0.9, 37, 36),
-            mountainDecoration("mountain_mushroom_red_01", "decoration_12_mushroom_red", 0.8, 0.8, 20, 42),
-            mountainDecoration("mountain_mushroom_brown_01", "decoration_05_mushroom_brown", 0.8, 0.8, 38, 42),
-            mountainDecoration("mountain_crystal_blue_03", "decoration_00_crystal_blue", 1.0, 1.0, 34, 39),
-            mountainDecoration("mountain_leaf_03", "decoration_15_leaves_green", 0.9, 0.9, 31, 40)
+            mountainDecoration("mountain_crystal_blue_01", "decoration_00_crystal_blue", 1.0, 1.0, 33, 12),
+            mountainDecoration("mountain_crystal_blue_02", "decoration_00_crystal_blue", 1.0, 1.0, 38, 16),
+            mountainDecoration("mountain_blue_bulb_01", "decoration_04_blue_bulb", 1.0, 1.0, 30, 18),
+            mountainDecoration("mountain_blue_bulb_02", "decoration_04_blue_bulb", 1.0, 1.0, 24, 25),
+            mountainDecoration("mountain_mushroom_gold_01", "decoration_01_mushroom_gold", 0.9, 0.9, 18, 36),
+            mountainDecoration("mountain_mushroom_blue_01", "decoration_07_mushroom_blue", 0.8, 0.8, 27, 33),
+            mountainDecoration("mountain_mushroom_purple_01", "decoration_03_mushroom_purple", 0.9, 0.9, 14, 42),
+            mountainDecoration("mountain_mushroom_orange_01", "decoration_08_mushroom_orange", 0.9, 0.9, 38, 33),
+            mountainDecoration("mountain_sprout_01", "decoration_02_sprout", 0.8, 0.9, 23, 22),
+            mountainDecoration("mountain_sprout_02", "decoration_02_sprout", 0.8, 0.9, 32, 27),
+            mountainDecoration("mountain_leaf_01", "decoration_11_leaf_curled", 0.9, 0.9, 21, 28),
+            mountainDecoration("mountain_leaf_02", "decoration_15_leaves_green", 0.9, 0.9, 29, 36),
+            mountainDecoration("mountain_flowers_pink_01", "decoration_10_flowers_pink", 0.9, 0.9, 16, 39),
+            mountainDecoration("mountain_flowers_purple_01", "decoration_14_flowers_purple", 0.9, 0.9, 25, 37),
+            mountainDecoration("mountain_berries_red_01", "decoration_09_berries_red", 0.9, 0.9, 37, 30),
+            mountainDecoration("mountain_berries_green_01", "decoration_13_berries_green", 0.9, 0.9, 40, 35),
+            mountainDecoration("mountain_mushroom_red_01", "decoration_12_mushroom_red", 0.8, 0.8, 12, 43),
+            mountainDecoration("mountain_mushroom_brown_01", "decoration_05_mushroom_brown", 0.8, 0.8, 30, 40),
+            mountainDecoration("mountain_crystal_blue_03", "decoration_00_crystal_blue", 1.0, 1.0, 36, 14),
+            mountainDecoration("mountain_leaf_03", "decoration_15_leaves_green", 0.9, 0.9, 33, 24)
     };
 
     private static final StaticPlacement[] HOME_DECORATIONS = {
@@ -228,6 +228,8 @@ public class AssetSetter {
 
         placeNPC(MapId.MOUNTAIN, 0, new StoryNPC(gp, StoryManager.WARRIOR, "Воин", "character:warrior"), 35, 29);
         placeNPC(MapId.MOUNTAIN, 1, new StoryNPC(gp, StoryManager.TRAVELER, "Путник", "character:friend"), 28, 34);
+        moveNPC(MapId.MOUNTAIN, 0, 35, 13);
+        moveNPC(MapId.MOUNTAIN, 1, 26, 34);
     }
 
     private void placeApartmentObjects() {
@@ -346,6 +348,14 @@ public class AssetSetter {
 
     private void placeNPC(int map, int index, Entity npc, int col, int row) {
         gp.npc[map][index] = npc;
+        gp.npc[map][index].worldX = gp.tileSize * col;
+        gp.npc[map][index].worldY = gp.tileSize * row;
+    }
+
+    private void moveNPC(int map, int index, int col, int row) {
+        if (gp.npc[map][index] == null) {
+            return;
+        }
         gp.npc[map][index].worldX = gp.tileSize * col;
         gp.npc[map][index].worldY = gp.tileSize * row;
     }
