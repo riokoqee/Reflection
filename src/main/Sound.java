@@ -25,6 +25,9 @@ public class Sound {
     public static final int WHISPERS = 30;
     public static final int FOOTSTEPS_STONE = 31;
     public static final int FOOTSTEPS_STONE_SPRINT = 32;
+    public static final int DIALOGUE_TYPE = 33;
+    public static final int DISHES = 34;
+    public static final int LIGHT_SWITCH = 35;
 
     private Clip clip;
     private final URL[] soundURL = new URL[64];
@@ -66,6 +69,9 @@ public class Sound {
         register(LANTERN_PICKUP, "new/lantern.wav");
         register(SHADOW_WHOOSH, "new/shadow_whoosh.wav");
         register(WHISPERS, "new/whispers.wav");
+        register(DIALOGUE_TYPE, "new/dialogue_sound.wav");
+        register(DISHES, "new/dishes_interact.wav");
+        register(LIGHT_SWITCH, "new/light_switch.wav");
     }
 
     public boolean setFile(int i) {

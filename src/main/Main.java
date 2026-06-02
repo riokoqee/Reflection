@@ -7,6 +7,8 @@ public class Main {
     public static JFrame window;
 
     public static void main(String[] args) {
+        configureStableJava2D();
+
         window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
@@ -27,5 +29,11 @@ public class Main {
 
         gamePanel.setupGame();
         gamePanel.startGameThread();
+    }
+
+    private static void configureStableJava2D() {
+        System.setProperty("sun.java2d.d3d", "false");
+        System.setProperty("sun.java2d.opengl", "false");
+        System.setProperty("sun.java2d.ddoffscreen", "false");
     }
 }

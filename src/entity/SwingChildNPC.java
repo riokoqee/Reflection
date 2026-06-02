@@ -11,6 +11,7 @@ import java.awt.image.BufferedImage;
 public class SwingChildNPC extends Entity {
 
     private static final double CHILD_DRAW_SCALE = 1.15;
+    private static final int NAME_FONT_SIZE = 16;
 
     private final String displayName;
     private final BufferedImage childSprite;
@@ -112,12 +113,14 @@ public class SwingChildNPC extends Entity {
 
     private void drawName(Graphics2D g2, int centerX, int y) {
         Font oldFont = g2.getFont();
-        g2.setFont(GameFonts.bold(13));
+        g2.setFont(GameFonts.bold(NAME_FONT_SIZE));
         FontMetrics fm = g2.getFontMetrics();
         int textX = centerX - fm.stringWidth(displayName) / 2;
+        int labelHeight = fm.getHeight() + 6;
 
         g2.setColor(new Color(0, 0, 0, 170));
-        g2.fillRoundRect(textX - 6, y - fm.getAscent(), fm.stringWidth(displayName) + 12, 18, 8, 8);
+        g2.fillRoundRect(textX - 8, y - fm.getAscent() - 3,
+                fm.stringWidth(displayName) + 16, labelHeight, 9, 9);
         g2.setColor(Color.white);
         g2.drawString(displayName, textX, y);
         g2.setFont(oldFont);

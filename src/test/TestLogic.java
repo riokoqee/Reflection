@@ -4,7 +4,9 @@ import entity.Entity;
 import entity.SwingChildNPC;
 import main.GamePanel;
 import main.StoryManager;
+import main.UI;
 
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -14,9 +16,17 @@ import java.nio.file.Files;
 public class TestLogic {
 
     public static void main(String[] args) {
-        File saveFile = new File("save.dat");
-        boolean hadSave = saveFile.exists();
-        byte[] saveBackup = readBackup(saveFile);
+        File[] saveFiles = {
+                new File("save.dat"),
+                new File("save_slot_2.dat"),
+                new File("save_slot_3.dat")
+        };
+        boolean[] hadSaves = new boolean[saveFiles.length];
+        byte[][] saveBackups = new byte[saveFiles.length][];
+        for (int i = 0; i < saveFiles.length; i++) {
+            hadSaves[i] = saveFiles[i].exists();
+            saveBackups[i] = readBackup(saveFiles[i]);
+        }
         File configFile = new File("config.txt");
         boolean hadConfig = configFile.exists();
         byte[] configBackup = readBackup(configFile);
@@ -38,9 +48,13 @@ public class TestLogic {
             runTest("Test 14: player sprint", TestLogic::testPlayerSprint);
             runTest("Test 15: mouse menu controls", TestLogic::testMouseMenuControls);
             runTest("Test 16: mountain map layout", TestLogic::testMountainMapLayout);
+            runTest("Test 17: objective plan note", TestLogic::testObjectivePlanNote);
+            runTest("Test 18: title save slots and intro", TestLogic::testTitleSaveSlotsAndIntro);
         }
         finally {
-            restoreFile(saveFile, hadSave, saveBackup);
+            for (int i = 0; i < saveFiles.length; i++) {
+                restoreFile(saveFiles[i], hadSaves[i], saveBackups[i]);
+            }
             restoreFile(configFile, hadConfig, configBackup);
         }
     }
@@ -137,8 +151,25 @@ public class TestLogic {
             throw new AssertionError("После кровати цель должна вести на кухню, получено: " + gp.story.getObjective());
         }
 
-        gp.story.interactObject("Kitchen Stove");
+        int dirtyDishesIndex = findObject(gp, 0, "Dirty Dishes");
+        if (dirtyDishesIndex == 999) {
+            throw new AssertionError("Dirty dishes must be visible in the kitchen before the kitchen chore");
+        }
+        if (gp.obj[0][dirtyDishesIndex].solidArea.height < gp.tileSize) {
+            throw new AssertionError("Dirty dishes must have a reachable interaction area below the sink");
+        }
+        gp.story.interactObject("Dirty Dishes");
+        if (findObject(gp, 0, "Dirty Dishes") == 999) {
+            throw new AssertionError("Dirty dishes must remain visible while the kitchen chore is playing");
+        }
         finishLockedDialogue(gp);
+        if (findObject(gp, 0, "Dirty Dishes") != 999) {
+            throw new AssertionError("Dirty dishes must disappear after the kitchen chore ends");
+        }
+        gp.aSetter.setObject();
+        if (findObject(gp, 0, "Dirty Dishes") != 999) {
+            throw new AssertionError("Dirty dishes must stay removed after apartment objects are rebuilt");
+        }
         if (!gp.story.getObjective().contains("ванной")) {
             throw new AssertionError("После кухни цель должна вести в ванную, получено: " + gp.story.getObjective());
         }
@@ -150,9 +181,25 @@ public class TestLogic {
         }
 
         gp.story.interactObject("Sofa");
+        if (gp.story.getStage() != 3 || !gp.story.getObjective().contains("телевизор")) {
+            throw new AssertionError("Sofa must not finish the hall task before the TV is on");
+        }
+        gp.story.continueDialogue();
+        gp.story.interactObject("TV");
+        gp.story.interactObject("Sofa");
         finishLockedDialogue(gp);
         if (gp.npc[0][0] == null) {
             throw new AssertionError("Тень должна появиться после домашней рутины");
+        }
+        int mirrorIndex = findObject(gp, 0, "Mirror");
+        Entity bedroomMirror = gp.obj[0][mirrorIndex];
+        int shadowCenterX = gp.npc[0][0].worldX + gp.npc[0][0].solidArea.x + gp.npc[0][0].solidArea.width / 2;
+        int shadowCenterY = gp.npc[0][0].worldY + gp.npc[0][0].solidArea.y + gp.npc[0][0].solidArea.height / 2;
+        if (shadowCenterX <= bedroomMirror.worldX + bedroomMirror.solidArea.x ||
+                shadowCenterX >= bedroomMirror.worldX + bedroomMirror.solidArea.x + bedroomMirror.solidArea.width ||
+                shadowCenterY <= bedroomMirror.worldY + bedroomMirror.solidArea.y ||
+                shadowCenterY >= bedroomMirror.worldY + bedroomMirror.solidArea.y + bedroomMirror.solidArea.height) {
+            throw new AssertionError("Apartment shadow must stand inside the bedroom mirror");
         }
         if (!gp.story.shouldPlayApartmentWhispers()) {
             throw new AssertionError("Apartment whispers must play before the shadow conversation starts");
@@ -206,6 +253,11 @@ public class TestLogic {
         assertWalkable(gp, 26, 11, "Living room doorway");
         assertBlocked(gp, 30, 15, "Right room split wall");
         assertWalkable(gp, 26, 20, "Right lower room doorway");
+        assertBlocked(gp, 26, 17, "Compact bathroom left wall");
+        assertWalkable(gp, 27, 20, "Compact bathroom doorway");
+        assertWalkable(gp, 28, 20, "Compact bathroom floor");
+        assertBlocked(gp, 34, 17, "Compact bathroom right wall");
+        assertBlocked(gp, 35, 20, "Removed bathroom right side");
 
         assertPlayerBlocked(gp, gp.tileSize * 14, gp.tileSize * 7 - gp.player.solidArea.y, "up", "Top boundary");
         assertPlayerBlocked(gp, gp.tileSize * 14,
@@ -262,6 +314,38 @@ public class TestLogic {
         if (findObject(gp, 0, "Bedroom Dresser") != 999) {
             throw new AssertionError("Bedroom table must be removed");
         }
+        if (findObject(gp, 0, "Bedroom Table") != 999) {
+            throw new AssertionError("Bedroom must not contain the rejected small table");
+        }
+        int photoTableIndex = findObject(gp, 0, "Photo Table");
+        int oldPhotoIndex = findObject(gp, 0, "Old Photo");
+        if (photoTableIndex == 999 || oldPhotoIndex == 999) {
+            throw new AssertionError("Bedroom must contain a photo table with a frame");
+        }
+        int expectedPhotoX = gp.obj[0][photoTableIndex].worldX +
+                ((int) Math.round(gp.tileSize * 1.45) - (int) Math.round(gp.tileSize * 0.68)) / 2;
+        int expectedPhotoY = gp.obj[0][photoTableIndex].worldY +
+                ((int) Math.round(gp.tileSize * 0.8) - (int) Math.round(gp.tileSize * 0.5)) / 2;
+        assertEquals(expectedPhotoX, gp.obj[0][oldPhotoIndex].worldX,
+                "Old photo must sit centered on the bedroom table");
+        assertEquals(expectedPhotoY, gp.obj[0][oldPhotoIndex].worldY, "Old photo must sit in the table center");
+        if (gp.obj[0][oldPhotoIndex].getRenderSortY() <= gp.obj[0][photoTableIndex].getRenderSortY()) {
+            throw new AssertionError("Old photo must render above the bedroom table");
+        }
+        assertEquals(gp.tileSize / 12, gp.obj[0][photoTableIndex].solidArea.x,
+                "Bedroom photo table collision X offset");
+        assertEquals(gp.tileSize / 12, gp.obj[0][photoTableIndex].solidArea.y,
+                "Bedroom photo table collision Y offset");
+        assertEquals((int) Math.round(gp.tileSize * 1.45) - gp.tileSize / 6,
+                gp.obj[0][photoTableIndex].solidArea.width, "Bedroom photo table collision width");
+        assertEquals((int) Math.round(gp.tileSize * 0.8) - gp.tileSize / 6,
+                gp.obj[0][photoTableIndex].solidArea.height, "Bedroom photo table collision height");
+        if (findObject(gp, 0, "Phone Message") != 999) {
+            throw new AssertionError("Phone must be found in the dresser, not placed as a loose object");
+        }
+        if (findObject(gp, 0, "Phone Dresser") == 999) {
+            throw new AssertionError("Apartment must contain a dresser with the phone");
+        }
         int plantIndex = findObject(gp, 0, "Bedroom Plant");
         if (plantIndex == 999) {
             throw new AssertionError("Bedroom plant must exist");
@@ -306,14 +390,35 @@ public class TestLogic {
         if (findObject(gp, 0, "Kitchen Table") != 999 ||
                 findObject(gp, 0, "Kitchen Side Counter") != 999 ||
                 findObject(gp, 0, "Kitchen Low Cabinet") != 999 ||
-                findObject(gp, 0, "Kitchen Plant") != 999) {
+                findObject(gp, 0, "Kitchen Plant") != 999 ||
+                findObject(gp, 0, "Kitchen Food Crate") != 999) {
             throw new AssertionError("Kitchen must not contain chairs, wooden cabinet, plant, or book table");
+        }
+        if (findObject(gp, 0, "Corridor Plant") != 999 ||
+                findObject(gp, 0, "Corridor Key Holder") != 999 ||
+                findObject(gp, 0, "Corridor Dresser") != 999) {
+            throw new AssertionError("Corridor must not contain the removed clutter or rejected dresser");
+        }
+        int corridorLampIndex = findObject(gp, 0, "Corridor Lamp");
+        if (corridorLampIndex == 999) {
+            throw new AssertionError("Corridor lamp must stay after removing corridor clutter");
+        }
+        if (gp.obj[0][corridorLampIndex].solidArea.height <= 0) {
+            throw new AssertionError("Corridor lamp must be interactable");
+        }
+        gp.story.interactObject("Corridor Lamp");
+        if (gp.gameState != gp.playState) {
+            throw new AssertionError("Corridor lamp interaction must not open a task");
         }
         if (findObject(gp, 0, "Kitchen Stove") == 999 ||
                 findObject(gp, 0, "Kitchen Counter Left") == 999 ||
                 findObject(gp, 0, "Kitchen Counter Right") == 999 ||
                 findObject(gp, 0, "Kitchen Fridge") == 999) {
             throw new AssertionError("Kitchen must keep the functional cooking area");
+        }
+        int kitchenDiningIndex = findObject(gp, 0, "Kitchen Dining Set");
+        if (kitchenDiningIndex == 999 || !gp.obj[0][kitchenDiningIndex].collision) {
+            throw new AssertionError("Kitchen must contain a solid dining table with chairs");
         }
         int kitchenSinkIndex = findObject(gp, 0, "Kitchen Wall Sink");
         int kitchenCounterLeftIndex = findObject(gp, 0, "Kitchen Counter Left");
@@ -342,6 +447,18 @@ public class TestLogic {
                 findObject(gp, 0, "Hall Wall Shelf") != 999 ||
                 findObject(gp, 0, "Hall Floor Lamp") != 999) {
             throw new AssertionError("Hall must keep only the carpet, TV, and sofa");
+        }
+        if (findObject(gp, 0, "Bathroom Shower") != 999 ||
+                findObject(gp, 0, "Bathroom Rug") != 999 ||
+                findObject(gp, 0, "Bathroom Towel Rail") != 999 ||
+                findObject(gp, 0, "Bathroom Laundry Basket") != 999 ||
+                findObject(gp, 0, "Bathroom Water Bucket") != 999) {
+            throw new AssertionError("Bathroom must keep only sink, toilet, and tub");
+        }
+        if (findObject(gp, 0, "Bathroom Mirror") == 999 ||
+                findObject(gp, 0, "Bathroom Toilet") == 999 ||
+                findObject(gp, 0, "Bathroom Tub") == 999) {
+            throw new AssertionError("Compact bathroom must contain the sink, toilet, and tub");
         }
         int sofaIndex = findObject(gp, 0, "Sofa");
         if (findObject(gp, 0, "TV") == 999 || sofaIndex == 999 || findObject(gp, 0, "Living Carpet") == 999) {
@@ -374,7 +491,9 @@ public class TestLogic {
             throw new AssertionError("Generic sofa interaction must sit without advancing the story");
         }
         int expectedSofaSitY = gp.tileSize * 12 - gp.tileSize / 3;
-        if (gp.player.worldY != expectedSofaSitY || !"up".equals(gp.player.direction)) {
+        int expectedSofaSitX = gp.tileSize * 33 - gp.tileSize / 3;
+        if (gp.player.worldX != expectedSofaSitX || gp.player.worldY != expectedSofaSitY ||
+                !"up".equals(gp.player.direction)) {
             throw new AssertionError("Pressing E in front of the sofa must put the player into the sitting pose");
         }
         if (gp.obj[0][sofaIndex].getRenderSortY() <= gp.player.worldY ||
@@ -384,19 +503,20 @@ public class TestLogic {
         for (int i = 0; i < 120; i++) {
             gp.player.updatePoseState();
         }
-        if (gp.player.worldY != expectedSofaSitY || !"up".equals(gp.player.direction)) {
+        if (gp.player.worldX != expectedSofaSitX || gp.player.worldY != expectedSofaSitY ||
+                !"up".equals(gp.player.direction)) {
             throw new AssertionError("Generic sofa sitting must stay stable until the player moves");
         }
         gp.keyH.rightPressed = true;
         gp.player.updatePoseState();
         gp.keyH.rightPressed = false;
-        if (gp.player.worldY != sofaFrontY || !"up".equals(gp.player.direction)) {
+        if (gp.player.worldX != expectedSofaSitX || gp.player.worldY != sofaFrontY ||
+                !"up".equals(gp.player.direction)) {
             throw new AssertionError("Moving after sofa sitting must return the player to the TV side of the sofa");
         }
         assertFloorLayer(gp, "Living Carpet");
         assertFloorLayer(gp, "Bedroom Rug");
         assertFloorLayer(gp, "Kitchen Rug");
-        assertFloorLayer(gp, "Bathroom Rug");
     }
 
     public static void testApartmentCameraBounds() {
@@ -593,6 +713,9 @@ public class TestLogic {
         if (gp.npc[2][0].down1.getWidth() <= gp.tileSize || gp.npc[2][1].down1.getHeight() <= gp.tileSize) {
             throw new AssertionError("Village NPC sprites must render slightly larger than one tile");
         }
+        if (gp.npc[2][0].down1.getWidth() < (int) Math.round(gp.tileSize * 1.3)) {
+            throw new AssertionError("Friend NPC must render larger than the other village NPCs");
+        }
 
         gp.player.worldX = 0;
         assertEquals(0, gp.getCameraX(), "Village camera must stop at the left edge");
@@ -647,11 +770,30 @@ public class TestLogic {
         gp.ui.commandNum = 2;
         gp.keyH.titleState(KeyEvent.VK_ENTER);
         assertEquals(gp.optionsState, gp.gameState, "Title settings command must open the settings menu");
-        assertEquals(0, gp.ui.commandNum, "Settings menu must open on music volume");
+        assertEquals(UI.OPTIONS_TAB_GRAPHICS, gp.ui.getOptionsTab(), "Settings menu must open on graphics tab");
+        assertEquals(0, gp.ui.commandNum, "Settings menu must open on fullscreen");
         if (gp.hudVisible) {
             throw new AssertionError("HUD must stay hidden during the game");
         }
 
+        boolean fullScreenBefore = gp.fullScreenOn;
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals(fullScreenBefore ? 1 : 0, gp.fullScreenOn ? 1 : 0,
+                "Right must not toggle fullscreen setting");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(fullScreenBefore ? 0 : 1, gp.fullScreenOn ? 1 : 0, "Enter must toggle fullscreen setting");
+        fullScreenBefore = gp.fullScreenOn;
+        gp.keyH.optionsState(KeyEvent.VK_E);
+        assertEquals(fullScreenBefore ? 0 : 1, gp.fullScreenOn ? 1 : 0, "E must toggle fullscreen setting");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        int startBrightness = gp.brightnessScale;
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals(Math.min(5, startBrightness + 1), gp.brightnessScale, "Right must increase brightness");
+
+        gp.keyH.optionsState(KeyEvent.VK_TAB);
+        assertEquals(UI.OPTIONS_TAB_SOUND, gp.ui.getOptionsTab(), "Tab must move to sound tab");
+        assertEquals(0, gp.ui.commandNum, "Changing options tab must reset selected row");
         int startMusicVolume = gp.getMusicVolume();
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
         assertEquals(Math.min(5, startMusicVolume + 1), gp.getMusicVolume(), "Right must increase music volume");
@@ -663,12 +805,29 @@ public class TestLogic {
         assertEquals(Math.max(0, startSoundVolume - 1), gp.getSoundEffectVolume(), "Left must decrease sound effects volume");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
-        boolean fullScreenBefore = gp.fullScreenOn;
-        gp.keyH.optionsState(KeyEvent.VK_ENTER);
-        assertEquals(fullScreenBefore ? 0 : 1, gp.fullScreenOn ? 1 : 0, "Enter must toggle fullscreen setting");
+        int startAmbienceVolume = gp.ambienceVolumeScale;
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals(Math.min(5, startAmbienceVolume + 1), gp.ambienceVolumeScale, "Right must increase ambience volume");
+
+        gp.keyH.optionsState(KeyEvent.VK_TAB);
+        assertEquals(UI.OPTIONS_TAB_CHAT, gp.ui.getOptionsTab(), "Tab must move to chat tab");
+        int startTextSize = gp.dialogueTextSizeMode;
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals((startTextSize + 1) % 3, gp.dialogueTextSizeMode, "Right must cycle dialogue text size");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
-        assertEquals(3, gp.ui.commandNum, "Down from fullscreen must move directly to Back");
+        int startTextSpeed = gp.dialogueTextSpeedMode;
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals((startTextSpeed + 1) % 4, gp.dialogueTextSpeedMode, "Right must cycle dialogue text speed");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        boolean highContrastBefore = gp.highContrastDialogue;
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(highContrastBefore ? 0 : 1, gp.highContrastDialogue ? 1 : 0,
+                "Enter must toggle high contrast dialogue");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        assertEquals(gp.ui.getOptionsCommandCount() - 1, gp.ui.commandNum, "Down must move to Back");
         gp.keyH.optionsState(KeyEvent.VK_ENTER);
         assertEquals(gp.titleState, gp.gameState, "Back must return to title menu");
         assertEquals(2, gp.ui.commandNum, "Returning from settings must restore the previous menu command");
@@ -681,16 +840,25 @@ public class TestLogic {
         if (!gp.shouldShowMouseCursor()) {
             throw new AssertionError("Mouse cursor must be visible on the title menu");
         }
+        if (!new File("res/ui/title_reflection_bg.png").isFile()) {
+            throw new AssertionError("Title menu must have an atmospheric background asset");
+        }
 
-        int titleSettingsY = gp.tileSize * 6 + 24 + 44 * 2;
-        gp.mouseH.mouseMoved(mouseEvent(gp, MouseEvent.MOUSE_MOVED, gp.screenWidth / 2, titleSettingsY));
+        int titleSettingsY = UI.TITLE_MENU_FIRST_Y + UI.TITLE_MENU_ROW_HEIGHT * 2;
+        int titleMenuX = UI.TITLE_MENU_X + UI.TITLE_MENU_WIDTH / 2;
+        gp.mouseH.mouseMoved(mouseEvent(gp, MouseEvent.MOUSE_MOVED, titleMenuX, titleSettingsY));
         assertEquals(2, gp.ui.commandNum, "Hovering title settings must select that command");
-        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, gp.screenWidth / 2, titleSettingsY));
+        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, titleMenuX, titleSettingsY));
         assertEquals(gp.optionsState, gp.gameState, "Clicking title settings must open options");
 
-        int optionsPanelY = gp.screenHeight / 2 - 360 / 2;
-        int optionsBackY = optionsPanelY + 124 + 55 * 3;
-        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, gp.screenWidth / 2, optionsBackY));
+        Rectangle soundTab = gp.ui.getOptionsTabBounds(UI.OPTIONS_TAB_SOUND);
+        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, soundTab.x + soundTab.width / 2,
+                soundTab.y + soundTab.height / 2));
+        assertEquals(UI.OPTIONS_TAB_SOUND, gp.ui.getOptionsTab(), "Clicking sound tab must switch settings tab");
+
+        Rectangle optionsBack = gp.ui.getOptionsCommandBounds(gp.ui.getOptionsCommandCount() - 1);
+        gp.mouseH.mousePressed(mouseEvent(gp, MouseEvent.MOUSE_PRESSED, optionsBack.x + optionsBack.width / 2,
+                optionsBack.y + optionsBack.height / 2));
         assertEquals(gp.titleState, gp.gameState, "Clicking options back must return to title");
         assertEquals(2, gp.ui.commandNum, "Returning from mouse-opened settings must restore title selection");
 
@@ -715,7 +883,7 @@ public class TestLogic {
         GamePanel gp = new GamePanel();
         gp.setupGame();
 
-        if (findObject(gp, 0, "Phone Message") == 999 || findObject(gp, 0, "Old Photo") == 999) {
+        if (findObject(gp, 0, "Phone Dresser") == 999 || findObject(gp, 0, "Old Photo") == 999) {
             throw new AssertionError("Apartment must contain optional phone and photo events");
         }
         if (findObject(gp, 1, "Lost Lantern") == 999 || findObject(gp, 1, "Wounded Bird") == 999) {
@@ -728,7 +896,14 @@ public class TestLogic {
             throw new AssertionError("Mountain must contain optional fork and traveler events");
         }
 
-        gp.story.interactObject("Phone Message");
+        gp.story.interactObject("Phone Dresser");
+        if (!gp.story.isPhoneDresserOpen()) {
+            throw new AssertionError("Opening the dresser must reveal the phone inside");
+        }
+        if (gp.story.hasChoices()) {
+            throw new AssertionError("Phone prompt must start after the dresser reveal, not before it");
+        }
+        gp.story.continueDialogue();
         if (!gp.story.hasChoices()) {
             throw new AssertionError("Phone event must open an optional prompt");
         }
@@ -747,7 +922,7 @@ public class TestLogic {
         assertEquals(27, gp.story.avoidance, "Answering the phone must lower avoidance");
         gp.story.continueDialogue();
 
-        gp.story.interactObject("Phone Message");
+        gp.story.interactObject("Phone Dresser");
         if (gp.story.hasChoices()) {
             throw new AssertionError("Completed optional phone event must not grant choices again");
         }
@@ -825,6 +1000,9 @@ public class TestLogic {
         assertWalkable(gp, 3, 35, 13, "Snow summit path");
         assertEquals(gp.tileSize * 35, gp.npc[3][0].worldX, "Warrior must wait on the summit path");
         assertEquals(gp.tileSize * 13, gp.npc[3][0].worldY, "Warrior must wait on the summit path");
+        if (!new File("res/player/characters/warrior_knight.png").isFile()) {
+            throw new AssertionError("Warrior must use a knight armor sprite asset");
+        }
         assertEquals(gp.tileSize * 26, gp.npc[3][1].worldX, "Traveler must wait on the side camp");
         assertEquals(gp.tileSize * 34, gp.npc[3][1].worldY, "Traveler must wait on the side camp");
 
@@ -836,6 +1014,100 @@ public class TestLogic {
         if (countTiles(gp, 3, 57, 63) < 700) {
             throw new AssertionError("Mountain map must use the dedicated mountain tiles");
         }
+    }
+
+    public static void testObjectivePlanNote() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+        gp.story.startNewGame();
+
+        if (!gp.ui.isControlHintVisible()) {
+            throw new AssertionError("New game must show quick control hints");
+        }
+
+        if (gp.ui.isPlanNoteOpen()) {
+            throw new AssertionError("Plan note must start closed");
+        }
+        gp.keyH.playState(KeyEvent.VK_I);
+        if (!gp.ui.isPlanNoteOpen()) {
+            throw new AssertionError("Pressing I must open the plan note");
+        }
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
+                gp.screenWidth, gp.screenHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D graphics = image.createGraphics();
+        gp.ui.draw(graphics);
+        graphics.dispose();
+        gp.keyH.playState(KeyEvent.VK_I);
+        if (gp.ui.isPlanNoteOpen()) {
+            throw new AssertionError("Pressing I again must close the plan note");
+        }
+
+        java.util.ArrayList<StoryManager.PlanTask> tasks = gp.story.getPlanTasks();
+        assertEquals(1, tasks.size(), "Initial visible plan task count");
+        if (!"Заправить кровать".equals(tasks.get(0).text) || tasks.get(0).completed) {
+            throw new AssertionError("Initial plan must show the bed task as active");
+        }
+
+        gp.story.interactObject("Bed");
+        tasks = gp.story.getPlanTasks();
+        if (tasks.size() < 2) {
+            throw new AssertionError("After making the bed, the next plan task must appear");
+        }
+        if (!tasks.get(0).completed) {
+            throw new AssertionError("Completed bed task must be marked done");
+        }
+        if (!"Убрать посуду на кухне".equals(tasks.get(1).text) || tasks.get(1).completed) {
+            throw new AssertionError("After making the bed, kitchen dishes task must become active");
+        }
+    }
+
+    public static void testTitleSaveSlotsAndIntro() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+
+        gp.story.startNewGame();
+        gp.saveLoad.save(2);
+        if (!gp.saveLoad.hasAnySave() || !gp.saveLoad.hasSave(2)) {
+            throw new AssertionError("Save slot 2 must be available after saving");
+        }
+
+        gp.gameState = gp.titleState;
+        gp.ui.returnToTitleMain();
+        gp.ui.commandNum = 0;
+        gp.keyH.titleState(KeyEvent.VK_ENTER);
+        if (!gp.ui.isTitleLoadSlotMenu()) {
+            throw new AssertionError("When saves exist, Continue must be the first title command and open slot loading");
+        }
+
+        gp.ui.commandNum = 1;
+        gp.keyH.titleState(KeyEvent.VK_ENTER);
+        assertEquals(gp.playState, gp.gameState, "Loading a populated slot must enter gameplay");
+        assertEquals(2, gp.saveLoad.getCurrentSlot(), "Loading slot 2 must make it the active save slot");
+
+        gp.gameState = gp.titleState;
+        gp.ui.returnToTitleMain();
+        gp.ui.commandNum = 1;
+        gp.keyH.titleState(KeyEvent.VK_ENTER);
+        if (!gp.ui.isTitleNewSlotMenu()) {
+            throw new AssertionError("When saves exist, New Game must be below Continue and open slot creation");
+        }
+
+        gp.ui.commandNum = 2;
+        gp.keyH.titleState(KeyEvent.VK_ENTER);
+        assertEquals(gp.introState, gp.gameState, "Starting a new slot must show the intro disclaimer");
+        assertEquals(3, gp.saveLoad.getCurrentSlot(), "New game in slot 3 must make slot 3 active");
+        if (!gp.saveLoad.hasSave(3)) {
+            throw new AssertionError("Starting a new slot must create a save in that slot");
+        }
+
+        for (int i = 0; i < gp.getIntroFlowFrames(); i++) {
+            gp.update();
+        }
+        assertEquals(gp.introState, gp.gameState, "Intro must continue after the menu fall animation");
+        for (int i = gp.getIntroFlowFrames(); i < gp.getIntroTotalFrames(); i++) {
+            gp.update();
+        }
+        assertEquals(gp.playState, gp.gameState, "Intro must fade into gameplay after the disclaimer hold");
     }
 
     private static void assertEquals(int expected, int actual, String message) {

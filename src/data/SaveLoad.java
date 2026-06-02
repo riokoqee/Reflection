@@ -4,19 +4,47 @@ import main.GamePanel;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.File;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 public class SaveLoad {
 
     private final GamePanel gp;
+    private int currentSlot = 1;
 
     public SaveLoad(GamePanel gp) {
         this.gp = gp;
     }
 
+    public int getCurrentSlot() {
+        return currentSlot;
+    }
+
+    public void setCurrentSlot(int slot) {
+        currentSlot = normalizeSlot(slot);
+    }
+
+    public boolean hasAnySave() {
+        for (int slot = 1; slot <= 3; slot++) {
+            if (hasSave(slot)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasSave(int slot) {
+        return getSaveFile(normalizeSlot(slot)).isFile();
+    }
+
     public void save() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("save.dat"))) {
+        save(currentSlot);
+    }
+
+    public void save(int slot) {
+        currentSlot = normalizeSlot(slot);
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(getSaveFile(currentSlot)))) {
             DataStorage ds = new DataStorage();
 
             ds.currentMap = gp.currentMap;
@@ -34,6 +62,7 @@ public class SaveLoad {
             ds.bedroomLampOn = gp.bedroomLampOn;
             ds.tvOn = gp.tvOn;
             ds.phoneEventDone = gp.story.phoneEventDone;
+            ds.phoneDresserOpen = gp.story.isPhoneDresserOpen();
             ds.photoEventDone = gp.story.photoEventDone;
             ds.mirrorEventDone = gp.story.mirrorEventDone;
             ds.lostLanternEventDone = gp.story.lostLanternEventDone;
@@ -51,8 +80,14 @@ public class SaveLoad {
     }
 
     public boolean load() {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("save.dat"))) {
+        return load(currentSlot);
+    }
+
+    public boolean load(int slot) {
+        int normalizedSlot = normalizeSlot(slot);
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(getSaveFile(normalizedSlot)))) {
             DataStorage ds = (DataStorage) ois.readObject();
+            currentSlot = normalizedSlot;
 
             gp.currentMap = ds.currentMap;
             gp.player.worldX = ds.playerWorldX;
@@ -64,6 +99,7 @@ public class SaveLoad {
             gp.story.loadState(ds.storyStage, ds.growth, ds.calm, ds.empathy, ds.confidence,
                     ds.responsibility, ds.avoidance, ds.selfWorth);
             gp.story.phoneEventDone = ds.phoneEventDone;
+            gp.story.phoneDresserOpen = ds.phoneDresserOpen || ds.phoneEventDone;
             gp.story.photoEventDone = ds.photoEventDone;
             gp.story.mirrorEventDone = ds.mirrorEventDone;
             gp.story.lostLanternEventDone = ds.lostLanternEventDone;
@@ -80,5 +116,16 @@ public class SaveLoad {
             System.err.println("Load failed: " + e.getMessage());
             return false;
         }
+    }
+
+    private int normalizeSlot(int slot) {
+        return Math.max(1, Math.min(3, slot));
+    }
+
+    private File getSaveFile(int slot) {
+        if (slot == 1) {
+            return new File("save.dat");
+        }
+        return new File("save_slot_" + slot + ".dat");
     }
 }

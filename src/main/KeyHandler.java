@@ -5,9 +5,7 @@ import java.awt.event.KeyListener;
 
 public class KeyHandler implements KeyListener {
 
-    private static final int TITLE_LAST_COMMAND = 3;
     private static final int PAUSE_LAST_COMMAND = 5;
-    private static final int OPTIONS_LAST_COMMAND = 3;
 
     private final GamePanel gp;
     public boolean upPressed, downPressed, leftPressed, rightPressed, shiftPressed, enterPressed;
@@ -42,27 +40,47 @@ public class KeyHandler implements KeyListener {
         else if (gp.gameState == gp.resultState) {
             resultState(code);
         }
+        else if (gp.gameState == gp.introState) {
+            introState(code);
+        }
     }
 
     public void titleState(int code) {
         if (isUp(code)) {
-            moveCommand(-1, TITLE_LAST_COMMAND);
+            moveCommand(-1, gp.ui.getTitleCommandCount() - 1);
         }
         if (isDown(code)) {
-            moveCommand(1, TITLE_LAST_COMMAND);
+            moveCommand(1, gp.ui.getTitleCommandCount() - 1);
+        }
+        if (code == KeyEvent.VK_ESCAPE && gp.ui.isTitleSlotMenu()) {
+            gp.playBackSE();
+            gp.ui.returnToTitleMain();
+            return;
         }
         if (isConfirm(code)) {
+            if (gp.ui.isTitleSlotMenu()) {
+                confirmTitleSlotMenu();
+                return;
+            }
+
+            boolean continueFirst = gp.saveLoad.hasAnySave();
             if (gp.ui.commandNum == 0) {
                 gp.playConfirmSE();
-                gp.story.startNewGame();
-                gp.saveLoad.save();
+                if (continueFirst) {
+                    gp.ui.enterTitleLoadSlots();
+                }
+                else {
+                    gp.ui.enterTitleNewSlots();
+                }
             }
             else if (gp.ui.commandNum == 1) {
                 gp.playConfirmSE();
-                if (!gp.saveLoad.load()) {
-                    gp.story.startNewGame();
+                if (continueFirst) {
+                    gp.ui.enterTitleNewSlots();
                 }
-                gp.gameState = gp.playState;
+                else {
+                    gp.ui.enterTitleLoadSlots();
+                }
             }
             else if (gp.ui.commandNum == 2) {
                 gp.openOptionsMenu(gp.titleState);
@@ -74,7 +92,38 @@ public class KeyHandler implements KeyListener {
         }
     }
 
+    private void confirmTitleSlotMenu() {
+        if (gp.ui.commandNum == UI.TITLE_SLOT_BACK_COMMAND) {
+            gp.playBackSE();
+            gp.ui.returnToTitleMain();
+            return;
+        }
+
+        int slot = gp.ui.commandNum + 1;
+        if (gp.ui.isTitleNewSlotMenu()) {
+            gp.playConfirmSE();
+            gp.startNewGameInSlot(slot);
+            return;
+        }
+
+        if (gp.ui.isTitleLoadSlotMenu()) {
+            if (gp.saveLoad.hasSave(slot) && gp.loadGameFromSlot(slot)) {
+                gp.playConfirmSE();
+                gp.ui.returnToTitleMain();
+            }
+            else {
+                gp.playBackSE();
+                gp.ui.setTitleNotice("Этот слот пуст");
+            }
+        }
+    }
+
     public void playState(int code) {
+        if (code == KeyEvent.VK_I) {
+            gp.ui.togglePlanNote();
+            gp.playCursorSE();
+            return;
+        }
         if (isUp(code)) {
             upPressed = true;
         }
@@ -146,10 +195,18 @@ public class KeyHandler implements KeyListener {
 
     public void optionsState(int code) {
         if (isUp(code)) {
-            moveCommand(-1, OPTIONS_LAST_COMMAND);
+            moveCommand(-1, gp.ui.getOptionsCommandCount() - 1);
         }
         if (isDown(code)) {
-            moveCommand(1, OPTIONS_LAST_COMMAND);
+            moveCommand(1, gp.ui.getOptionsCommandCount() - 1);
+        }
+        if (code == KeyEvent.VK_Q) {
+            gp.ui.moveOptionsTab(-1);
+            gp.playCursorSE();
+        }
+        if (code == KeyEvent.VK_TAB) {
+            gp.ui.moveOptionsTab(1);
+            gp.playCursorSE();
         }
         if (code == KeyEvent.VK_ESCAPE) {
             gp.closeOptionsMenu();
@@ -160,17 +217,22 @@ public class KeyHandler implements KeyListener {
         if (isRight(code)) {
             changeOption(1);
         }
-        if (isConfirm(code)) {
-            if (gp.ui.commandNum == 3) {
-                gp.closeOptionsMenu();
-            }
-            else {
-                changeOption(1);
+        if (isConfirm(code) || code == KeyEvent.VK_E) {
+            boolean closing = gp.ui.isOptionsBackCommand();
+            gp.activateCurrentOption();
+            if (!closing) {
+                gp.playCursorSE();
             }
         }
     }
 
     public void dialogueState(int code) {
+        if ((isAction(code) || code == KeyEvent.VK_SPACE) && !gp.ui.isDialogueTextFullyVisible()) {
+            gp.ui.revealDialogueTextNow();
+            gp.playCursorSE();
+            return;
+        }
+
         if (gp.story.hasChoices()) {
             if (isUp(code)) {
                 gp.story.moveChoice(-1);
@@ -199,12 +261,20 @@ public class KeyHandler implements KeyListener {
         if (isConfirm(code)) {
             gp.playConfirmSE();
             if (gp.ui.commandNum == 0) {
-                gp.story.startNewGame();
-                gp.saveLoad.save();
+                gp.startNewGameInSlot(gp.saveLoad.getCurrentSlot());
             }
             else {
                 gp.gameState = gp.titleState;
                 gp.ui.commandNum = 0;
+            }
+        }
+    }
+
+    public void introState(int code) {
+        if (isAction(code) || code == KeyEvent.VK_SPACE || code == KeyEvent.VK_ESCAPE) {
+            if (gp.getIntroFrame() >= gp.getIntroTotalFrames()) {
+                gp.playConfirmSE();
+                gp.finishIntroSequence();
             }
         }
     }
@@ -245,15 +315,7 @@ public class KeyHandler implements KeyListener {
     }
 
     private void changeOption(int amount) {
-        if (gp.ui.commandNum == 0) {
-            gp.changeMusicVolume(amount);
-        }
-        else if (gp.ui.commandNum == 1) {
-            gp.changeSoundEffectVolume(amount);
-        }
-        else if (gp.ui.commandNum == 2) {
-            gp.toggleFullScreen();
-        }
+        gp.changeCurrentOption(amount);
         gp.playCursorSE();
     }
 

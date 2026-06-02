@@ -35,6 +35,17 @@ public class MouseHandler extends MouseAdapter {
 
         gp.requestFocusInWindow();
         Point point = gp.toGameScreenPoint(e.getX(), e.getY());
+        if (gp.gameState == gp.optionsState) {
+            int tab = getOptionsTabAt(point);
+            if (tab != NO_COMMAND) {
+                gp.ui.setOptionsTab(tab);
+                gp.ui.commandNum = 0;
+                gp.playCursorSE();
+                gp.syncMouseCursor();
+                return;
+            }
+        }
+
         int command = getCommandAt(point);
         if (command == NO_COMMAND) {
             return;
@@ -56,13 +67,14 @@ public class MouseHandler extends MouseAdapter {
 
     private int getCommandAt(Point point) {
         if (gp.gameState == gp.titleState) {
-            return getCommandFromVerticalMenu(point, gp.tileSize * 6 + 24, 4, 44, 520);
+            return getCommandFromVerticalMenu(point, UI.TITLE_MENU_FIRST_Y, UI.TITLE_MENU_COMMANDS,
+                    UI.TITLE_MENU_ROW_HEIGHT, UI.TITLE_MENU_X - 14, UI.TITLE_MENU_WIDTH);
         }
         if (gp.gameState == gp.pauseState) {
             return getCommandFromRows(point, getPauseButtonBounds(), 6);
         }
         if (gp.gameState == gp.optionsState) {
-            return getCommandFromRows(point, getOptionsButtonBounds(), 4);
+            return getOptionsCommand(point);
         }
         if (gp.gameState == gp.resultState) {
             return getResultCommand(point);
@@ -70,11 +82,11 @@ public class MouseHandler extends MouseAdapter {
         return NO_COMMAND;
     }
 
-    private int getCommandFromVerticalMenu(Point point, int firstBaselineY, int commandCount, int stepY, int width) {
-        int x = gp.screenWidth / 2 - width / 2;
+    private int getCommandFromVerticalMenu(Point point, int firstBaselineY, int commandCount, int stepY,
+                                           int x, int width) {
         for (int command = 0; command < commandCount; command++) {
             int y = firstBaselineY + command * stepY;
-            if (new Rectangle(x, y - 34, width, 42).contains(point)) {
+            if (new Rectangle(x, y - 32, width, UI.TITLE_MENU_ITEM_HEIGHT).contains(point)) {
                 return command;
             }
         }
@@ -108,14 +120,25 @@ public class MouseHandler extends MouseAdapter {
     }
 
     private Rectangle getOptionsButtonBounds() {
-        int panelWidth = 560;
-        int panelHeight = 360;
-        int panelX = gp.screenWidth / 2 - panelWidth / 2;
-        int panelY = gp.screenHeight / 2 - panelHeight / 2;
-        int rowX = panelX + 52;
-        int rowY = panelY + 124;
-        int rowWidth = panelWidth - 104;
-        return new Rectangle(rowX - 16, rowY - 31, rowWidth, 55);
+        return gp.ui.getOptionsCommandBounds(0);
+    }
+
+    private int getOptionsCommand(Point point) {
+        for (int command = 0; command < gp.ui.getOptionsCommandCount(); command++) {
+            if (gp.ui.getOptionsCommandBounds(command).contains(point)) {
+                return command;
+            }
+        }
+        return NO_COMMAND;
+    }
+
+    private int getOptionsTabAt(Point point) {
+        for (int tab = 0; tab < UI.OPTIONS_TAB_COUNT; tab++) {
+            if (gp.ui.getOptionsTabBounds(tab).contains(point)) {
+                return tab;
+            }
+        }
+        return NO_COMMAND;
     }
 
     private int getResultCommand(Point point) {
@@ -148,18 +171,16 @@ public class MouseHandler extends MouseAdapter {
     }
 
     private int getOptionsActivationKey(Point point, int command) {
-        if (command != 0 && command != 1) {
+        if (gp.ui.isOptionsBackCommand()) {
+            return KeyEvent.VK_ENTER;
+        }
+        if (gp.ui.getOptionsTab() == UI.OPTIONS_TAB_GRAPHICS && command == 0) {
             return KeyEvent.VK_ENTER;
         }
 
-        Rectangle firstRow = getOptionsButtonBounds();
-        int rowX = firstRow.x + 16;
-        int rowWidth = firstRow.width;
-        int barX = rowX + rowWidth - 240;
-        int blockWidth = 28;
-        int blockGap = 8;
-        int leftArrowCenterX = barX - 28;
-        int rightArrowCenterX = barX + 5 * (blockWidth + blockGap) + 14;
+        Rectangle row = gp.ui.getOptionsCommandBounds(command);
+        int leftArrowCenterX = row.x + row.width - 300;
+        int rightArrowCenterX = row.x + row.width - 34;
 
         if (Math.abs(point.x - leftArrowCenterX) <= 34) {
             return KeyEvent.VK_LEFT;

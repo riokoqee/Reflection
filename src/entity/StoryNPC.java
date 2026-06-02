@@ -9,17 +9,27 @@ import java.awt.image.BufferedImage;
 public class StoryNPC extends Entity {
 
     private static final String CHARACTER_PREFIX = "character:";
-    private static final double DRAW_SCALE = 1.15;
+    private static final double DEFAULT_DRAW_SCALE = 1.15;
+    private static final int NAME_FONT_SIZE = 16;
 
     private final String role;
     private final String displayName;
+    private final double drawScale;
+    private final boolean showDisplayName;
     private int drawSize;
 
     public StoryNPC(GamePanel gp, String role, String displayName, String spriteSet) {
+        this(gp, role, displayName, spriteSet, DEFAULT_DRAW_SCALE, true);
+    }
+
+    public StoryNPC(GamePanel gp, String role, String displayName, String spriteSet,
+                    double drawScale, boolean showDisplayName) {
         super(gp);
 
         this.role = role;
         this.displayName = displayName;
+        this.drawScale = drawScale;
+        this.showDisplayName = showDisplayName;
         direction = "down";
         speed = 0;
 
@@ -42,7 +52,7 @@ public class StoryNPC extends Entity {
     }
 
     private void loadStaticSprite(String path) {
-        drawSize = (int) Math.round(gp.tileSize * DRAW_SCALE);
+        drawSize = (int) Math.round(gp.tileSize * drawScale);
         up1 = setup(path, drawSize, drawSize);
         up2 = up1;
         down1 = up1;
@@ -70,14 +80,20 @@ public class StoryNPC extends Entity {
             BufferedImage image = down1;
             g2.drawImage(image, drawX, drawY, null);
 
+            if (!showDisplayName) {
+                return;
+            }
+
             Font oldFont = g2.getFont();
-            g2.setFont(GameFonts.bold(13));
+            g2.setFont(GameFonts.bold(NAME_FONT_SIZE));
             FontMetrics fm = g2.getFontMetrics();
             int textX = drawX + drawSize / 2 - fm.stringWidth(displayName) / 2;
-            int textY = drawY - 8;
+            int textY = drawY - 10;
+            int labelHeight = fm.getHeight() + 6;
 
             g2.setColor(new Color(0, 0, 0, 170));
-            g2.fillRoundRect(textX - 6, textY - fm.getAscent(), fm.stringWidth(displayName) + 12, 18, 8, 8);
+            g2.fillRoundRect(textX - 8, textY - fm.getAscent() - 3,
+                    fm.stringWidth(displayName) + 16, labelHeight, 9, 9);
             g2.setColor(Color.white);
             g2.drawString(displayName, textX, textY);
             g2.setFont(oldFont);

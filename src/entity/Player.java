@@ -25,6 +25,8 @@ public class Player extends Entity {
     private static final double DRAW_HEIGHT_TILES = 1.64;
     private static final int NO_TARGET = 999;
     private static final int SOFA_SIT_X_COL = 33;
+    private static final int SOFA_SIT_X_OFFSET_NUMERATOR = -1;
+    private static final int SOFA_SIT_X_OFFSET_DENOMINATOR = 3;
     private static final int SOFA_SIT_Y_ROW = 12;
     private static final int WALK_SPEED = 4;
     private static final int SPRINT_SPEED = 7;
@@ -91,12 +93,17 @@ public class Player extends Entity {
     public void startSittingOnSofa(int frames) {
         sittingCounter = Math.max(1, frames);
         persistentSitting = false;
-        sittingReturnX = gp.tileSize * SOFA_SIT_X_COL;
+        sittingReturnX = getSofaSitX();
         sittingReturnY = getSofaFrontExitY();
-        setPixelPosition(gp.tileSize * SOFA_SIT_X_COL, gp.tileSize * SOFA_SIT_Y_ROW - gp.tileSize / 3);
+        setPixelPosition(getSofaSitX(), gp.tileSize * SOFA_SIT_Y_ROW - gp.tileSize / 3);
         direction = "up";
         animationCounter = 0;
         animationFrame = 0;
+    }
+
+    private int getSofaSitX() {
+        return gp.tileSize * SOFA_SIT_X_COL
+                + gp.tileSize * SOFA_SIT_X_OFFSET_NUMERATOR / SOFA_SIT_X_OFFSET_DENOMINATOR;
     }
 
     private int getSofaFrontExitY() {

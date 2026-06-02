@@ -1,5 +1,7 @@
 package main;
 
+import java.util.ArrayList;
+
 public class StoryManager {
 
     public static final String SHADOW_APARTMENT = "shadow_apartment";
@@ -47,6 +49,9 @@ public class StoryManager {
     private int dialogueLockCounter = 0;
     private int dialogueLockTotalFrames = 0;
     private boolean apartmentShadowConversationStarted = false;
+    private boolean removeDirtyDishesAfterDialogue = false;
+    private boolean pendingPhonePromptAfterDresser = false;
+    private boolean autoCloseTimedMessage = false;
 
     public int growth;
     public int calm;
@@ -58,6 +63,7 @@ public class StoryManager {
     public int selectedChoice = 0;
     public boolean phoneEventDone = false;
     public boolean photoEventDone = false;
+    public boolean phoneDresserOpen = false;
     public boolean mirrorEventDone = false;
     public boolean lostLanternEventDone = false;
     public boolean woundedBirdEventDone = false;
@@ -77,6 +83,7 @@ public class StoryManager {
         resetOptionalEvents();
         stage = STAGE_MAKE_BED;
         apartmentShadowConversationStarted = false;
+        removeDirtyDishesAfterDialogue = false;
         clearDialogue();
         gp.currentMap = MapId.APARTMENT;
         gp.hasLantern = false;
@@ -88,11 +95,17 @@ public class StoryManager {
         gp.aSetter.setNPC();
         gp.gameState = gp.playState;
         gp.ui.commandNum = 0;
+        gp.ui.resetPlanNote();
+        gp.ui.showControlHints();
     }
 
     public void update() {
         if (dialogueLockCounter > 0) {
             dialogueLockCounter--;
+            if (dialogueLockCounter == 0 && autoCloseTimedMessage && gp.gameState == gp.dialogueState) {
+                autoCloseTimedMessage = false;
+                continueDialogue();
+            }
         }
     }
 
@@ -117,6 +130,9 @@ public class StoryManager {
         this.selfWorth = selfWorth;
         clampMetrics();
         apartmentShadowConversationStarted = stage > STAGE_SHADOW_FIRST;
+        removeDirtyDishesAfterDialogue = false;
+        pendingPhonePromptAfterDresser = false;
+        autoCloseTimedMessage = false;
         clearDialogue();
     }
 
@@ -164,14 +180,17 @@ public class StoryManager {
             return;
         }
 
-        if (matchesObject(objectName, "Bedroom Lamp", "Dresser")) {
+        if (matchesObject(objectName, "Phone Dresser")) {
+            openPhoneDresser();
+        }
+        else if (matchesObject(objectName, "Bedroom Lamp", "Dresser")) {
             toggleBedroomLamp();
+        }
+        else if (matchesObject(objectName, "Corridor Lamp")) {
+            gp.playSE(Sound.LIGHT_SWITCH);
         }
         else if (matchesObject(objectName, "TV")) {
             toggleTV();
-        }
-        else if (matchesObject(objectName, "Phone Message")) {
-            openPhoneEvent();
         }
         else if (matchesObject(objectName, "Old Photo")) {
             openPhotoEvent();
@@ -200,15 +219,15 @@ public class StoryManager {
         else if (stage == STAGE_MAKE_BED && matchesObject(objectName, "Bed")) {
             stage = STAGE_MAKE_TEA;
             openTimedMessage("Квартира",
-                    "Кровать приведена в порядок. В квартире стало чуть спокойнее. Теперь можно пройти на кухню.",
+                    "Кровать приведена в порядок. В квартире стало чуть спокойнее. Теперь можно пройти на кухню и убрать посуду.",
                     gp.playSEAndGetDurationFrames(Sound.BED_INTERACT));
         }
-        else if (stage == STAGE_MAKE_TEA && matchesObject(objectName,
-                "Kitchen Stove", "Kitchen Counter Left", "Kitchen Counter Right", "Kitchen Wall Sink")) {
+        else if (stage == STAGE_MAKE_TEA && matchesObject(objectName, "Dirty Dishes", "Kitchen Wall Sink")) {
             stage = STAGE_WASH_FACE;
+            removeDirtyDishesAfterDialogue = true;
             openTimedMessage("Кухня",
-                    "Чайник тихо щелкнул. Тепло от кружки держит руки на месте. Осталось умыться.",
-                    gp.playSEAndGetDurationFrames(Sound.KETTLE));
+                    "Тарелки больше не громоздятся в раковине. Вода смывает липкий шум утра, и кухня наконец выглядит живой.",
+                    gp.playSEAndGetDurationFrames(Sound.DISHES));
         }
         else if (stage == STAGE_WASH_FACE && matchesObject(objectName, "Bathroom Mirror")) {
             stage = STAGE_REST_IN_HALL;
@@ -217,6 +236,10 @@ public class StoryManager {
                     gp.playSEAndGetDurationFrames(Sound.WATER_SINK));
         }
         else if (stage == STAGE_REST_IN_HALL && matchesObject(objectName, "Sofa")) {
+            if (!gp.tvOn) {
+                openMessage("Зал", "Сначала стоит включить телевизор. Пусть в комнате появится хоть какой-то обычный шум.");
+                return;
+            }
             stage = STAGE_SHADOW_FIRST;
             gp.aSetter.setNPC();
             int sofaFrames = gp.playSEAndGetDurationFrames(Sound.SOFA_SIT);
@@ -241,12 +264,25 @@ public class StoryManager {
 
     private void toggleBedroomLamp() {
         gp.bedroomLampOn = !gp.bedroomLampOn;
-        gp.playSE(Sound.MENU_CONFIRM);
+        gp.playSE(Sound.LIGHT_SWITCH);
     }
 
     private void toggleTV() {
         gp.tvOn = !gp.tvOn;
         gp.playSE(Sound.MENU_CONFIRM);
+    }
+
+    private void openPhoneDresser() {
+        if (!phoneDresserOpen && !phoneEventDone) {
+            phoneDresserOpen = true;
+            pendingPhonePromptAfterDresser = true;
+            gp.playSE(Sound.MENU_CONFIRM);
+            openMessage("Комод",
+                    "Ящик выдвигается с тихим щелчком. Внутри лежит телефон, и экран сразу загорается сообщением от мамы.");
+            return;
+        }
+        gp.playSE(Sound.MENU_CONFIRM);
+        openPhoneEvent();
     }
 
     private void openPhoneEvent() {
@@ -433,13 +469,13 @@ public class StoryManager {
                 openMessage("Мысль", "Сначала заправь кровать в спальне. Дом должен проснуться раньше, чем день.");
                 break;
             case STAGE_MAKE_TEA:
-                openMessage("Мысль", "На кухне можно сделать чай. Это обычное дело, но оно держит утро в руках.");
+                openMessage("Мысль", "На кухне в раковине осталась грязная посуда. Убери её, пока день не стал тяжелее.");
                 break;
             case STAGE_WASH_FACE:
                 openMessage("Мысль", "Зайди в ванную и умойся. После этого можно будет спокойно выдохнуть.");
                 break;
             case STAGE_REST_IN_HALL:
-                openMessage("Мысль", "Присядь в зале на диван. Несколько секунд тишины не должны пугать.");
+                openMessage("Мысль", "Включи телевизор и присядь на диван. Обычный шум комнаты поможет выдохнуть.");
                 break;
             case STAGE_SHADOW_FIRST:
             case STAGE_SHADOW_SECOND:
@@ -500,6 +536,10 @@ public class StoryManager {
 
     public boolean isPhonePrompt(StoryPrompt prompt) {
         return prompt != null && OPTIONAL_PHONE.equals(prompt.id);
+    }
+
+    public boolean shouldTypePrompt(StoryPrompt prompt) {
+        return prompt != null && !prompt.id.startsWith("optional_");
     }
 
     public boolean isPhoneResultOpen() {
@@ -683,6 +723,7 @@ public class StoryManager {
         dialogueLockTotalFrames = 0;
         pendingMap = -1;
         pendingResult = false;
+        autoCloseTimedMessage = false;
         selectedChoice = 0;
         gp.gameState = gp.dialogueState;
     }
@@ -693,6 +734,13 @@ public class StoryManager {
         }
 
         if (activePrompt != null) {
+            return;
+        }
+
+        if (pendingPhonePromptAfterDresser) {
+            pendingPhonePromptAfterDresser = false;
+            clearDialogue();
+            openPhoneEvent();
             return;
         }
 
@@ -713,6 +761,11 @@ public class StoryManager {
         }
         else {
             gp.gameState = gp.playState;
+        }
+
+        if (removeDirtyDishesAfterDialogue) {
+            gp.aSetter.removeObject(MapId.APARTMENT, "Dirty Dishes");
+            removeDirtyDishesAfterDialogue = false;
         }
 
         gp.saveLoad.save();
@@ -752,11 +805,11 @@ public class StoryManager {
             case STAGE_MAKE_BED:
                 return "Заправь кровать в спальне";
             case STAGE_MAKE_TEA:
-                return "Завари чай на кухне";
+                return "Убери посуду в раковине на кухне";
             case STAGE_WASH_FACE:
                 return "Умойся в ванной";
             case STAGE_REST_IN_HALL:
-                return "Присядь в зале";
+                return "Включи телевизор в зале и отдохни на диване";
             case STAGE_SHADOW_FIRST:
             case STAGE_SHADOW_SECOND:
                 return "Поговори с Тенью у зеркала";
@@ -773,6 +826,35 @@ public class StoryManager {
             default:
                 return "Посмотри результат";
         }
+    }
+
+    public ArrayList<PlanTask> getPlanTasks() {
+        ArrayList<PlanTask> tasks = new ArrayList<>();
+        addPlanTask(tasks, "Заправить кровать", STAGE_MAKE_BED, STAGE_MAKE_TEA);
+        addPlanTask(tasks, "Убрать посуду на кухне", STAGE_MAKE_TEA, STAGE_WASH_FACE);
+        addPlanTask(tasks, "Умыться в ванной", STAGE_WASH_FACE, STAGE_REST_IN_HALL);
+        addPlanTask(tasks, "Включить телевизор и отдохнуть на диване", STAGE_REST_IN_HALL, STAGE_SHADOW_FIRST);
+        addPlanTask(tasks, "Поговорить с Тенью у зеркала", STAGE_SHADOW_FIRST, STAGE_CHILD);
+        addPlanTask(tasks, "Найти Ребёнка на качелях", STAGE_CHILD, STAGE_FOREST_SHADOW);
+        addPlanTask(tasks, "Идти глубже к Тени", STAGE_FOREST_SHADOW, STAGE_FRIEND);
+        addPlanTask(tasks, "Поговорить с Другом", STAGE_FRIEND, STAGE_ELDER);
+        addPlanTask(tasks, "Зайти к Старику в библиотеку", STAGE_ELDER, STAGE_WARRIOR);
+        addPlanTask(tasks, "Подняться к Воину", STAGE_WARRIOR, STAGE_DONE);
+        return tasks;
+    }
+
+    private void addPlanTask(ArrayList<PlanTask> tasks, String text, int visibleStage, int completedStage) {
+        if (stage >= visibleStage) {
+            tasks.add(new PlanTask(text, stage >= completedStage));
+        }
+    }
+
+    public boolean shouldShowDirtyDishes() {
+        return stage <= STAGE_MAKE_TEA;
+    }
+
+    public boolean isPhoneDresserOpen() {
+        return phoneDresserOpen || phoneEventDone;
     }
 
     public String getProfileTitle() {
@@ -1025,6 +1107,7 @@ public class StoryManager {
         messageText = "";
         dialogueLockCounter = 0;
         dialogueLockTotalFrames = 0;
+        autoCloseTimedMessage = false;
         selectedChoice = 0;
         gp.gameState = gp.dialogueState;
     }
@@ -1036,6 +1119,7 @@ public class StoryManager {
         messageText = text;
         dialogueLockCounter = 0;
         dialogueLockTotalFrames = 0;
+        autoCloseTimedMessage = false;
         gp.gameState = gp.dialogueState;
     }
 
@@ -1046,6 +1130,7 @@ public class StoryManager {
         messageText = text;
         dialogueLockCounter = Math.max(0, lockFrames);
         dialogueLockTotalFrames = dialogueLockCounter;
+        autoCloseTimedMessage = dialogueLockCounter > 0;
         gp.gameState = gp.dialogueState;
     }
 
@@ -1060,6 +1145,7 @@ public class StoryManager {
         pendingCol = col;
         pendingRow = row;
         pendingResult = result;
+        autoCloseTimedMessage = false;
         gp.gameState = gp.dialogueState;
     }
 
@@ -1083,8 +1169,10 @@ public class StoryManager {
     }
 
     private void resetOptionalEvents() {
+        pendingPhonePromptAfterDresser = false;
         phoneEventDone = false;
         photoEventDone = false;
+        phoneDresserOpen = false;
         mirrorEventDone = false;
         lostLanternEventDone = false;
         woundedBirdEventDone = false;
@@ -1117,6 +1205,7 @@ public class StoryManager {
         dialogueLockTotalFrames = 0;
         pendingMap = -1;
         pendingResult = false;
+        autoCloseTimedMessage = false;
         selectedChoice = 0;
     }
 
@@ -1137,6 +1226,16 @@ public class StoryManager {
             this.speaker = speaker;
             this.text = text;
             this.choices = choices;
+        }
+    }
+
+    public static class PlanTask {
+        public final String text;
+        public final boolean completed;
+
+        PlanTask(String text, boolean completed) {
+            this.text = text;
+            this.completed = completed;
         }
     }
 

@@ -21,6 +21,7 @@ public class DataStorage implements Serializable {
     boolean bedroomLampOn;
     boolean tvOn;
     boolean phoneEventDone;
+    boolean phoneDresserOpen;
     boolean photoEventDone;
     boolean mirrorEventDone;
     boolean lostLanternEventDone;
