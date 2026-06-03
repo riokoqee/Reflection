@@ -5,6 +5,8 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class UI {
 
@@ -38,6 +40,7 @@ public class UI {
     private Graphics2D g2;
     private final Font titleFont;
     private final BufferedImage titleBackground;
+    private final Map<String, BufferedImage> gradientCache = new HashMap<>();
     public int commandNum = 0;
     private final ArrayList<String> message = new ArrayList<>();
     private final ArrayList<Integer> messageCounter = new ArrayList<>();
@@ -493,10 +496,10 @@ public class UI {
 
         g2.setFont(GameFonts.bold(26));
         g2.setColor(new Color(57, 42, 32));
-        g2.drawString("План", x + 24, y + 38);
+        g2.drawString("Записка", x + 24, y + 38);
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(91, 68, 47, 205));
-        g2.drawString(gp.story.getLocationTitle(), x + 26, y + 58);
+        g2.drawString(gp.story.getPlanNoteSubtitle(), x + 26, y + 58);
 
         int rowY = y + 82;
         int rowWidth = PLAN_NOTE_WIDTH - 52;
@@ -504,7 +507,7 @@ public class UI {
         g2.setFont(taskFont);
 
         for (StoryManager.PlanTask task : gp.story.getPlanTasks()) {
-            ArrayList<String> lines = wrapTextLines(task.text, rowWidth - 36, taskFont);
+            ArrayList<String> lines = wrapTextLines(task.getDisplayText(), rowWidth - 36, taskFont);
             int rowHeight = Math.max(28, measureLinesHeight(lines, 18) + 8);
             if (rowY + rowHeight > y + height - 22) {
                 break;
@@ -1569,11 +1572,8 @@ public class UI {
             return;
         }
 
-        for (int row = 0; row < height; row++) {
-            float progress = height <= 1 ? 1f : row / (float) (height - 1);
-            g2.setColor(interpolateColor(top, bottom, progress));
-            g2.fillRect(x, y + row, width, 1);
-        }
+        BufferedImage gradient = getVerticalGradient(height, top, bottom);
+        g2.drawImage(gradient, x, y, width, height, null);
     }
 
     private void fillHorizontalGradient(int x, int y, int width, int height, Color left, Color right) {
@@ -1581,11 +1581,40 @@ public class UI {
             return;
         }
 
+        BufferedImage gradient = getHorizontalGradient(width, left, right);
+        g2.drawImage(gradient, x, y, width, height, null);
+    }
+
+    private BufferedImage getVerticalGradient(int height, Color top, Color bottom) {
+        String key = "v:" + height + ":" + top.getRGB() + ":" + bottom.getRGB();
+        BufferedImage cached = gradientCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        BufferedImage image = new BufferedImage(1, height, BufferedImage.TYPE_INT_ARGB);
+        for (int row = 0; row < height; row++) {
+            float progress = height <= 1 ? 1f : row / (float) (height - 1);
+            image.setRGB(0, row, interpolateColor(top, bottom, progress).getRGB());
+        }
+        gradientCache.put(key, image);
+        return image;
+    }
+
+    private BufferedImage getHorizontalGradient(int width, Color left, Color right) {
+        String key = "h:" + width + ":" + left.getRGB() + ":" + right.getRGB();
+        BufferedImage cached = gradientCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        BufferedImage image = new BufferedImage(width, 1, BufferedImage.TYPE_INT_ARGB);
         for (int col = 0; col < width; col++) {
             float progress = width <= 1 ? 1f : col / (float) (width - 1);
-            g2.setColor(interpolateColor(left, right, progress));
-            g2.fillRect(x + col, y, 1, height);
+            image.setRGB(col, 0, interpolateColor(left, right, progress).getRGB());
         }
+        gradientCache.put(key, image);
+        return image;
     }
 
     private Color interpolateColor(Color from, Color to, float progress) {

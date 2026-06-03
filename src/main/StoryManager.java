@@ -186,9 +186,6 @@ public class StoryManager {
         else if (matchesObject(objectName, "Bedroom Lamp", "Dresser")) {
             toggleBedroomLamp();
         }
-        else if (matchesObject(objectName, "Corridor Lamp")) {
-            gp.playSE(Sound.LIGHT_SWITCH);
-        }
         else if (matchesObject(objectName, "TV")) {
             toggleTV();
         }
@@ -225,9 +222,11 @@ public class StoryManager {
         else if (stage == STAGE_MAKE_TEA && matchesObject(objectName, "Dirty Dishes", "Kitchen Wall Sink")) {
             stage = STAGE_WASH_FACE;
             removeDirtyDishesAfterDialogue = true;
+            int dishesFrames = gp.playSEAndGetDurationFrames(Sound.DISHES);
+            int waterFrames = gp.playSEAndGetDurationFrames(Sound.WATER_SINK);
             openTimedMessage("Кухня",
                     "Тарелки больше не громоздятся в раковине. Вода смывает липкий шум утра, и кухня наконец выглядит живой.",
-                    gp.playSEAndGetDurationFrames(Sound.DISHES));
+                    Math.max(dishesFrames, waterFrames));
         }
         else if (stage == STAGE_WASH_FACE && matchesObject(objectName, "Bathroom Mirror")) {
             stage = STAGE_REST_IN_HALL;
@@ -293,7 +292,7 @@ public class StoryManager {
         openPrompt(
                 OPTIONAL_PHONE,
                 "Мама",
-                "Мама: Доброе утро. Ты проснулся?\nМама: Вчера ты звучал очень устало.\nМама: Напиши хотя бы пару слов, хорошо?",
+                "Мама: Доброе утро. Ты уже не спишь?\nМама: Вчера голос был совсем уставшим.\nМама: Напиши хотя бы пару слов, хорошо?",
                 new Choice[]{
                         optionalChoice("Написать: \"Я не очень, но я здесь\".", 0, 0, 14, 0, 12, -8, 8,
                                 "Сообщение отправлено. Ответ мамы приходит почти сразу: \"Спасибо, что написал. Я рядом\"."),
@@ -427,7 +426,7 @@ public class StoryManager {
 
     private void openForkEvent() {
         if (forkEventDone) {
-            openMessage("Развилка", "Знак уже не кажется выбором. Ты знаешь, какую дорогу заметил первым.");
+            openMessage("Развилка", "Знак уже не кажется выбором. Одна дорога первой бросилась в глаза.");
             return;
         }
         openPrompt(
@@ -556,8 +555,8 @@ public class StoryManager {
 
     public String[] getPhoneIntroMessages() {
         return new String[]{
-                "Мама: Доброе утро. Ты проснулся?",
-                "Мама: Вчера ты звучал очень устало.",
+                "Мама: Доброе утро. Ты уже не спишь?",
+                "Мама: Вчера голос был совсем уставшим.",
                 "Мама: Напиши хотя бы пару слов, хорошо?"
         };
     }
@@ -632,7 +631,7 @@ public class StoryManager {
             stage = STAGE_DONE;
             finishChoice(
                     "Вершина",
-                    "Все пятеро стоят кругом.\n\nСтарик: Ты всё ещё не понял?\nТень: Мы никогда не были снаружи.\nРебёнок: Мы - это ты.\nДруг: Всё, что ты видел... это твоя голова.\nВоин: Ты прошёл по своему собственному разуму.\n\nЭто был твой внутренний мир. Каждый выбор, который ты сделал, похож на выбор, который ты делаешь в реальной жизни.",
+                    "Все пятеро стоят кругом.\n\nСтарик: Понимание уже рядом?\nТень: Мы никогда не были снаружи.\nРебёнок: Мы - это ты.\nДруг: Всё, что было видно... это твоя голова.\nВоин: Этот путь проходил внутри собственного разума.\n\nЭто был твой внутренний мир. Каждый выбор здесь похож на выбор, который ты делаешь в реальной жизни.",
                     -1, 0, 0, true
             );
         }
@@ -828,6 +827,16 @@ public class StoryManager {
         }
     }
 
+    public String getPlanNoteSubtitle() {
+        if (stage < STAGE_SHADOW_FIRST) {
+            return "План на утро";
+        }
+        if (stage <= STAGE_CHILD) {
+            return "Новая запись";
+        }
+        return getLocationTitle();
+    }
+
     public ArrayList<PlanTask> getPlanTasks() {
         ArrayList<PlanTask> tasks = new ArrayList<>();
         addPlanTask(tasks, "Заправить кровать", STAGE_MAKE_BED, STAGE_MAKE_TEA);
@@ -845,7 +854,34 @@ public class StoryManager {
 
     private void addPlanTask(ArrayList<PlanTask> tasks, String text, int visibleStage, int completedStage) {
         if (stage >= visibleStage) {
-            tasks.add(new PlanTask(text, stage >= completedStage));
+            tasks.add(new PlanTask(text, getCompletedPlanText(visibleStage), stage >= completedStage));
+        }
+    }
+
+    private String getCompletedPlanText(int visibleStage) {
+        switch (visibleStage) {
+            case STAGE_MAKE_BED:
+                return "Кровать заправлена. В комнате стало тише.";
+            case STAGE_MAKE_TEA:
+                return "Посуда убрана. Вода была холоднее обычного.";
+            case STAGE_WASH_FACE:
+                return "Лицо умыто. В зеркале всё нормально. Наверное.";
+            case STAGE_REST_IN_HALL:
+                return "Телевизор шумит. Дома не стало спокойнее.";
+            case STAGE_SHADOW_FIRST:
+                return "Тень знает слишком много. Дальше ведёт лес.";
+            case STAGE_CHILD:
+                return "Качели скрипят даже после разговора.";
+            case STAGE_FOREST_SHADOW:
+                return "В лесу стало понятно: сомнение умеет говорить.";
+            case STAGE_FRIEND:
+                return "Друг услышал больше, чем было сказано.";
+            case STAGE_ELDER:
+                return "Старик оставил вопрос вместо ответа.";
+            case STAGE_WARRIOR:
+                return "Вершина достигнута. Осталось посмотреть внутрь.";
+            default:
+                return "";
         }
     }
 
@@ -966,11 +1002,11 @@ public class StoryManager {
         openPrompt(
                 "shadow_first",
                 "Тень",
-                "Ты наконец-то меня заметил... Я уже давно здесь. Просто ты всегда отворачивался.",
+                "Ты наконец-то смотришь на меня... Я уже давно здесь. Просто взгляд всегда уходил в сторону.",
                 new Choice[]{
-                        choice("Кто ты такой?", 0, 0, 0, 0),
+                        choice("Что ты такое?", 0, 0, 0, 0),
                         choice("Это сон?", 0, 0, 0, 0),
-                        choice("Я просто устал...", 0, 0, 0, 0),
+                        choice("Просто нет сил...", 0, 0, 0, 0),
                         choice("Оставь меня в покое.", 0, 0, 0, 0)
                 }
         );
@@ -1078,10 +1114,10 @@ public class StoryManager {
             openPrompt(
                     "warrior",
                     "Воин",
-                    "Ты дошёл. Немногие доходят так далеко.",
+                    "Путь пройден. Немногие доходят так далеко.",
                     new Choice[]{
-                            choice("Я готов.", 20, 0, 0, 25),
-                            choice("Я устал.", -10, 18, 0, 0),
+                            choice("Можно идти дальше.", 20, 0, 0, 25),
+                            choice("Нужен отдых.", -10, 18, 0, 0),
                             choice("Я возьму всех с собой.", 18, 0, 22, 0)
                     }
             );
@@ -1090,11 +1126,11 @@ public class StoryManager {
             openPrompt(
                     "warrior",
                     "Воин",
-                    "Ты дошёл... но выглядишь так, будто хочешь сдаться на полпути.",
+                    "Путь почти пройден... но внутри будто хочется сдаться на полпути.",
                     new Choice[]{
-                            choice("Я готов.", 15, 0, 0, 18),
-                            choice("Я устал.", -15, 25, 0, 0),
-                            choice("Я уже изменился.", 20, 20, 20, 20)
+                            choice("Можно идти дальше.", 15, 0, 0, 18),
+                            choice("Нужен отдых.", -15, 25, 0, 0),
+                            choice("Во мне уже что-то изменилось.", 20, 20, 20, 20)
                     }
             );
         }
@@ -1231,11 +1267,20 @@ public class StoryManager {
 
     public static class PlanTask {
         public final String text;
+        public final String completedText;
         public final boolean completed;
 
-        PlanTask(String text, boolean completed) {
+        PlanTask(String text, String completedText, boolean completed) {
             this.text = text;
+            this.completedText = completedText;
             this.completed = completed;
+        }
+
+        public String getDisplayText() {
+            if (completed && completedText != null && !completedText.isEmpty()) {
+                return completedText;
+            }
+            return text;
         }
     }
 

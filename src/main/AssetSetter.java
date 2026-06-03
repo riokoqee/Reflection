@@ -132,26 +132,6 @@ public class AssetSetter {
             house("village_library", "building_006_x218_y93_360x183", 8.5, 4.1, 31, 3)
     };
 
-    private static final VillagePropPlacement[] VILLAGE_PROPS = {
-            prop("village_bench_square", "prop_027_x4_y122_32x15", 1.4, 0.6, 20, 25, false),
-            prop("village_bench_friend", "prop_027_x4_y122_32x15", 1.4, 0.6, 16, 16, false),
-            prop("village_sign", "prop_007_x96_y29_20x19", 0.8, 0.8, 23, 18, false),
-            prop("village_fence_left", "prop_016_x16_y96_16x16", 0.6, 0.8, 8, 23, true),
-            prop("village_fence_right", "prop_017_x59_y96_16x16", 0.6, 0.8, 42, 23, true),
-            prop("village_flowers_friend", "prop_010_x160_y43_56x16", 1.5, 0.45, 12, 16, false),
-            prop("village_flowers_blue", "prop_010_x160_y43_56x16", 1.5, 0.45, 27, 13, false),
-            prop("village_flowers_red", "prop_010_x160_y43_56x16", 1.5, 0.45, 36, 15, false),
-            prop("village_flowers_green", "prop_010_x160_y43_56x16", 1.5, 0.45, 12, 28, false),
-            prop("village_flowers_black", "prop_010_x160_y43_56x16", 1.5, 0.45, 31, 31, false),
-            prop("village_flowers_white", "prop_010_x160_y43_56x16", 1.5, 0.45, 40, 26, false),
-            prop("village_crates_friend", "prop_013_x96_y64_44x32", 1.2, 0.9, 17, 13, false),
-            prop("village_crates_library", "prop_013_x96_y64_44x32", 1.2, 0.9, 29, 11, false),
-            prop("village_rock_pond", "prop_033_x207_y149_38x19", 1.1, 0.55, 13, 37, false),
-            prop("village_rock_north", "prop_034_x180_y158_22x10", 0.8, 0.45, 6, 7, false),
-            prop("village_grass_patch_west", "prop_025_x203_y116_32x12", 1.0, 0.4, 6, 20, false),
-            prop("village_grass_patch_east", "prop_026_x239_y120_17x8", 0.8, 0.35, 44, 20, false)
-    };
-
     private static final StaticPlacement[] MOUNTAIN_DECORATIONS = {
             mountainDecoration("mountain_crystal_blue_01", "decoration_00_crystal_blue", 1.0, 1.0, 33, 12),
             mountainDecoration("mountain_crystal_blue_02", "decoration_00_crystal_blue", 1.0, 1.0, 38, 16),
@@ -188,8 +168,6 @@ public class AssetSetter {
 
             homeDecoration("Bathroom Toilet", "bathroom_toilet", 0.8, 1.35, 32, 17, true),
             homeDecoration("Bathroom Tub", "bathroom_tub", 2.0, 1.0, 29, 22, true),
-
-            homeDecoration("Corridor Lamp", "floor_lamp_gold", 0.7, 1.25, 23, 17, false),
     };
 
     private final GamePanel gp;
@@ -449,11 +427,6 @@ public class AssetSetter {
             else if ("Kitchen Stove".equals(placement.name)) {
                 worldX -= gp.tileSize / 2;
             }
-            else if ("Corridor Lamp".equals(placement.name)) {
-                object.setSolidArea(gp.tileSize / 8, gp.tileSize / 6,
-                        gp.tileSize * 2 / 5, gp.tileSize);
-                object.setRenderSortY(worldY + gp.tileSize);
-            }
 
             index = placeObjectAtPixel(map, index, object, worldX, worldY);
         }
@@ -523,23 +496,6 @@ public class AssetSetter {
         return placeObject(MapId.VILLAGE, index, house, placement.col, placement.row);
     }
 
-    private int placeVillageProp(int index, VillagePropPlacement placement) {
-        StaticObject prop = new StaticObject(
-                gp,
-                placement.name,
-                "/tiles/sliced/Props/" + placement.imageName,
-                placement.widthTiles,
-                placement.heightTiles,
-                placement.collision
-        );
-        if (placement.collision) {
-            prop.setSolidArea(0, 0,
-                    Math.max(1, (int) Math.round(gp.tileSize * placement.widthTiles)),
-                    Math.max(1, (int) Math.round(gp.tileSize * placement.heightTiles)));
-        }
-        return placeObject(MapId.VILLAGE, index, prop, placement.col, placement.row);
-    }
-
     private int placeForestLantern(int index, int col, int row) {
         StaticObject lantern = new StaticObject(gp, "Lantern", "/objects/lantern", 1.7, 1.7, false);
         lantern.setSolidArea(gp.tileSize / 2, gp.tileSize / 4,
@@ -579,11 +535,6 @@ public class AssetSetter {
                 widthTiles * VILLAGE_HOUSE_SCALE,
                 heightTiles * VILLAGE_HOUSE_SCALE,
                 col, row);
-    }
-
-    private static VillagePropPlacement prop(String name, String imageName, double widthTiles, double heightTiles,
-                                             int col, int row, boolean collision) {
-        return new VillagePropPlacement(name, imageName, widthTiles, heightTiles, col, row, collision);
     }
 
     private static void clear(Entity[][] entities) {
@@ -649,13 +600,4 @@ public class AssetSetter {
         }
     }
 
-    private static final class VillagePropPlacement extends VillageHousePlacement {
-        final boolean collision;
-
-        VillagePropPlacement(String name, String imageName, double widthTiles, double heightTiles, int col, int row,
-                             boolean collision) {
-            super(name, imageName, widthTiles, heightTiles, col, row);
-            this.collision = collision;
-        }
-    }
 }

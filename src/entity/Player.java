@@ -115,6 +115,14 @@ public class Player extends Entity {
         persistentSitting = true;
     }
 
+    @Override
+    public int getRenderSortY() {
+        if (sittingCounter > 0) {
+            return gp.tileSize * 13 + 1;
+        }
+        return super.getRenderSortY();
+    }
+
     public void updatePoseState() {
         if (sittingCounter <= 0) {
             return;

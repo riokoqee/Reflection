@@ -399,16 +399,8 @@ public class TestLogic {
                 findObject(gp, 0, "Corridor Dresser") != 999) {
             throw new AssertionError("Corridor must not contain the removed clutter or rejected dresser");
         }
-        int corridorLampIndex = findObject(gp, 0, "Corridor Lamp");
-        if (corridorLampIndex == 999) {
-            throw new AssertionError("Corridor lamp must stay after removing corridor clutter");
-        }
-        if (gp.obj[0][corridorLampIndex].solidArea.height <= 0) {
-            throw new AssertionError("Corridor lamp must be interactable");
-        }
-        gp.story.interactObject("Corridor Lamp");
-        if (gp.gameState != gp.playState) {
-            throw new AssertionError("Corridor lamp interaction must not open a task");
+        if (findObject(gp, 0, "Corridor Lamp") != 999) {
+            throw new AssertionError("Corridor must not contain the removed chandelier/lamp");
         }
         if (findObject(gp, 0, "Kitchen Stove") == 999 ||
                 findObject(gp, 0, "Kitchen Counter Left") == 999 ||
@@ -496,9 +488,8 @@ public class TestLogic {
                 !"up".equals(gp.player.direction)) {
             throw new AssertionError("Pressing E in front of the sofa must put the player into the sitting pose");
         }
-        if (gp.obj[0][sofaIndex].getRenderSortY() <= gp.player.worldY ||
-                gp.obj[0][sofaIndex].getRenderSortY() >= gp.tileSize * 14) {
-            throw new AssertionError("Sofa must render over the seated body without covering the standing player");
+        if (gp.player.getRenderSortY() <= gp.obj[0][sofaIndex].getRenderSortY()) {
+            throw new AssertionError("Seated player must render over the sofa so the head overlaps the back");
         }
         for (int i = 0; i < 120; i++) {
             gp.player.updatePoseState();
@@ -1055,6 +1046,9 @@ public class TestLogic {
         }
         if (!tasks.get(0).completed) {
             throw new AssertionError("Completed bed task must be marked done");
+        }
+        if (!tasks.get(0).getDisplayText().contains("тише")) {
+            throw new AssertionError("Completed bed task must turn into a diary thought");
         }
         if (!"Убрать посуду на кухне".equals(tasks.get(1).text) || tasks.get(1).completed) {
             throw new AssertionError("After making the bed, kitchen dishes task must become active");

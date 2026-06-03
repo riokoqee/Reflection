@@ -17,7 +17,6 @@ public class Sound {
     public static final int FOOTSTEPS_DIRT = 22;
     public static final int APARTMENT_AMBIENCE = 23;
     public static final int BED_INTERACT = 24;
-    public static final int KETTLE = 25;
     public static final int WATER_SINK = 26;
     public static final int SOFA_SIT = 27;
     public static final int LANTERN_PICKUP = 28;
@@ -36,21 +35,7 @@ public class Sound {
     int volumeScale = 3;
 
     public Sound() {
-        register(0, "BlueBoyAdventure.wav");
-        register(1, "coin.wav");
-        register(2, "powerup.wav");
-        register(3, "unlock.wav");
-        register(4, "fanfare.wav");
-        register(5, "hitmonster.wav");
-        register(6, "receivedamage.wav");
-        register(7, "swordswing.wav");
-        register(8, "slimedamage.wav");
-        register(9, "levelup.wav");
         register(10, "cursor.wav");
-        register(11, "gameover.wav");
-        register(12, "stairs.wav");
-        register(13, "burning.wav");
-        register(14, "treecutting.wav");
         register(15, "rocking_chair.wav");
         register(MENU_CURSOR, "new/menu_cursor.wav");
         register(MENU_CONFIRM, "new/menu_confirm.wav");
@@ -63,7 +48,6 @@ public class Sound {
         register(FOOTSTEPS_STONE_SPRINT, "new/stone_footstep_sprint_loop.wav");
         register(APARTMENT_AMBIENCE, "new/apartment_ambience.wav");
         register(BED_INTERACT, "new/bed_interact.wav");
-        register(KETTLE, "new/kettle.wav");
         register(WATER_SINK, "new/water_sink.wav");
         register(SOFA_SIT, "new/sofa_sit.wav");
         register(LANTERN_PICKUP, "new/lantern.wav");

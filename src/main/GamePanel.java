@@ -695,8 +695,8 @@ public class GamePanel extends JPanel implements Runnable {
                 return;
             }
 
-            if (remainingTime > 2_000_000L) {
-                LockSupport.parkNanos(remainingTime - 1_000_000L);
+            if (remainingTime > 150_000L) {
+                LockSupport.parkNanos(Math.max(1L, remainingTime - 80_000L));
             }
             else {
                 Thread.yield();
@@ -1093,7 +1093,7 @@ public class GamePanel extends JPanel implements Runnable {
     private void prepareUiGraphics(Graphics2D graphics) {
         graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
         graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }
 
@@ -1454,7 +1454,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         try {
-            Main.window.createBufferStrategy(3);
+            Main.window.createBufferStrategy(2);
             screenBufferStrategy = Main.window.getBufferStrategy();
             return screenBufferStrategy != null;
         }
