@@ -69,6 +69,14 @@ public class UI {
         titleBackground = loadTitleBackground();
     }
 
+    private String t(String text) {
+        return gp.tr(text);
+    }
+
+    private String t(String ru, String en) {
+        return gp.tr(ru, en);
+    }
+
     public void addMessage(String text) {
         message.add(text);
         messageCounter.add(0);
@@ -133,10 +141,10 @@ public class UI {
             case OPTIONS_TAB_SOUND:
                 return 7;
             case OPTIONS_TAB_CHAT:
-                return 4;
+                return 5;
             case OPTIONS_TAB_GRAPHICS:
             default:
-                return 4;
+                return 5;
         }
     }
 
@@ -243,8 +251,8 @@ public class UI {
         else {
             drawTitleMenuItem(getMainTitleMenuLabel(0), 0);
             drawTitleMenuItem(getMainTitleMenuLabel(1), 1);
-            drawTitleMenuItem("НАСТРОЙКИ", 2);
-            drawTitleMenuItem("ВЫЙТИ", 3);
+            drawTitleMenuItem(t("НАСТРОЙКИ", "SETTINGS"), 2);
+            drawTitleMenuItem(t("ВЫЙТИ", "EXIT"), 3);
         }
         drawTitleNotice();
     }
@@ -252,10 +260,10 @@ public class UI {
     private String getMainTitleMenuLabel(int command) {
         boolean continueFirst = gp.saveLoad.hasAnySave();
         if (command == 0) {
-            return continueFirst ? "ПРОДОЛЖИТЬ" : "НОВАЯ ИГРА";
+            return continueFirst ? t("ПРОДОЛЖИТЬ", "CONTINUE") : t("НОВАЯ ИГРА", "NEW GAME");
         }
         if (command == 1) {
-            return continueFirst ? "НОВАЯ ИГРА" : "ПРОДОЛЖИТЬ";
+            return continueFirst ? t("НОВАЯ ИГРА", "NEW GAME") : t("ПРОДОЛЖИТЬ", "CONTINUE");
         }
         return "";
     }
@@ -263,17 +271,19 @@ public class UI {
     private void drawTitleSlotMenu() {
         g2.setFont(GameFonts.bold(20));
         g2.setColor(new Color(174, 215, 196));
-        String title = isTitleNewSlotMenu() ? "Выберите слот для новой игры" : "Выберите сохранение";
+        String title = isTitleNewSlotMenu()
+                ? t("Выберите слот для новой игры", "Choose a slot for a new game")
+                : t("Выберите сохранение", "Choose a save");
         g2.drawString(title, TITLE_MENU_X + 12, TITLE_MENU_FIRST_Y - 56);
 
         for (int command = 0; command < 3; command++) {
             int slot = command + 1;
             String state = gp.saveLoad.hasSave(slot)
-                    ? (isTitleNewSlotMenu() ? "ПЕРЕЗАПИСАТЬ" : "ЗАГРУЗИТЬ")
-                    : "ПУСТОЙ";
-            drawTitleMenuItem("СЛОТ " + slot + "  " + state, command);
+                    ? (isTitleNewSlotMenu() ? t("ПЕРЕЗАПИСАТЬ", "OVERWRITE") : t("ЗАГРУЗИТЬ", "LOAD"))
+                    : t("ПУСТОЙ", "EMPTY");
+            drawTitleMenuItem(t("СЛОТ", "SLOT") + " " + slot + "  " + state, command);
         }
-        drawTitleMenuItem("НАЗАД", TITLE_SLOT_BACK_COMMAND);
+        drawTitleMenuItem(t("НАЗАД", "BACK"), TITLE_SLOT_BACK_COMMAND);
     }
 
     private void drawTitleNotice() {
@@ -283,7 +293,7 @@ public class UI {
         titleNoticeCounter--;
         g2.setFont(GameFonts.bold(18));
         g2.setColor(new Color(255, 222, 151));
-        drawShadowedString(titleNotice, TITLE_MENU_X + 12, TITLE_MENU_FIRST_Y + TITLE_MENU_ROW_HEIGHT * 4 + 4,
+        drawShadowedString(t(titleNotice), TITLE_MENU_X + 12, TITLE_MENU_FIRST_Y + TITLE_MENU_ROW_HEIGHT * 4 + 4,
                 new Color(255, 222, 151), new Color(0, 0, 0, 180));
     }
 
@@ -330,7 +340,7 @@ public class UI {
 
         g2.setFont(GameFonts.regular(19));
         g2.setColor(new Color(204, 216, 210));
-        g2.drawString("путь через страх, память и выбор", x + 4, y + 34);
+        g2.drawString(t("путь через страх, память и выбор"), x + 4, y + 34);
     }
 
     private void drawTitleMenuItem(String text, int command) {
@@ -364,13 +374,13 @@ public class UI {
 
         g2.setFont(GameFonts.bold(18));
         g2.setColor(new Color(231, 240, 235));
-        g2.drawString(gp.story.getLocationTitle(), x + 18, y + 30);
+        g2.drawString(t(gp.story.getLocationTitle()), x + 18, y + 30);
 
         int barY = y + 62;
-        drawMiniMetric("Рост", gp.story.growth, x + 18, barY);
-        drawMiniMetric("Покой", gp.story.calm, x + 145, barY);
-        drawMiniMetric("Эмпатия", gp.story.empathy, x + 18, barY + 32);
-        drawMiniMetric("Увер.", gp.story.confidence, x + 145, barY + 32);
+        drawMiniMetric(t("Рост", "Growth"), gp.story.growth, x + 18, barY);
+        drawMiniMetric(t("Покой", "Calm"), gp.story.calm, x + 145, barY);
+        drawMiniMetric(t("Эмпатия", "Empathy"), gp.story.empathy, x + 18, barY + 32);
+        drawMiniMetric(t("Увер.", "Conf."), gp.story.confidence, x + 145, barY + 32);
     }
 
     private void drawMessage() {
@@ -380,7 +390,7 @@ public class UI {
 
         for (int i = 0; i < message.size(); i++) {
             if (message.get(i) != null) {
-                drawShadowedString(message.get(i), messageX, messageY, Color.white, Color.black);
+                drawShadowedString(t(message.get(i)), messageX, messageY, Color.white, Color.black);
 
                 int counter = messageCounter.get(i) + 1;
                 messageCounter.set(i, counter);
@@ -428,16 +438,16 @@ public class UI {
         int textX = x + 68;
         g2.setFont(GameFonts.bold(17));
         g2.setColor(new Color(236, 248, 242, Math.min(255, alpha + 30)));
-        g2.drawString("Контрольная точка", textX, y + 31);
+        g2.drawString(t("Контрольная точка", "Checkpoint"), textX, y + 31);
 
         g2.setFont(GameFonts.regular(15));
         g2.setColor(new Color(174, 215, 196, Math.min(240, alpha + 20)));
-        g2.drawString("Сохранение...", textX, y + 55);
+        g2.drawString(t("Сохранение...", "Saving..."), textX, y + 55);
 
         if (!checkpointLocation.isEmpty()) {
             g2.setFont(GameFonts.regular(13));
             g2.setColor(new Color(206, 219, 212, Math.min(220, alpha + 10)));
-            g2.drawString(trimToWidth(checkpointLocation, width - 88), textX, y + 76);
+            g2.drawString(trimToWidth(t(checkpointLocation), width - 88), textX, y + 76);
         }
 
         checkpointSpinnerFrame++;
@@ -496,10 +506,10 @@ public class UI {
 
         g2.setFont(GameFonts.bold(26));
         g2.setColor(new Color(57, 42, 32));
-        g2.drawString("Записка", x + 24, y + 38);
+        g2.drawString(t("Записка", "Note"), x + 24, y + 38);
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(91, 68, 47, 205));
-        g2.drawString(gp.story.getPlanNoteSubtitle(), x + 26, y + 58);
+        g2.drawString(t(gp.story.getPlanNoteSubtitle()), x + 26, y + 58);
 
         int rowY = y + 82;
         int rowWidth = PLAN_NOTE_WIDTH - 52;
@@ -507,7 +517,7 @@ public class UI {
         g2.setFont(taskFont);
 
         for (StoryManager.PlanTask task : gp.story.getPlanTasks()) {
-            ArrayList<String> lines = wrapTextLines(task.getDisplayText(), rowWidth - 36, taskFont);
+            ArrayList<String> lines = wrapTextLines(t(task.getDisplayText()), rowWidth - 36, taskFont);
             int rowHeight = Math.max(28, measureLinesHeight(lines, 18) + 8);
             if (rowY + rowHeight > y + height - 22) {
                 break;
@@ -575,16 +585,16 @@ public class UI {
 
         g2.setFont(GameFonts.bold(18));
         g2.setColor(new Color(236, 246, 241));
-        g2.drawString("Быстрые подсказки", x + 20, y + 30);
+        g2.drawString(t("Быстрые подсказки", "Quick Tips"), x + 20, y + 30);
 
-        drawControlHintRow("WASD / стрелки", "ходьба", x + 20, y + 58);
-        drawControlHintRow("Shift", "бег", x + 20, y + 82);
-        drawControlHintRow("E", "взаимодействовать", x + 20, y + 106);
-        drawControlHintRow("I", "список задач", x + 20, y + 130);
+        drawControlHintRow(t("WASD / стрелки", "WASD / arrows"), t("ходьба", "walk"), x + 20, y + 58);
+        drawControlHintRow("Shift", t("бег", "run"), x + 20, y + 82);
+        drawControlHintRow("E", t("взаимодействовать", "interact"), x + 20, y + 106);
+        drawControlHintRow("I", t("список задач", "task list"), x + 20, y + 130);
 
         g2.setFont(GameFonts.regular(12));
         g2.setColor(new Color(190, 207, 199));
-        g2.drawString("Подсказка исчезнет сама", x + 20, y + 152);
+        g2.drawString(t("Подсказка исчезнет сама", "This hint will fade on its own"), x + 20, y + 152);
 
         g2.setComposite(oldComposite);
         g2.setStroke(oldStroke);
@@ -618,35 +628,37 @@ public class UI {
         g2.fillRoundRect(panelX + 24, panelY + 24, panelWidth - 48, 82, 18, 18);
 
         g2.setFont(GameFonts.bold(38));
-        String text = "ПАУЗА";
+        String text = t("ПАУЗА", "PAUSE");
         drawShadowedString(text, getXforCenteredText(text), panelY + 66, Color.white, new Color(0, 0, 0, 160));
 
         g2.setFont(GameFonts.regular(15));
         g2.setColor(new Color(210, 225, 218));
-        String place = gp.story.getLocationTitle();
+        String place = t(gp.story.getLocationTitle());
         g2.drawString(place, panelX + 34, panelY + 94);
 
         int menuY = panelY + 158;
-        drawPauseMenuItem("ПРОДОЛЖИТЬ", 0, panelX + 54, menuY, panelWidth - 108);
-        drawPauseMenuItem("СОХРАНИТЬ", 1, panelX + 54, menuY + 46, panelWidth - 108);
-        drawPauseMenuItem("ЗАГРУЗИТЬ", 2, panelX + 54, menuY + 92, panelWidth - 108);
-        drawPauseMenuItem("НАСТРОЙКИ", 3, panelX + 54, menuY + 138, panelWidth - 108);
-        drawPauseMenuItem("НОВАЯ ИГРА", 4, panelX + 54, menuY + 184, panelWidth - 108);
-        drawPauseMenuItem("В ГЛАВНОЕ МЕНЮ", 5, panelX + 54, menuY + 230, panelWidth - 108);
+        drawPauseMenuItem(t("ПРОДОЛЖИТЬ", "CONTINUE"), 0, panelX + 54, menuY, panelWidth - 108);
+        drawPauseMenuItem(t("СОХРАНИТЬ", "SAVE"), 1, panelX + 54, menuY + 46, panelWidth - 108);
+        drawPauseMenuItem(t("ЗАГРУЗИТЬ", "LOAD"), 2, panelX + 54, menuY + 92, panelWidth - 108);
+        drawPauseMenuItem(t("НАСТРОЙКИ", "SETTINGS"), 3, panelX + 54, menuY + 138, panelWidth - 108);
+        drawPauseMenuItem(t("НОВАЯ ИГРА", "NEW GAME"), 4, panelX + 54, menuY + 184, panelWidth - 108);
+        drawPauseMenuItem(t("В ГЛАВНОЕ МЕНЮ", "MAIN MENU"), 5, panelX + 54, menuY + 230, panelWidth - 108);
 
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(195, 208, 202));
-        g2.drawString("Esc - вернуться    Enter - выбрать", panelX + 54, panelY + panelHeight - 28);
+        g2.drawString(t("Esc - вернуться    Enter - выбрать", "Esc - back    Enter - select"),
+                panelX + 54, panelY + panelHeight - 28);
 
         if (!pauseNotice.isEmpty() && pauseNoticeCounter > 0) {
             g2.setFont(GameFonts.bold(16));
-            int noticeWidth = g2.getFontMetrics().stringWidth(pauseNotice) + 36;
+            String noticeText = t(pauseNotice);
+            int noticeWidth = g2.getFontMetrics().stringWidth(noticeText) + 36;
             int noticeX = gp.screenWidth / 2 - noticeWidth / 2;
             int noticeY = panelY - 46;
             g2.setColor(new Color(6, 10, 12, 220));
             g2.fillRoundRect(noticeX, noticeY, noticeWidth, 34, 16, 16);
             g2.setColor(new Color(174, 215, 196));
-            g2.drawString(pauseNotice, noticeX + 18, noticeY + 23);
+            g2.drawString(noticeText, noticeX + 18, noticeY + 23);
             pauseNoticeCounter--;
         }
     }
@@ -670,25 +682,25 @@ public class UI {
         drawSubWindow(panelX, panelY, panelWidth, panelHeight, new Color(8, 14, 17, 238));
 
         g2.setFont(GameFonts.bold(38));
-        String title = "НАСТРОЙКИ";
+        String title = t("НАСТРОЙКИ", "SETTINGS");
         drawShadowedString(title, getXforCenteredText(title), panelY + 62, Color.white, new Color(0, 0, 0, 160));
 
         int tabY = panelY + 84;
         int tabX = panelX + 36;
         int tabWidth = 174;
-        drawOptionsTab("Графика", OPTIONS_TAB_GRAPHICS, tabX, tabY, tabWidth);
-        drawOptionsTab("Звук", OPTIONS_TAB_SOUND, tabX + tabWidth + 12, tabY, tabWidth);
-        drawOptionsTab("Чат", OPTIONS_TAB_CHAT, tabX + (tabWidth + 12) * 2, tabY, tabWidth);
+        drawOptionsTab(t("Графика", "Graphics"), OPTIONS_TAB_GRAPHICS, tabX, tabY, tabWidth);
+        drawOptionsTab(t("Звук", "Sound"), OPTIONS_TAB_SOUND, tabX + tabWidth + 12, tabY, tabWidth);
+        drawOptionsTab(t("Чат", "Chat"), OPTIONS_TAB_CHAT, tabX + (tabWidth + 12) * 2, tabY, tabWidth);
 
         int rowX = panelX + 52;
         int rowY = panelY + 162;
         int rowWidth = panelWidth - 104;
         int rowStep = 55;
 
-        drawVolumeOption("Музыка", gp.music.volumeScale, 0, rowX, rowY, rowWidth);
-        drawVolumeOption("Звуки", gp.se.volumeScale, 1, rowX, rowY + rowStep, rowWidth);
-        drawToggleOption("Полный экран", gp.fullScreenOn, 2, rowX, rowY + rowStep * 2, rowWidth);
-        drawBackOption("НАЗАД", 3, rowX, rowY + rowStep * 3, rowWidth);
+        drawVolumeOption(t("Музыка", "Music"), gp.music.volumeScale, 0, rowX, rowY, rowWidth);
+        drawVolumeOption(t("Звуки", "Sounds"), gp.se.volumeScale, 1, rowX, rowY + rowStep, rowWidth);
+        drawToggleOption(t("Полный экран", "Fullscreen"), gp.fullScreenOn, 2, rowX, rowY + rowStep * 2, rowWidth);
+        drawBackOption(t("НАЗАД", "BACK"), 3, rowX, rowY + rowStep * 3, rowWidth);
     }
 
     private void drawTabbedOptionsScreen() {
@@ -708,44 +720,52 @@ public class UI {
         drawSubWindow(panelX, panelY, OPTIONS_PANEL_WIDTH, OPTIONS_PANEL_HEIGHT, new Color(8, 14, 17, 238));
 
         g2.setFont(GameFonts.bold(38));
-        drawShadowedString("НАСТРОЙКИ", panelX + 36, panelY + 56, Color.white, new Color(0, 0, 0, 160));
+        drawShadowedString(t("НАСТРОЙКИ", "SETTINGS"), panelX + 36, panelY + 56,
+                Color.white, new Color(0, 0, 0, 160));
 
         int tabY = getOptionsTabY();
         int tabX = getOptionsTabX();
         int tabWidth = getOptionsTabWidth();
-        drawOptionsTab("Графика", OPTIONS_TAB_GRAPHICS, tabX, tabY, tabWidth);
-        drawOptionsTab("Звук", OPTIONS_TAB_SOUND, tabX + tabWidth + 12, tabY, tabWidth);
-        drawOptionsTab("Чат", OPTIONS_TAB_CHAT, tabX + (tabWidth + 12) * 2, tabY, tabWidth);
+        drawOptionsTab(t("Графика", "Graphics"), OPTIONS_TAB_GRAPHICS, tabX, tabY, tabWidth);
+        drawOptionsTab(t("Звук", "Sound"), OPTIONS_TAB_SOUND, tabX + tabWidth + 12, tabY, tabWidth);
+        drawOptionsTab(t("Чат", "Chat"), OPTIONS_TAB_CHAT, tabX + (tabWidth + 12) * 2, tabY, tabWidth);
 
         int rowX = getOptionsRowX();
         int rowY = getOptionsRowY();
         int rowWidth = getOptionsRowWidth();
 
         if (optionsTab == OPTIONS_TAB_GRAPHICS) {
-            drawToggleOption("Полный экран", gp.fullScreenOn, 0, rowX, rowY, rowWidth);
-            drawSliderOption("Яркость", gp.brightnessScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
-            drawCycleOption("Лимит FPS", gp.getFpsLimitLabel(), 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
-            drawBackOption("НАЗАД", 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
+            drawToggleOption(t("Полный экран", "Fullscreen"), gp.fullScreenOn, 0, rowX, rowY, rowWidth);
+            drawSliderOption(t("Яркость", "Brightness"), gp.brightnessScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
+            drawCycleOption(t("Лимит FPS", "FPS limit"), gp.getFpsLimitLabel(), 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
+            drawToggleOption(t("Показ FPS", "Show FPS"), gp.showFpsCounter, 3,
+                    rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
+            drawBackOption(t("НАЗАД", "BACK"), 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
         }
         else if (optionsTab == OPTIONS_TAB_SOUND) {
-            drawSliderOption("Музыка", gp.music.volumeScale, 5, 0, rowX, rowY, rowWidth);
-            drawSliderOption("Эффекты", gp.se.volumeScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
-            drawSliderOption("Окружение", gp.ambienceVolumeScale, 5, 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
-            drawSliderOption("Шаги", gp.footstepVolumeScale, 5, 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
-            drawSliderOption("Интерфейс", gp.uiVolumeScale, 5, 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
-            drawSliderOption("Шепоты", gp.whisperVolumeScale, 5, 5, rowX, rowY + OPTIONS_ROW_STEP * 5, rowWidth);
-            drawBackOption("НАЗАД", 6, rowX, rowY + OPTIONS_ROW_STEP * 6, rowWidth);
+            drawSliderOption(t("Музыка", "Music"), gp.music.volumeScale, 5, 0, rowX, rowY, rowWidth);
+            drawSliderOption(t("Эффекты", "Effects"), gp.se.volumeScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
+            drawSliderOption(t("Окружение", "Ambience"), gp.ambienceVolumeScale, 5, 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
+            drawSliderOption(t("Шаги", "Footsteps"), gp.footstepVolumeScale, 5, 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
+            drawSliderOption(t("Интерфейс", "Interface"), gp.uiVolumeScale, 5, 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
+            drawSliderOption(t("Шепоты", "Whispers"), gp.whisperVolumeScale, 5, 5, rowX, rowY + OPTIONS_ROW_STEP * 5, rowWidth);
+            drawBackOption(t("НАЗАД", "BACK"), 6, rowX, rowY + OPTIONS_ROW_STEP * 6, rowWidth);
         }
         else {
-            drawCycleOption("Размер текста", gp.getDialogueTextSizeLabel(), 0, rowX, rowY, rowWidth);
-            drawCycleOption("Скорость текста", gp.getDialogueTextSpeedLabel(), 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
-            drawToggleOption("Высокий контраст", gp.highContrastDialogue, 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
-            drawBackOption("НАЗАД", 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
+            drawCycleOption(t("Язык", "Language"), gp.getLanguageLabel(), 0, rowX, rowY, rowWidth);
+            drawCycleOption(t("Размер текста", "Text size"), gp.getDialogueTextSizeLabel(), 1,
+                    rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
+            drawCycleOption(t("Скорость текста", "Text speed"), gp.getDialogueTextSpeedLabel(), 2,
+                    rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
+            drawToggleOption(t("Высокий контраст", "High contrast"), gp.highContrastDialogue, 3,
+                    rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
+            drawBackOption(t("НАЗАД", "BACK"), 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
         }
 
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(176, 190, 184));
-        g2.drawString("Q / Tab - вкладки, стрелки - значение, E / Enter - выбрать",
+        g2.drawString(t("Q / Tab - вкладки, стрелки - значение, E / Enter - выбрать",
+                        "Q / Tab - tabs, arrows - value, E / Enter - select"),
                 panelX + 36, panelY + OPTIONS_PANEL_HEIGHT - 24);
     }
 
@@ -813,14 +833,14 @@ public class UI {
         int maxHeight = gp.screenHeight - 48;
         int minHeight = hasChoices ? 270 : 190;
 
-        String speaker = hasChoices ? prompt.speaker : gp.story.getMessageSpeaker();
-        String fullText = hasChoices ? prompt.text : gp.story.getMessageText();
+        String speaker = t(hasChoices ? prompt.speaker : gp.story.getMessageSpeaker());
+        String fullText = t(hasChoices ? prompt.text : gp.story.getMessageText());
         String text;
         if (hasChoices && gp.story.shouldTypePrompt(prompt)) {
-            text = revealDialogueText("dialogue|" + speaker + "|" + fullText, fullText);
+            text = revealDialogueText("dialogue|" + gp.languageMode + "|" + speaker + "|" + fullText, fullText);
         }
         else {
-            dialogueRevealKey = "event|" + speaker + "|" + fullText;
+            dialogueRevealKey = "event|" + gp.languageMode + "|" + speaker + "|" + fullText;
             dialogueRevealChars = fullText == null ? 0 : fullText.length();
             dialogueRevealComplete = true;
             text = fullText;
@@ -901,7 +921,7 @@ public class UI {
         int screenHeight = phoneScreen.height;
 
         drawPhoneStatusBar(screenX, screenY, screenWidth);
-        drawPhoneHeader(prompt.speaker, screenX, screenY + 30, screenWidth);
+        drawPhoneHeader(t(prompt.speaker), screenX, screenY + 30, screenWidth);
 
         Shape oldClip = g2.getClip();
         g2.clipRect(screenX + 10, screenY + 74, screenWidth - 20, screenHeight - 86);
@@ -912,14 +932,15 @@ public class UI {
         g2.setFont(GameFonts.regular(15));
 
         String revealedText;
+        String phoneText = t(prompt.text);
         if (gp.story.shouldTypePrompt(prompt)) {
-            revealedText = revealDialogueText("phone|" + prompt.text, prompt.text);
+            revealedText = revealDialogueText("phone|" + gp.languageMode + "|" + phoneText, phoneText);
         }
         else {
-            dialogueRevealKey = "phone|" + prompt.text;
-            dialogueRevealChars = prompt.text == null ? 0 : prompt.text.length();
+            dialogueRevealKey = "phone|" + gp.languageMode + "|" + phoneText;
+            dialogueRevealChars = phoneText == null ? 0 : phoneText.length();
             dialogueRevealComplete = true;
-            revealedText = prompt.text;
+            revealedText = phoneText;
         }
         String[] messages = revealedText.split("\\n");
         for (String messageLine : messages) {
@@ -944,7 +965,7 @@ public class UI {
         int screenHeight = phoneScreen.height;
 
         drawPhoneStatusBar(screenX, screenY, screenWidth);
-        drawPhoneHeader("Мама", screenX, screenY + 30, screenWidth);
+        drawPhoneHeader(t("Мама", "Mom"), screenX, screenY + 30, screenWidth);
 
         Shape oldClip = g2.getClip();
         g2.clipRect(screenX + 10, screenY + 74, screenWidth - 20, screenHeight - 86);
@@ -954,18 +975,19 @@ public class UI {
         int messageWidth = screenWidth - 78;
 
         for (String messageLine : gp.story.getPhoneIntroMessages()) {
-            contentY = drawPhoneBubble(stripPhoneSpeaker(messageLine), contentX, contentY, messageWidth, true);
+            contentY = drawPhoneBubble(stripPhoneSpeaker(t(messageLine)), contentX, contentY, messageWidth, true);
         }
 
-        String playerText = gp.story.getPhoneResultPlayerText();
+        String playerText = t(gp.story.getPhoneResultPlayerText());
         if (playerText.isEmpty()) {
-            contentY = drawPhoneSystemLine("чат закрыт без ответа", contentX, contentY + 2, messageWidth);
+            contentY = drawPhoneSystemLine(t("чат закрыт без ответа", "chat closed without an answer"),
+                    contentX, contentY + 2, messageWidth);
         }
         else {
             contentY = drawPhoneBubble(playerText, contentX, contentY + 2, messageWidth, false);
         }
 
-        String momText = gp.story.getPhoneResultMomText();
+        String momText = t(gp.story.getPhoneResultMomText());
         if (!momText.isEmpty()) {
             drawPhoneBubble(momText, contentX, contentY + 4, messageWidth, true);
         }
@@ -1063,7 +1085,7 @@ public class UI {
         g2.drawString(contact, x + 62, y + 21);
         g2.setFont(GameFonts.regular(12));
         g2.setColor(new Color(153, 170, 166));
-        g2.drawString("сообщение от мамы", x + 62, y + 36);
+        g2.drawString(t("сообщение от мамы", "message from mom"), x + 62, y + 36);
     }
 
     private int drawPhoneBubble(String text, int x, int y, int maxWidth, boolean incoming) {
@@ -1113,7 +1135,7 @@ public class UI {
 
         for (int i = 0; i < prompt.choices.length; i++) {
             StoryManager.Choice choice = prompt.choices[i];
-            ArrayList<String> lines = wrapTextLines(choice.text, width - 44, font);
+            ArrayList<String> lines = wrapTextLines(t(choice.text), width - 44, font);
             int rowHeight = Math.max(38, measureLinesHeight(lines, lineHeight) + 14);
             boolean selected = gp.story.selectedChoice == i;
 
@@ -1214,8 +1236,8 @@ public class UI {
         else {
             drawTitleMenuItem(getMainTitleMenuLabel(0), 0);
             drawTitleMenuItem(getMainTitleMenuLabel(1), 1);
-            drawTitleMenuItem("НАСТРОЙКИ", 2);
-            drawTitleMenuItem("ВЫЙТИ", 3);
+            drawTitleMenuItem(t("НАСТРОЙКИ", "SETTINGS"), 2);
+            drawTitleMenuItem(t("ВЫЙТИ", "EXIT"), 3);
         }
         g2.setTransform(oldTransform);
         g2.setComposite(oldComposite);
@@ -1236,7 +1258,8 @@ public class UI {
 
         int startDelay = 18;
         int typeFrame = Math.max(0, frame - startDelay);
-        int revealChars = Math.min(INTRO_DISCLAIMER_TEXT.length(), typeFrame * INTRO_TYPE_CHARS_PER_FRAME);
+        String disclaimerText = t(INTRO_DISCLAIMER_TEXT);
+        int revealChars = Math.min(disclaimerText.length(), typeFrame * INTRO_TYPE_CHARS_PER_FRAME);
         if (revealChars > introSoundRevealChars) {
             gp.playDialogueTypeSE();
             introSoundRevealChars = revealChars;
@@ -1257,12 +1280,12 @@ public class UI {
         g2.setColor(new Color(174, 215, 196, alpha));
         g2.drawString(INTRO_DISCLAIMER_SPEAKER, x + 28, y + 42);
 
-        String visibleText = INTRO_DISCLAIMER_TEXT.substring(0, revealChars);
+        String visibleText = disclaimerText.substring(0, revealChars);
         g2.setFont(GameFonts.regular(26));
         g2.setColor(new Color(245, 248, 246, alpha));
         drawWrappedText(visibleText, x + 28, y + 82, width - 56, 33);
 
-        if (revealChars >= INTRO_DISCLAIMER_TEXT.length() && frame < typeFrames) {
+        if (revealChars >= disclaimerText.length() && frame < typeFrames) {
             int dotAlpha = 90 + (int) (Math.sin(frame * 0.18) * 70);
             g2.setColor(new Color(255, 222, 151, Math.max(35, dotAlpha)));
             g2.fillOval(x + width - 52, y + height - 42, 8, 8);
@@ -1274,16 +1297,16 @@ public class UI {
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 
         g2.setFont(GameFonts.bold(46));
-        String text = "РЕЗУЛЬТАТ";
+        String text = t("РЕЗУЛЬТАТ", "RESULT");
         drawShadowedString(text, getXforCenteredText(text), 74, Color.white, Color.black);
 
         int x = 70;
         int y = 116;
         int width = 360;
-        drawMetricBar("Рост", gp.story.growth, x, y, width); y += 48;
-        drawMetricBar("Покой", gp.story.calm, x, y, width); y += 48;
-        drawMetricBar("Эмпатия", gp.story.empathy, x, y, width); y += 48;
-        drawMetricBar("Уверенность", gp.story.confidence, x, y, width);
+        drawMetricBar(t("Рост", "Growth"), gp.story.growth, x, y, width); y += 48;
+        drawMetricBar(t("Покой", "Calm"), gp.story.calm, x, y, width); y += 48;
+        drawMetricBar(t("Эмпатия", "Empathy"), gp.story.empathy, x, y, width); y += 48;
+        drawMetricBar(t("Уверенность", "Confidence"), gp.story.confidence, x, y, width);
 
         int frameX = 500;
         int frameY = 116;
@@ -1293,23 +1316,23 @@ public class UI {
 
         g2.setFont(GameFonts.bold(25));
         g2.setColor(new Color(174, 215, 196));
-        g2.drawString(gp.story.getProfileTitle(), frameX + 26, frameY + 42);
+        g2.drawString(t(gp.story.getProfileTitle()), frameX + 26, frameY + 42);
 
         g2.setFont(GameFonts.regular(20));
         g2.setColor(Color.white);
-        int textY = drawWrappedText(gp.story.getProfileText(), frameX + 26, frameY + 78, frameWidth - 52, 27);
+        int textY = drawWrappedText(t(gp.story.getProfileText()), frameX + 26, frameY + 78, frameWidth - 52, 27);
 
         g2.setFont(GameFonts.bold(20));
         g2.setColor(new Color(174, 215, 196));
-        g2.drawString("Рекомендация", frameX + 26, textY + 18);
+        g2.drawString(t("Рекомендация", "Recommendation"), frameX + 26, textY + 18);
 
         g2.setFont(GameFonts.regular(19));
         g2.setColor(Color.white);
-        drawWrappedText(gp.story.getRecommendation(), frameX + 26, textY + 48, frameWidth - 52, 26);
+        drawWrappedText(t(gp.story.getRecommendation()), frameX + 26, textY + 48, frameWidth - 52, 26);
 
         g2.setFont(GameFonts.bold(27));
-        drawResultMenuItem("ПРОЙТИ ЕЩЁ РАЗ", 0, gp.screenHeight - 96);
-        drawResultMenuItem("В ГЛАВНОЕ МЕНЮ", 1, gp.screenHeight - 54);
+        drawResultMenuItem(t("ПРОЙТИ ЕЩЁ РАЗ", "PLAY AGAIN"), 0, gp.screenHeight - 96);
+        drawResultMenuItem(t("В ГЛАВНОЕ МЕНЮ", "MAIN MENU"), 1, gp.screenHeight - 54);
     }
 
     private void drawChoices(StoryManager.StoryPrompt prompt, int x, int y, int width,
@@ -1319,7 +1342,7 @@ public class UI {
         int textWidth = width - 44;
         for (int i = 0; i < prompt.choices.length; i++) {
             StoryManager.Choice choice = prompt.choices[i];
-            ArrayList<String> lines = wrapTextLines(choice.text, textWidth, font);
+            ArrayList<String> lines = wrapTextLines(t(choice.text), textWidth, font);
             int rowHeight = Math.max(31, measureLinesHeight(lines, lineHeight) + 8);
             if (y + rowHeight - lineHeight > bottomY) {
                 break;
@@ -1472,7 +1495,7 @@ public class UI {
         g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
         g2.drawString(label, x + 18, y);
 
-        String value = enabled ? "ВКЛ" : "ВЫКЛ";
+        String value = enabled ? t("ВКЛ", "ON") : t("ВЫКЛ", "OFF");
         int toggleWidth = 118;
         int toggleX = x + width - toggleWidth - 26;
         int toggleY = y - 28;
@@ -1637,7 +1660,7 @@ public class UI {
         int height = 0;
         int textWidth = width - 44;
         for (int i = 0; i < prompt.choices.length; i++) {
-            ArrayList<String> lines = wrapTextLines(prompt.choices[i].text, textWidth, font);
+            ArrayList<String> lines = wrapTextLines(t(prompt.choices[i].text), textWidth, font);
             height += Math.max(31, measureLinesHeight(lines, lineHeight) + 8);
             if (i < prompt.choices.length - 1) {
                 height += gap;

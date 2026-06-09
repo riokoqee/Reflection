@@ -113,7 +113,7 @@ public class KeyHandler implements KeyListener {
             }
             else {
                 gp.playBackSE();
-                gp.ui.setTitleNotice("Этот слот пуст");
+                gp.ui.setTitleNotice(gp.tr("Этот слот пуст", "This slot is empty"));
             }
         }
     }
@@ -164,7 +164,7 @@ public class KeyHandler implements KeyListener {
             else if (gp.ui.commandNum == 1) {
                 gp.playConfirmSE();
                 gp.saveLoad.save();
-                gp.ui.setPauseNotice("Игра сохранена");
+                gp.ui.setPauseNotice(gp.tr("Игра сохранена", "Game saved"));
             }
             else if (gp.ui.commandNum == 2) {
                 gp.playConfirmSE();
@@ -172,7 +172,7 @@ public class KeyHandler implements KeyListener {
                     gp.gameState = gp.playState;
                 }
                 else {
-                    gp.ui.setPauseNotice("Сохранение не найдено");
+                    gp.ui.setPauseNotice(gp.tr("Сохранение не найдено", "Save not found"));
                 }
             }
             else if (gp.ui.commandNum == 3) {

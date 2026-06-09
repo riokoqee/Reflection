@@ -43,6 +43,10 @@ public class Config {
             bw.newLine();
             bw.write(gp.highContrastDialogue ? "On" : "Off");
             bw.newLine();
+            bw.write(String.valueOf(gp.languageMode));
+            bw.newLine();
+            bw.write(gp.showFpsCounter ? "On" : "Off");
+            bw.newLine();
         }
         catch (IOException e) {
             System.err.println("Config save failed: " + e.getMessage());
@@ -55,7 +59,8 @@ public class Config {
             gp.music.volumeScale = parseVolume(br.readLine(), gp.music.volumeScale);
             gp.se.volumeScale = parseVolume(br.readLine(), gp.se.volumeScale);
             gp.brightnessScale = parseRange(br.readLine(), gp.brightnessScale, 0, 5);
-            gp.crispPixels = parseToggle(br.readLine(), gp.crispPixels);
+            br.readLine();
+            gp.crispPixels = true;
             gp.screenShakeEnabled = parseToggle(br.readLine(), gp.screenShakeEnabled);
             gp.fpsLimitMode = parseRange(br.readLine(), gp.fpsLimitMode, 0, 2);
             gp.ambienceVolumeScale = parseVolume(br.readLine(), gp.ambienceVolumeScale);
@@ -65,6 +70,8 @@ public class Config {
             gp.dialogueTextSizeMode = parseRange(br.readLine(), gp.dialogueTextSizeMode, 0, 2);
             gp.dialogueTextSpeedMode = parseRange(br.readLine(), gp.dialogueTextSpeedMode, 0, 3);
             gp.highContrastDialogue = parseToggle(br.readLine(), gp.highContrastDialogue);
+            gp.languageMode = parseRange(br.readLine(), gp.languageMode, GamePanel.LANGUAGE_RU, GamePanel.LANGUAGE_EN);
+            gp.showFpsCounter = parseToggle(br.readLine(), gp.showFpsCounter);
             gp.hudVisible = false;
         }
         catch (Exception e) {

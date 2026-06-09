@@ -35,5 +35,7 @@ public class Main {
         System.setProperty("sun.java2d.d3d", "false");
         System.setProperty("sun.java2d.opengl", "false");
         System.setProperty("sun.java2d.ddoffscreen", "false");
+        System.setProperty("swing.aatext", "false");
+        System.setProperty("awt.useSystemAAFontSettings", "off");
     }
 }

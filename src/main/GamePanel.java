@@ -8,7 +8,6 @@ import tile.TileManager;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.Area;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferStrategy;
@@ -58,13 +57,19 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int FOREST_RIGHT_EXCLUSIVE_COL = 46;
     private static final int FOREST_TOP_ROW = 4;
     private static final int FOREST_BOTTOM_EXCLUSIVE_ROW = 46;
-    private static final int FOOTSTEP_WALK_INTERVAL_FRAMES = 22;
-    private static final int FOOTSTEP_SPRINT_INTERVAL_FRAMES = 14;
     private static final int VILLAGE_STONE_ROAD_FIRST_TILE = 54;
     private static final int VILLAGE_STONE_ROAD_LAST_TILE = 56;
+    private static final int[] FOOTSTEP_SOUND_INDICES = {
+            Sound.FOOTSTEPS_WOOD,
+            Sound.FOOTSTEPS_DIRT,
+            Sound.FOOTSTEPS_STONE,
+            Sound.FOOTSTEPS_STONE_SPRINT
+    };
     private static final int FPS_LIMIT_60 = 0;
     private static final int FPS_LIMIT_120 = 1;
     private static final int FPS_LIMIT_UNLIMITED = 2;
+    public static final int LANGUAGE_RU = 0;
+    public static final int LANGUAGE_EN = 1;
     private static final int INTRO_MENU_TRANSITION_FRAMES = 92;
     private static final int INTRO_DISCLAIMER_TYPE_FRAMES = 135;
     private static final int INTRO_DISCLAIMER_HOLD_FRAMES = 300;
@@ -93,6 +98,7 @@ public class GamePanel extends JPanel implements Runnable {
     public boolean crispPixels = true;
     public boolean screenShakeEnabled = true;
     public int fpsLimitMode = FPS_LIMIT_60;
+    public boolean showFpsCounter = false;
     public int ambienceVolumeScale = 3;
     public int footstepVolumeScale = 3;
     public int uiVolumeScale = 3;
@@ -100,6 +106,7 @@ public class GamePanel extends JPanel implements Runnable {
     public int dialogueTextSizeMode = 1;
     public int dialogueTextSpeedMode = 1;
     public boolean highContrastDialogue = false;
+    public int languageMode = LANGUAGE_RU;
 
     int FPS = 60;
 
@@ -111,7 +118,7 @@ public class GamePanel extends JPanel implements Runnable {
     private final Sound[] cursorSE = {new Sound(), new Sound(), new Sound(), new Sound()};
     private final Sound[] oneShotSE = {new Sound(), new Sound(), new Sound(), new Sound()};
     Sound swingSound = new Sound();
-    Sound footstepSound = new Sound();
+    private final Sound[] footstepSounds = new Sound[FOOTSTEP_SOUND_INDICES.length];
     Sound apartmentAmbienceSound = new Sound();
     Sound whisperSound = new Sound();
     private boolean cursorSoundLoaded = false;
@@ -119,9 +126,9 @@ public class GamePanel extends JPanel implements Runnable {
     private int cursorSECursor = 0;
     private boolean swingSoundLoaded = false;
     private boolean swingSoundUnavailable = false;
-    private int activeFootstepSoundIndex = -1;
-    private int unavailableFootstepSoundIndex = -1;
-    private int footstepFrameCounter = 0;
+    private final boolean[] footstepSoundLoaded = new boolean[FOOTSTEP_SOUND_INDICES.length];
+    private final boolean[] footstepSoundUnavailable = new boolean[FOOTSTEP_SOUND_INDICES.length];
+    private int activeFootstepSoundSlot = -1;
     private boolean apartmentAmbienceLoaded = false;
     private boolean apartmentAmbienceUnavailable = false;
     private boolean whisperSoundLoaded = false;
@@ -129,6 +136,9 @@ public class GamePanel extends JPanel implements Runnable {
     private int oneShotSECursor = 0;
     private int introFrame = 0;
     private int dialogueTypeCooldown = 0;
+    private int framesThisSecond = 0;
+    private long fpsSampleStartNanos = System.nanoTime();
+    private volatile int currentFps = 0;
     public CollisionChecker cChecker = new CollisionChecker(this);
     public AssetSetter aSetter = new AssetSetter(this);
     public UI ui = new UI(this);
@@ -168,11 +178,15 @@ public class GamePanel extends JPanel implements Runnable {
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.black);
-        this.setDoubleBuffered(true);
+        this.setDoubleBuffered(false);
+        this.setOpaque(true);
         this.addKeyListener(keyH);
         this.addMouseListener(mouseH);
         this.addMouseMotionListener(mouseH);
         this.setFocusable(true);
+        for (int i = 0; i < footstepSounds.length; i++) {
+            footstepSounds[i] = new Sound();
+        }
     }
 
     public void setupGame() {
@@ -180,12 +194,16 @@ public class GamePanel extends JPanel implements Runnable {
         aSetter.setNPC();
         gameState = titleState;
         syncMouseCursor();
+        if (Main.window != null) {
+            Main.window.setIgnoreRepaint(true);
+        }
 
         tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         renderScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         forestDarknessBuffer = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         syncSoundEffectVolumes();
         preloadCursorSound();
+        preloadFootstepSounds();
 
         if (fullScreenOn) {
             setFullScreen();
@@ -277,6 +295,10 @@ public class GamePanel extends JPanel implements Runnable {
         return INTRO_GAME_FADE_FRAMES;
     }
 
+    private int getIntroFadeStartFrame() {
+        return INTRO_MENU_TRANSITION_FRAMES + INTRO_DISCLAIMER_TYPE_FRAMES + INTRO_DISCLAIMER_HOLD_FRAMES;
+    }
+
     public void changeCurrentOption(int amount) {
         if (ui.isOptionsBackCommand()) {
             return;
@@ -321,6 +343,9 @@ public class GamePanel extends JPanel implements Runnable {
         else if (command == 2) {
             fpsLimitMode = cycleSetting(fpsLimitMode, amount, 3);
         }
+        else if (command == 3) {
+            showFpsCounter = !showFpsCounter;
+        }
     }
 
     private void changeSoundOption(int command, int amount) {
@@ -350,13 +375,19 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void changeChatOption(int command, int amount) {
         if (command == 0) {
-            dialogueTextSizeMode = cycleSetting(dialogueTextSizeMode, amount, 3);
+            languageMode = cycleSetting(languageMode, amount, 2);
+            ui.revealDialogueTextNow();
+            aSetter.setNPC();
         }
         else if (command == 1) {
-            dialogueTextSpeedMode = cycleSetting(dialogueTextSpeedMode, amount, 4);
+            dialogueTextSizeMode = cycleSetting(dialogueTextSizeMode, amount, 3);
             ui.revealDialogueTextNow();
         }
         else if (command == 2) {
+            dialogueTextSpeedMode = cycleSetting(dialogueTextSpeedMode, amount, 4);
+            ui.revealDialogueTextNow();
+        }
+        else if (command == 3) {
             highContrastDialogue = !highContrastDialogue;
         }
     }
@@ -403,34 +434,50 @@ public class GamePanel extends JPanel implements Runnable {
             case FPS_LIMIT_120:
                 return "120";
             case FPS_LIMIT_UNLIMITED:
-                return "Без лимита";
+                return tr("Без лимита", "Unlimited");
             default:
                 return "60";
         }
     }
 
+    public String getLanguageLabel() {
+        return languageMode == LANGUAGE_EN ? "English" : "Русский";
+    }
+
     public String getDialogueTextSizeLabel() {
         switch (dialogueTextSizeMode) {
             case 0:
-                return "Малый";
+                return tr("Малый", "Small");
             case 2:
-                return "Крупный";
+                return tr("Крупный", "Large");
             default:
-                return "Обычный";
+                return tr("Обычный", "Normal");
         }
     }
 
     public String getDialogueTextSpeedLabel() {
         switch (dialogueTextSpeedMode) {
             case 0:
-                return "Медленно";
+                return tr("Медленно", "Slow");
             case 2:
-                return "Быстро";
+                return tr("Быстро", "Fast");
             case 3:
-                return "Мгновенно";
+                return tr("Мгновенно", "Instant");
             default:
-                return "Обычно";
+                return tr("Обычно", "Normal");
         }
+    }
+
+    public boolean isEnglish() {
+        return languageMode == LANGUAGE_EN;
+    }
+
+    public String tr(String ru, String en) {
+        return isEnglish() ? en : ru;
+    }
+
+    public String tr(String text) {
+        return Localization.translate(text, languageMode);
     }
 
     public int getDialogueTextSizeDelta() {
@@ -483,7 +530,11 @@ public class GamePanel extends JPanel implements Runnable {
             sound.checkVolume();
         }
         swingSound.volumeScale = ambienceVolumeScale;
-        footstepSound.volumeScale = footstepVolumeScale;
+        for (Sound sound : footstepSounds) {
+            if (sound != null) {
+                sound.volumeScale = footstepVolumeScale;
+            }
+        }
         apartmentAmbienceSound.volumeScale = ambienceVolumeScale;
         whisperSound.volumeScale = whisperVolumeScale;
     }
@@ -498,7 +549,7 @@ public class GamePanel extends JPanel implements Runnable {
         Main.window.dispose();
         Main.window.setUndecorated(fullScreenOn);
         screenBufferStrategy = null;
-        Main.window.setIgnoreRepaint(fullScreenOn);
+        Main.window.setIgnoreRepaint(true);
 
         if (fullScreenOn) {
             Main.window.setVisible(true);
@@ -833,47 +884,61 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         int soundIndex = getFootstepSoundIndex();
-        if (soundIndex == -1 || soundIndex == unavailableFootstepSoundIndex) {
+        int soundSlot = getFootstepSoundSlot(soundIndex);
+        if (soundSlot == -1 || footstepSoundUnavailable[soundSlot]) {
             stopFootstepSound();
             return;
         }
 
-        if (activeFootstepSoundIndex != soundIndex) {
-            footstepSound.close();
-            activeFootstepSoundIndex = -1;
-            footstepSound.volumeScale = footstepVolumeScale;
-            if (!footstepSound.setFile(soundIndex)) {
-                unavailableFootstepSoundIndex = soundIndex;
+        Sound sound = footstepSounds[soundSlot];
+        if (!footstepSoundLoaded[soundSlot]) {
+            sound.volumeScale = footstepVolumeScale;
+            if (!sound.setFile(soundIndex)) {
+                footstepSoundUnavailable[soundSlot] = true;
+                stopFootstepSound();
                 return;
             }
-            activeFootstepSoundIndex = soundIndex;
-            footstepFrameCounter = 0;
+            footstepSoundLoaded[soundSlot] = true;
         }
 
-        footstepSound.setVolumeDb(adjustedVolume(footstepVolumeScale, player.isSprinting() ? -7f : -9f));
-        if (isLoopingFootstepSound(soundIndex)) {
-            if (!footstepSound.isRunning()) {
-                footstepSound.loop();
+        if (activeFootstepSoundSlot != soundSlot) {
+            stopActiveFootstepSound();
+            activeFootstepSoundSlot = soundSlot;
+        }
+
+        sound.setVolumeDb(adjustedVolume(footstepVolumeScale, player.isSprinting() ? -7f : -9f));
+        if (!sound.isRunning()) {
+            sound.loop();
+        }
+    }
+
+    private void preloadFootstepSounds() {
+        for (int i = 0; i < FOOTSTEP_SOUND_INDICES.length; i++) {
+            if (footstepSoundLoaded[i] || footstepSoundUnavailable[i]) {
+                continue;
             }
-            return;
-        }
-
-        int interval = getFootstepIntervalFrames();
-        footstepFrameCounter = Math.min(footstepFrameCounter, interval);
-        if (footstepFrameCounter <= 0) {
-            footstepSound.playFromStart();
-            footstepFrameCounter = interval;
-        }
-        else {
-            footstepFrameCounter--;
+            footstepSounds[i].volumeScale = footstepVolumeScale;
+            if (footstepSounds[i].setFile(FOOTSTEP_SOUND_INDICES[i])) {
+                footstepSoundLoaded[i] = true;
+            }
+            else {
+                footstepSoundUnavailable[i] = true;
+            }
         }
     }
 
     private void stopFootstepSound() {
-        if (footstepSound.isRunning()) {
-            footstepSound.stop();
+        stopActiveFootstepSound();
+        activeFootstepSoundSlot = -1;
+    }
+
+    private void stopActiveFootstepSound() {
+        if (activeFootstepSoundSlot >= 0 && activeFootstepSoundSlot < footstepSounds.length) {
+            Sound sound = footstepSounds[activeFootstepSoundSlot];
+            if (sound != null && sound.isRunning()) {
+                sound.stop();
+            }
         }
-        footstepFrameCounter = 0;
     }
 
     private boolean isPlayerTryingToMove() {
@@ -897,12 +962,13 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    private int getFootstepIntervalFrames() {
-        return player.isSprinting() ? FOOTSTEP_SPRINT_INTERVAL_FRAMES : FOOTSTEP_WALK_INTERVAL_FRAMES;
-    }
-
-    private boolean isLoopingFootstepSound(int soundIndex) {
-        return soundIndex == Sound.FOOTSTEPS_STONE || soundIndex == Sound.FOOTSTEPS_STONE_SPRINT;
+    private int getFootstepSoundSlot(int soundIndex) {
+        for (int i = 0; i < FOOTSTEP_SOUND_INDICES.length; i++) {
+            if (FOOTSTEP_SOUND_INDICES[i] == soundIndex) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private boolean isPlayerOnVillageStoneRoad() {
@@ -1052,9 +1118,8 @@ public class GamePanel extends JPanel implements Runnable {
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
-        Graphics2D screenGraphics = (Graphics2D) graphics.create();
-        drawFrameToScreen(screenGraphics, getWidth(), getHeight());
-        screenGraphics.dispose();
+        graphics.setColor(Color.black);
+        graphics.fillRect(0, 0, getWidth(), getHeight());
     }
 
     private void renderWorldLayer(Graphics2D graphics) {
@@ -1064,6 +1129,9 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
         if (gameState == optionsState && optionsReturnState != pauseState) {
+            return;
+        }
+        if (gameState == introState && introFrame < getIntroFadeStartFrame()) {
             return;
         }
 
@@ -1083,15 +1151,14 @@ public class GamePanel extends JPanel implements Runnable {
     private void prepareScreenImageGraphics(Graphics2D graphics) {
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
         graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
-        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, crispPixels
-                ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
-                : RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }
 
     private void prepareUiGraphics(Graphics2D graphics) {
-        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
         graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }
 
@@ -1221,19 +1288,28 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void fillOutsideWorldTileRect(Graphics2D g2, int leftCol, int topRow, int rightExclusiveCol,
                                           int bottomExclusiveRow) {
-        Rectangle visibleRoom = new Rectangle(
-                worldToScreenX(leftCol * tileSize),
-                worldToScreenY(topRow * tileSize),
-                (rightExclusiveCol - leftCol) * tileSize,
-                (bottomExclusiveRow - topRow) * tileSize
-        );
-        Area hiddenArea = new Area(new Rectangle(0, 0, screenWidth, screenHeight));
-        hiddenArea.subtract(new Area(visibleRoom));
+        int roomX = worldToScreenX(leftCol * tileSize);
+        int roomY = worldToScreenY(topRow * tileSize);
+        int roomWidth = (rightExclusiveCol - leftCol) * tileSize;
+        int roomHeight = (bottomExclusiveRow - topRow) * tileSize;
 
-        Shape oldClip = g2.getClip();
-        g2.setClip(hiddenArea);
-        g2.fillRect(0, 0, screenWidth, screenHeight);
-        g2.setClip(oldClip);
+        int roomLeft = Math.max(0, roomX);
+        int roomTop = Math.max(0, roomY);
+        int roomRight = Math.min(screenWidth, roomX + roomWidth);
+        int roomBottom = Math.min(screenHeight, roomY + roomHeight);
+
+        if (roomTop > 0) {
+            g2.fillRect(0, 0, screenWidth, roomTop);
+        }
+        if (roomBottom < screenHeight) {
+            g2.fillRect(0, roomBottom, screenWidth, screenHeight - roomBottom);
+        }
+        if (roomLeft > 0 && roomBottom > roomTop) {
+            g2.fillRect(0, roomTop, roomLeft, roomBottom - roomTop);
+        }
+        if (roomRight < screenWidth && roomBottom > roomTop) {
+            g2.fillRect(roomRight, roomTop, screenWidth - roomRight, roomBottom - roomTop);
+        }
     }
 
     private void drawForestMood(Graphics2D g2) {
@@ -1412,7 +1488,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private boolean shouldUseActiveRender() {
-        return fullScreenOn && Main.window != null && Main.window.isVisible();
+        return Main.window != null && Main.window.isVisible();
     }
 
     private boolean drawWithBufferStrategy() {
@@ -1433,6 +1509,7 @@ public class GamePanel extends JPanel implements Runnable {
                 } while (screenBufferStrategy.contentsRestored());
 
                 screenBufferStrategy.show();
+                Toolkit.getDefaultToolkit().sync();
             } while (screenBufferStrategy.contentsLost());
             return true;
         }
@@ -1471,7 +1548,7 @@ public class GamePanel extends JPanel implements Runnable {
         screenGraphics.setColor(Color.black);
         screenGraphics.fillRect(0, 0, targetWidth, targetHeight);
 
-        double scale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
+        double scale = getScreenDrawScale(targetWidth, targetHeight);
         int drawWidth = (int) Math.ceil(screenWidth * scale);
         int drawHeight = (int) Math.ceil(screenHeight * scale);
         int drawX = (targetWidth - drawWidth) / 2;
@@ -1490,7 +1567,9 @@ public class GamePanel extends JPanel implements Runnable {
         prepareUiGraphics(frameGraphics);
         ui.draw(frameGraphics);
         drawApartmentRoomTransition(frameGraphics);
+        drawFpsCounter(frameGraphics);
         frameGraphics.dispose();
+        recordPresentedFrame();
     }
 
     public Point toGameScreenPoint(int componentX, int componentY) {
@@ -1501,7 +1580,7 @@ public class GamePanel extends JPanel implements Runnable {
             targetHeight = screenHeight;
         }
 
-        double scale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
+        double scale = getScreenDrawScale(targetWidth, targetHeight);
         int drawWidth = (int) Math.ceil(screenWidth * scale);
         int drawHeight = (int) Math.ceil(screenHeight * scale);
         int drawX = (targetWidth - drawWidth) / 2;
@@ -1510,6 +1589,11 @@ public class GamePanel extends JPanel implements Runnable {
         int gameX = (int) Math.floor((componentX - drawX) / scale);
         int gameY = (int) Math.floor((componentY - drawY) / scale);
         return new Point(gameX, gameY);
+    }
+
+    private double getScreenDrawScale(int targetWidth, int targetHeight) {
+        double coverScale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
+        return Math.max(1.0, Math.ceil(coverScale));
     }
 
     public boolean shouldShowMouseCursor() {
@@ -1559,7 +1643,42 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private boolean shouldDrawWorldBuffer() {
-        return gameState != titleState && !(gameState == optionsState && optionsReturnState != pauseState);
+        if (gameState == titleState || (gameState == optionsState && optionsReturnState != pauseState)) {
+            return false;
+        }
+        return gameState != introState || introFrame >= getIntroFadeStartFrame();
+    }
+
+    private void drawFpsCounter(Graphics2D g2) {
+        if (!showFpsCounter) {
+            return;
+        }
+
+        String text = "FPS " + currentFps;
+        Font font = GameFonts.bold(15);
+        g2.setFont(font);
+        FontMetrics metrics = g2.getFontMetrics();
+        int width = metrics.stringWidth(text) + 22;
+        int height = 28;
+        int x = screenWidth - width - 14;
+        int y = 14;
+
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.fillRoundRect(x, y, width, height, 10, 10);
+        g2.setColor(new Color(174, 215, 196, 200));
+        g2.drawRoundRect(x + 1, y + 1, width - 2, height - 2, 9, 9);
+        g2.setColor(Color.white);
+        g2.drawString(text, x + 11, y + 19);
+    }
+
+    private void recordPresentedFrame() {
+        framesThisSecond++;
+        long now = System.nanoTime();
+        if (now - fpsSampleStartNanos >= 1_000_000_000L) {
+            currentFps = framesThisSecond;
+            framesThisSecond = 0;
+            fpsSampleStartNanos = now;
+        }
     }
 
     public void playMusic(int i) {

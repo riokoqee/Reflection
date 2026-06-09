@@ -189,21 +189,25 @@ public class AssetSetter {
 
         if (gp.story.shouldShowApartmentShadow()) {
             StoryNPC mirrorShadow = new StoryNPC(gp, StoryManager.SHADOW_APARTMENT,
-                    "Тень", "character:shadow", 0.62, false);
+                    gp.tr("Тень", "Shadow"), "character:shadow", 0.62, false);
             placeNPCAtPixel(MapId.APARTMENT, 0, mirrorShadow,
                     getBedroomMirrorX() + gp.tileSize / 5,
                     getBedroomMirrorY() + gp.tileSize / 2);
         }
 
-        placeNPC(MapId.FOREST_DOUBTS, 0, new SwingChildNPC(gp, "Ребёнок"), 30, 8);
-        placeNPC(MapId.FOREST_DOUBTS, 1, new StoryNPC(gp, StoryManager.SHADOW_FOREST, "Тень", "character:shadow"), 31, 21);
+        placeNPC(MapId.FOREST_DOUBTS, 0, new SwingChildNPC(gp, gp.tr("Ребёнок", "Child")), 30, 8);
+        placeNPC(MapId.FOREST_DOUBTS, 1,
+                new StoryNPC(gp, StoryManager.SHADOW_FOREST, gp.tr("Тень", "Shadow"), "character:shadow"), 31, 21);
 
         placeNPC(MapId.VILLAGE, 0,
-                new StoryNPC(gp, StoryManager.FRIEND, "Друг", "character:friend", 1.35, true), 13, 10);
-        placeNPC(MapId.VILLAGE, 1, new StoryNPC(gp, StoryManager.ELDER, "Старик", "character:elder"), 36, 14);
+                new StoryNPC(gp, StoryManager.FRIEND, gp.tr("Друг", "Friend"), "character:friend", 1.35, true), 13, 10);
+        placeNPC(MapId.VILLAGE, 1,
+                new StoryNPC(gp, StoryManager.ELDER, gp.tr("Старик", "Elder"), "character:elder"), 36, 14);
 
-        placeNPC(MapId.MOUNTAIN, 0, new StoryNPC(gp, StoryManager.WARRIOR, "Воин", "character:warrior_knight"), 35, 29);
-        placeNPC(MapId.MOUNTAIN, 1, new StoryNPC(gp, StoryManager.TRAVELER, "Путник", "character:friend"), 28, 34);
+        placeNPC(MapId.MOUNTAIN, 0,
+                new StoryNPC(gp, StoryManager.WARRIOR, gp.tr("Воин", "Warrior"), "character:warrior_knight"), 35, 29);
+        placeNPC(MapId.MOUNTAIN, 1,
+                new StoryNPC(gp, StoryManager.TRAVELER, gp.tr("Путник", "Traveler"), "character:friend"), 28, 34);
         moveNPC(MapId.MOUNTAIN, 0, 35, 13);
         moveNPC(MapId.MOUNTAIN, 1, 26, 34);
     }
