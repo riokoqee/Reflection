@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reflection - психологическая 2D-история</title>
+  <meta name="description" content="Reflection - атмосферная 2D-игра о честном выборе, памяти и пути через собственное отражение.">
+  <link rel="icon" href="assets/reflection_icon.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header" data-header>
+    <a class="brand" href="#top" aria-label="Reflection">
+      <img src="assets/reflection_icon.png" alt="">
+      <span>Reflection</span>
+    </a>
+    <nav class="site-nav" aria-label="Основная навигация">
+      <a href="#world">Мир</a>
+      <a href="#story">Сюжет</a>
+      <a href="#download">Скачать</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg" data-parallax></div>
+      <div class="hero-shade"></div>
+
+      <div class="hero-content">
+        <p class="eyebrow">2D story game</p>
+        <h1 id="hero-title">Reflection</h1>
+        <p class="hero-lead">
+          Тихая история о комнате, зеркале и выборе, который постепенно выводит игрока
+          из привычного дома к Лесу Сомнений, Деревне Связей и Горе Целей.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="../dist/Reflection-windows-portable.zip" download>Скачать Windows</a>
+          <a class="button ghost" href="#story">Посмотреть путь</a>
+        </div>
+      </div>
+
+      <div class="hero-status" aria-label="Ключевые особенности">
+        <span>Честные ответы</span>
+        <span>Живой дневник задач</span>
+        <span>Атмосферный звук</span>
+      </div>
+    </section>
+
+    <section class="intro-band reveal" id="story" aria-labelledby="story-title">
+      <div class="section-inner intro-grid">
+        <div>
+          <p class="section-kicker">Начало</p>
+          <h2 id="story-title">Сначала обычный вечер. Потом отражение отвечает.</h2>
+        </div>
+        <div class="intro-copy">
+          <p>
+            Игрок начинает дома: заправляет кровать, приводит кухню в порядок,
+            получает сообщение от мамы и замечает тень в зеркале. Бытовые действия
+            постепенно становятся проверкой того, насколько честно игрок готов говорить с собой.
+          </p>
+          <p>
+            Reflection не ищет правильный ответ. Система выбора собирает личный профиль
+            и в финале возвращает игроку спокойный, но прямой результат.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="showcase reveal" aria-labelledby="showcase-title">
+      <div class="section-inner">
+        <div class="section-heading">
+          <p class="section-kicker">Настроение</p>
+          <h2 id="showcase-title">Пиксельная история с мягким психологическим напряжением</h2>
+        </div>
+
+        <div class="game-window" aria-label="Атмосферный коллаж игры">
+          <div class="window-topbar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="window-scene">
+            <div class="room-floor"></div>
+            <img class="sprite mirror" src="assets/mirror.png" alt="Зеркало">
+            <img class="sprite shadow" src="assets/shadow.png" alt="Тень">
+            <img class="sprite lantern" src="assets/lantern.png" alt="Фонарь">
+            <img class="sprite hero-idle" src="assets/hero_idle.png" alt="Главный персонаж">
+            <img class="sprite tv" src="assets/tv_on.png" alt="Телевизор">
+            <img class="sprite phone" src="assets/phone_dresser.png" alt="Телефон в комоде">
+            <div class="dialogue-preview">
+              <strong>Reflection</strong>
+              <span>Отвечай искренне. Игра запомнит не победу, а выбор.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="world reveal" id="world" aria-labelledby="world-title">
+      <div class="section-inner">
+        <div class="section-heading compact">
+          <p class="section-kicker">Локации</p>
+          <h2 id="world-title">Путь выглядит как внутренний маршрут</h2>
+        </div>
+
+        <div class="location-grid">
+          <article class="location-card">
+            <span>01</span>
+            <h3>Квартира</h3>
+            <p>Безопасное начало, где простые дела создают ритм и дают игроку освоиться.</p>
+          </article>
+          <article class="location-card forest">
+            <span>02</span>
+            <h3>Лес Сомнений</h3>
+            <p>Темная дорога с фонарем, шепотом и первой настоящей проверкой выбора.</p>
+          </article>
+          <article class="location-card village">
+            <span>03</span>
+            <h3>Деревня Связей</h3>
+            <p>Место встреч, разговоров и тихих решений рядом с теми, кто просит внимания.</p>
+          </article>
+          <article class="location-card mountain">
+            <span>04</span>
+            <h3>Гора Целей</h3>
+            <p>Финальный подъем, где ответы собираются в профиль и личную рекомендацию.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="systems reveal" aria-labelledby="systems-title">
+      <div class="section-inner systems-grid">
+        <div class="section-heading compact">
+          <p class="section-kicker">Системы</p>
+          <h2 id="systems-title">Игровые детали работают на историю</h2>
+        </div>
+        <div class="system-list">
+          <div class="system-row">
+            <span>Заметка</span>
+            <p>Список дел открывается клавишей I и меняется по мере выполнения событий.</p>
+          </div>
+          <div class="system-row">
+            <span>Диалоги</span>
+            <p>Ответы влияют на метрики: рост, покой, эмпатию, уверенность и самооценку.</p>
+          </div>
+          <div class="system-row">
+            <span>Звук</span>
+            <p>Шаги, шепот, вода, лампа и меню поддерживают атмосферу без лишнего шума.</p>
+          </div>
+          <div class="system-row">
+            <span>Слоты</span>
+            <p>Три сохранения позволяют пройти историю заново и сравнить свой путь.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="download reveal" id="download" aria-labelledby="download-title">
+      <div class="section-inner download-panel">
+        <img class="download-icon" src="assets/reflection_icon.png" alt="">
+        <div>
+          <p class="section-kicker">Windows build</p>
+          <h2 id="download-title">Reflection уже собран как portable-версия</h2>
+          <p>
+            Скачай архив, распакуй папку и запусти Reflection.exe. Java уже лежит внутри runtime,
+            поэтому отдельная установка не нужна.
+          </p>
+        </div>
+        <a class="button primary download-button" href="../dist/Reflection-windows-portable.zip" download>
+          Скачать архив
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <span>Reflection</span>
+      <span>2026</span>
+    </div>
+    <div class="footer-contact" aria-label="Контакты">
+      <a href="mailto:rioko988@gmail.com">rioko988@gmail.com</a>
+      <a href="tel:+77074418393">+77074418393</a>
+    </div>
+  </footer>
+
+  <aside class="faq-widget" data-faq>
+    <button class="faq-toggle" type="button" data-faq-toggle aria-expanded="false" aria-controls="faq-panel">
+      FAQ
+    </button>
+    <div class="faq-panel" id="faq-panel" data-faq-panel hidden>
+      <div class="faq-panel-head">
+        <strong>FAQ</strong>
+        <button type="button" data-faq-close aria-label="Закрыть FAQ">x</button>
+      </div>
+      <details open>
+        <summary>Как запустить игру?</summary>
+        <p>Скачай архив, распакуй папку и запусти Reflection.exe.</p>
+      </details>
+      <details>
+        <summary>Нужно ли устанавливать Java?</summary>
+        <p>Нет. Portable-сборка уже содержит runtime внутри папки игры.</p>
+      </details>
+      <details>
+        <summary>На какой системе работает сборка?</summary>
+        <p>Текущая сборка подготовлена для Windows.</p>
+      </details>
+      <details>
+        <summary>Как связаться?</summary>
+        <p>Почта: rioko988@gmail.com<br>Номер: +77074418393</p>
+      </details>
+    </div>
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>
