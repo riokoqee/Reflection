@@ -108,13 +108,15 @@ public class GamePanel extends JPanel implements Runnable {
     public MouseHandler mouseH = new MouseHandler(this);
     Sound music = new Sound();
     Sound se = new Sound();
-    Sound cursorSE = new Sound();
+    private final Sound[] cursorSE = {new Sound(), new Sound(), new Sound(), new Sound()};
     private final Sound[] oneShotSE = {new Sound(), new Sound(), new Sound(), new Sound()};
     Sound swingSound = new Sound();
     Sound footstepSound = new Sound();
     Sound apartmentAmbienceSound = new Sound();
     Sound whisperSound = new Sound();
     private boolean cursorSoundLoaded = false;
+    private boolean cursorSoundUnavailable = false;
+    private int cursorSECursor = 0;
     private boolean swingSoundLoaded = false;
     private boolean swingSoundUnavailable = false;
     private int activeFootstepSoundIndex = -1;
@@ -317,13 +319,7 @@ public class GamePanel extends JPanel implements Runnable {
             brightnessScale = clampSetting(brightnessScale + amount, 0, 5);
         }
         else if (command == 2) {
-            crispPixels = !crispPixels;
-        }
-        else if (command == 3) {
             fpsLimitMode = cycleSetting(fpsLimitMode, amount, 3);
-        }
-        else if (command == 4) {
-            screenShakeEnabled = !screenShakeEnabled;
         }
     }
 
@@ -478,8 +474,10 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void syncSoundEffectVolumes() {
-        cursorSE.volumeScale = uiVolumeScale;
-        cursorSE.checkVolume();
+        for (Sound sound : cursorSE) {
+            sound.volumeScale = uiVolumeScale;
+            sound.checkVolume();
+        }
         for (Sound sound : oneShotSE) {
             sound.volumeScale = se.volumeScale;
             sound.checkVolume();
@@ -1603,14 +1601,16 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void playCursorSE() {
-        if (!cursorSoundLoaded) {
+        if (!cursorSoundLoaded && !cursorSoundUnavailable) {
             preloadCursorSound();
         }
 
         if (cursorSoundLoaded) {
-            cursorSE.volumeScale = uiVolumeScale;
-            cursorSE.checkVolume();
-            cursorSE.playFromStart();
+            Sound sound = cursorSE[cursorSECursor];
+            cursorSECursor = (cursorSECursor + 1) % cursorSE.length;
+            sound.volumeScale = uiVolumeScale;
+            sound.checkVolume();
+            sound.playFromStart();
         }
         else {
             playOneShot(FALLBACK_CURSOR_SOUND_INDEX, uiVolumeScale);
@@ -1626,8 +1626,21 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void preloadCursorSound() {
-        cursorSE.volumeScale = uiVolumeScale;
-        cursorSoundLoaded = cursorSE.setFile(SE_CURSOR);
+        cursorSoundLoaded = true;
+        for (Sound sound : cursorSE) {
+            sound.volumeScale = uiVolumeScale;
+            if (!sound.setFile(SE_CURSOR)) {
+                cursorSoundLoaded = false;
+                break;
+            }
+        }
+
+        if (!cursorSoundLoaded) {
+            for (Sound sound : cursorSE) {
+                sound.close();
+            }
+            cursorSoundUnavailable = true;
+        }
     }
 
     private static final class ApartmentRoom {

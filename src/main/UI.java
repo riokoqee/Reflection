@@ -136,7 +136,7 @@ public class UI {
                 return 4;
             case OPTIONS_TAB_GRAPHICS:
             default:
-                return 6;
+                return 4;
         }
     }
 
@@ -724,10 +724,8 @@ public class UI {
         if (optionsTab == OPTIONS_TAB_GRAPHICS) {
             drawToggleOption("Полный экран", gp.fullScreenOn, 0, rowX, rowY, rowWidth);
             drawSliderOption("Яркость", gp.brightnessScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
-            drawToggleOption("Чёткие пиксели", gp.crispPixels, 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
-            drawCycleOption("Лимит FPS", gp.getFpsLimitLabel(), 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
-            drawToggleOption("Тряска экрана", gp.screenShakeEnabled, 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
-            drawBackOption("НАЗАД", 5, rowX, rowY + OPTIONS_ROW_STEP * 5, rowWidth);
+            drawCycleOption("Лимит FPS", gp.getFpsLimitLabel(), 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
+            drawBackOption("НАЗАД", 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
         }
         else if (optionsTab == OPTIONS_TAB_SOUND) {
             drawSliderOption("Музыка", gp.music.volumeScale, 5, 0, rowX, rowY, rowWidth);

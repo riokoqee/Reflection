@@ -12,6 +12,9 @@ public class MouseHandler extends MouseAdapter {
     private static final int NO_COMMAND = -1;
 
     private final GamePanel gp;
+    private int hoveredGameState = Integer.MIN_VALUE;
+    private int hoveredCommand = NO_COMMAND;
+    private int hoveredOptionsTab = NO_COMMAND;
 
     public MouseHandler(GamePanel gp) {
         this.gp = gp;
@@ -57,12 +60,44 @@ public class MouseHandler extends MouseAdapter {
     }
 
     private void updateHoveredCommand(MouseEvent e) {
+        if (hoveredGameState != gp.gameState) {
+            resetHoverState();
+            hoveredGameState = gp.gameState;
+        }
+
         Point point = gp.toGameScreenPoint(e.getX(), e.getY());
+        if (gp.gameState == gp.optionsState) {
+            int tab = getOptionsTabAt(point);
+            if (tab != NO_COMMAND) {
+                if (hoveredOptionsTab != tab) {
+                    hoveredOptionsTab = tab;
+                    hoveredCommand = NO_COMMAND;
+                    gp.playCursorSE();
+                }
+                return;
+            }
+        }
+
         int command = getCommandAt(point);
-        if (command != NO_COMMAND && gp.ui.commandNum != command) {
+        if (command == NO_COMMAND) {
+            resetHoverState();
+            return;
+        }
+
+        if (hoveredCommand != command) {
+            hoveredCommand = command;
+            hoveredOptionsTab = NO_COMMAND;
             gp.ui.commandNum = command;
             gp.playCursorSE();
         }
+        else if (gp.ui.commandNum != command) {
+            gp.ui.commandNum = command;
+        }
+    }
+
+    private void resetHoverState() {
+        hoveredCommand = NO_COMMAND;
+        hoveredOptionsTab = NO_COMMAND;
     }
 
     private int getCommandAt(Point point) {
