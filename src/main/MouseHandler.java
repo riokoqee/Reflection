@@ -106,7 +106,7 @@ public class MouseHandler extends MouseAdapter {
                     UI.TITLE_MENU_ROW_HEIGHT, UI.TITLE_MENU_X - 14, UI.TITLE_MENU_WIDTH);
         }
         if (gp.gameState == gp.pauseState) {
-            return getCommandFromRows(point, getPauseButtonBounds(), 6);
+            return getCommandFromRows(point, getPauseButtonBounds(), UI.PAUSE_COMMANDS);
         }
         if (gp.gameState == gp.optionsState) {
             return getOptionsCommand(point);
@@ -144,14 +144,14 @@ public class MouseHandler extends MouseAdapter {
     }
 
     private Rectangle getPauseButtonBounds() {
-        int panelWidth = 430;
-        int panelHeight = 470;
+        int panelWidth = UI.PAUSE_PANEL_WIDTH;
+        int panelHeight = UI.PAUSE_PANEL_HEIGHT;
         int panelX = gp.screenWidth / 2 - panelWidth / 2;
         int panelY = gp.screenHeight / 2 - panelHeight / 2;
         int rowX = panelX + 54;
-        int rowY = panelY + 158;
+        int rowY = panelY + UI.PAUSE_MENU_Y_OFFSET;
         int rowWidth = panelWidth - 108;
-        return new Rectangle(rowX - 16, rowY - 29, rowWidth, 46);
+        return new Rectangle(rowX - 16, rowY - 29, rowWidth, UI.PAUSE_MENU_ROW_HEIGHT);
     }
 
     private Rectangle getOptionsButtonBounds() {

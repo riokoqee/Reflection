@@ -5,7 +5,7 @@ import java.awt.event.KeyListener;
 
 public class KeyHandler implements KeyListener {
 
-    private static final int PAUSE_LAST_COMMAND = 5;
+    private static final int PAUSE_LAST_COMMAND = UI.PAUSE_COMMANDS - 1;
 
     private final GamePanel gp;
     public boolean upPressed, downPressed, leftPressed, rightPressed, shiftPressed, enterPressed;
@@ -167,24 +167,9 @@ public class KeyHandler implements KeyListener {
                 gp.ui.setPauseNotice(gp.tr("Игра сохранена", "Game saved"));
             }
             else if (gp.ui.commandNum == 2) {
-                gp.playConfirmSE();
-                if (gp.saveLoad.load()) {
-                    gp.gameState = gp.playState;
-                }
-                else {
-                    gp.ui.setPauseNotice(gp.tr("Сохранение не найдено", "Save not found"));
-                }
-            }
-            else if (gp.ui.commandNum == 3) {
                 gp.openOptionsMenu(gp.pauseState);
             }
-            else if (gp.ui.commandNum == 4) {
-                gp.playConfirmSE();
-                gp.story.startNewGame();
-                gp.saveLoad.save();
-                gp.gameState = gp.playState;
-            }
-            else if (gp.ui.commandNum == 5) {
+            else if (gp.ui.commandNum == 3) {
                 gp.playBackSE();
                 gp.saveLoad.save();
                 gp.gameState = gp.titleState;

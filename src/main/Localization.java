@@ -30,7 +30,6 @@ public final class Localization {
         put("Язык", "Language");
         put("Полный экран", "Fullscreen");
         put("Яркость", "Brightness");
-        put("Лимит FPS", "FPS limit");
         put("Показ FPS", "Show FPS");
         put("Музыка", "Music");
         put("Звуки", "Sounds");
@@ -85,6 +84,7 @@ public final class Localization {
         put("Лес Сомнений", "Forest of Doubt");
         put("Деревня Связей", "Village of Bonds");
         put("Гора Целей", "Mountain of Goals");
+        put("Библиотека", "Library");
         put("Внутренний мир", "Inner World");
 
         put("Рост", "Growth");

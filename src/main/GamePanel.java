@@ -37,6 +37,10 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int APARTMENT_RIGHT_EXCLUSIVE_COL = 38;
     private static final int APARTMENT_TOP_ROW = 6;
     private static final int APARTMENT_BOTTOM_EXCLUSIVE_ROW = 25;
+    private static final int LIBRARY_LEFT_COL = 15;
+    private static final int LIBRARY_RIGHT_EXCLUSIVE_COL = 35;
+    private static final int LIBRARY_TOP_ROW = 12;
+    private static final int LIBRARY_BOTTOM_EXCLUSIVE_ROW = 24;
     private static final int ROOM_BEDROOM = 0;
     private static final int ROOM_HALL = 1;
     private static final int ROOM_KITCHEN = 2;
@@ -57,14 +61,6 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int FOREST_RIGHT_EXCLUSIVE_COL = 46;
     private static final int FOREST_TOP_ROW = 4;
     private static final int FOREST_BOTTOM_EXCLUSIVE_ROW = 46;
-    private static final int VILLAGE_STONE_ROAD_FIRST_TILE = 54;
-    private static final int VILLAGE_STONE_ROAD_LAST_TILE = 56;
-    private static final int[] FOOTSTEP_SOUND_INDICES = {
-            Sound.FOOTSTEPS_WOOD,
-            Sound.FOOTSTEPS_DIRT,
-            Sound.FOOTSTEPS_STONE,
-            Sound.FOOTSTEPS_STONE_SPRINT
-    };
     private static final int FPS_LIMIT_60 = 0;
     private static final int FPS_LIMIT_120 = 1;
     private static final int FPS_LIMIT_UNLIMITED = 2;
@@ -118,7 +114,7 @@ public class GamePanel extends JPanel implements Runnable {
     private final Sound[] cursorSE = {new Sound(), new Sound(), new Sound(), new Sound()};
     private final Sound[] oneShotSE = {new Sound(), new Sound(), new Sound(), new Sound()};
     Sound swingSound = new Sound();
-    private final Sound[] footstepSounds = new Sound[FOOTSTEP_SOUND_INDICES.length];
+    private final FootstepAudio footstepAudio = new FootstepAudio(this);
     Sound apartmentAmbienceSound = new Sound();
     Sound whisperSound = new Sound();
     private boolean cursorSoundLoaded = false;
@@ -126,9 +122,6 @@ public class GamePanel extends JPanel implements Runnable {
     private int cursorSECursor = 0;
     private boolean swingSoundLoaded = false;
     private boolean swingSoundUnavailable = false;
-    private final boolean[] footstepSoundLoaded = new boolean[FOOTSTEP_SOUND_INDICES.length];
-    private final boolean[] footstepSoundUnavailable = new boolean[FOOTSTEP_SOUND_INDICES.length];
-    private int activeFootstepSoundSlot = -1;
     private boolean apartmentAmbienceLoaded = false;
     private boolean apartmentAmbienceUnavailable = false;
     private boolean whisperSoundLoaded = false;
@@ -184,9 +177,6 @@ public class GamePanel extends JPanel implements Runnable {
         this.addMouseListener(mouseH);
         this.addMouseMotionListener(mouseH);
         this.setFocusable(true);
-        for (int i = 0; i < footstepSounds.length; i++) {
-            footstepSounds[i] = new Sound();
-        }
     }
 
     public void setupGame() {
@@ -203,7 +193,7 @@ public class GamePanel extends JPanel implements Runnable {
         forestDarknessBuffer = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         syncSoundEffectVolumes();
         preloadCursorSound();
-        preloadFootstepSounds();
+        footstepAudio.preload();
 
         if (fullScreenOn) {
             setFullScreen();
@@ -341,9 +331,6 @@ public class GamePanel extends JPanel implements Runnable {
             brightnessScale = clampSetting(brightnessScale + amount, 0, 5);
         }
         else if (command == 2) {
-            fpsLimitMode = cycleSetting(fpsLimitMode, amount, 3);
-        }
-        else if (command == 3) {
             showFpsCounter = !showFpsCounter;
         }
     }
@@ -427,17 +414,6 @@ public class GamePanel extends JPanel implements Runnable {
 
     public int getSoundEffectVolume() {
         return se.volumeScale;
-    }
-
-    public String getFpsLimitLabel() {
-        switch (fpsLimitMode) {
-            case FPS_LIMIT_120:
-                return "120";
-            case FPS_LIMIT_UNLIMITED:
-                return tr("Без лимита", "Unlimited");
-            default:
-                return "60";
-        }
     }
 
     public String getLanguageLabel() {
@@ -530,11 +506,7 @@ public class GamePanel extends JPanel implements Runnable {
             sound.checkVolume();
         }
         swingSound.volumeScale = ambienceVolumeScale;
-        for (Sound sound : footstepSounds) {
-            if (sound != null) {
-                sound.volumeScale = footstepVolumeScale;
-            }
-        }
+        footstepAudio.syncVolume();
         apartmentAmbienceSound.volumeScale = ambienceVolumeScale;
         whisperSound.volumeScale = whisperVolumeScale;
     }
@@ -625,6 +597,9 @@ public class GamePanel extends JPanel implements Runnable {
             case MapId.VILLAGE:
             case MapId.MOUNTAIN:
                 return clampCamera(cameraX, 0, maxWorldCol * tileSize - screenWidth);
+            case MapId.LIBRARY:
+                return clampCamera(cameraX, LIBRARY_LEFT_COL * tileSize,
+                        LIBRARY_RIGHT_EXCLUSIVE_COL * tileSize - screenWidth);
             default:
                 return cameraX;
         }
@@ -640,6 +615,9 @@ public class GamePanel extends JPanel implements Runnable {
             case MapId.VILLAGE:
             case MapId.MOUNTAIN:
                 return clampCamera(cameraY, 0, maxWorldRow * tileSize - screenHeight);
+            case MapId.LIBRARY:
+                return clampCamera(cameraY, LIBRARY_TOP_ROW * tileSize,
+                        LIBRARY_BOTTOM_EXCLUSIVE_ROW * tileSize - screenHeight);
             default:
                 return cameraY;
         }
@@ -780,11 +758,11 @@ public class GamePanel extends JPanel implements Runnable {
             }
 
             updateApartmentRoomTransition();
-            updateFootstepSound();
+            footstepAudio.update();
             updateSwingSound();
         }
         else {
-            stopFootstepSound();
+            footstepAudio.stop();
             stopSwingSound();
         }
 
@@ -875,114 +853,6 @@ public class GamePanel extends JPanel implements Runnable {
         if (swingSoundLoaded && swingSound.isRunning()) {
             swingSound.stop();
         }
-    }
-
-    private void updateFootstepSound() {
-        if (!isPlayerTryingToMove()) {
-            stopFootstepSound();
-            return;
-        }
-
-        int soundIndex = getFootstepSoundIndex();
-        int soundSlot = getFootstepSoundSlot(soundIndex);
-        if (soundSlot == -1 || footstepSoundUnavailable[soundSlot]) {
-            stopFootstepSound();
-            return;
-        }
-
-        Sound sound = footstepSounds[soundSlot];
-        if (!footstepSoundLoaded[soundSlot]) {
-            sound.volumeScale = footstepVolumeScale;
-            if (!sound.setFile(soundIndex)) {
-                footstepSoundUnavailable[soundSlot] = true;
-                stopFootstepSound();
-                return;
-            }
-            footstepSoundLoaded[soundSlot] = true;
-        }
-
-        if (activeFootstepSoundSlot != soundSlot) {
-            stopActiveFootstepSound();
-            activeFootstepSoundSlot = soundSlot;
-        }
-
-        sound.setVolumeDb(adjustedVolume(footstepVolumeScale, player.isSprinting() ? -7f : -9f));
-        if (!sound.isRunning()) {
-            sound.loop();
-        }
-    }
-
-    private void preloadFootstepSounds() {
-        for (int i = 0; i < FOOTSTEP_SOUND_INDICES.length; i++) {
-            if (footstepSoundLoaded[i] || footstepSoundUnavailable[i]) {
-                continue;
-            }
-            footstepSounds[i].volumeScale = footstepVolumeScale;
-            if (footstepSounds[i].setFile(FOOTSTEP_SOUND_INDICES[i])) {
-                footstepSoundLoaded[i] = true;
-            }
-            else {
-                footstepSoundUnavailable[i] = true;
-            }
-        }
-    }
-
-    private void stopFootstepSound() {
-        stopActiveFootstepSound();
-        activeFootstepSoundSlot = -1;
-    }
-
-    private void stopActiveFootstepSound() {
-        if (activeFootstepSoundSlot >= 0 && activeFootstepSoundSlot < footstepSounds.length) {
-            Sound sound = footstepSounds[activeFootstepSoundSlot];
-            if (sound != null && sound.isRunning()) {
-                sound.stop();
-            }
-        }
-    }
-
-    private boolean isPlayerTryingToMove() {
-        return keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed;
-    }
-
-    private int getFootstepSoundIndex() {
-        switch (currentMap) {
-            case MapId.APARTMENT:
-                return Sound.FOOTSTEPS_WOOD;
-            case MapId.VILLAGE:
-                if (isPlayerOnVillageStoneRoad()) {
-                    return player.isSprinting() ? Sound.FOOTSTEPS_STONE_SPRINT : Sound.FOOTSTEPS_STONE;
-                }
-                return Sound.FOOTSTEPS_DIRT;
-            case MapId.FOREST_DOUBTS:
-            case MapId.MOUNTAIN:
-                return Sound.FOOTSTEPS_DIRT;
-            default:
-                return -1;
-        }
-    }
-
-    private int getFootstepSoundSlot(int soundIndex) {
-        for (int i = 0; i < FOOTSTEP_SOUND_INDICES.length; i++) {
-            if (FOOTSTEP_SOUND_INDICES[i] == soundIndex) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private boolean isPlayerOnVillageStoneRoad() {
-        int footX = player.worldX + player.solidArea.x + player.solidArea.width / 2;
-        int footY = player.worldY + player.solidArea.y + player.solidArea.height;
-        int col = footX / tileSize;
-        int row = footY / tileSize;
-
-        if (col < 0 || row < 0 || col >= maxWorldCol || row >= maxWorldRow) {
-            return false;
-        }
-
-        int tileNum = tileM.mapTileNum[MapId.VILLAGE][col][row];
-        return tileNum >= VILLAGE_STONE_ROAD_FIRST_TILE && tileNum <= VILLAGE_STONE_ROAD_LAST_TILE;
     }
 
     private void updateAmbientSounds() {
@@ -1144,12 +1014,18 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void prepareWorldGraphics(Graphics2D graphics) {
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        graphics.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
         graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
         graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }
 
     private void prepareScreenImageGraphics(Graphics2D graphics) {
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        graphics.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
         graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
         graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
     }
@@ -1157,6 +1033,9 @@ public class GamePanel extends JPanel implements Runnable {
     private void prepareUiGraphics(Graphics2D graphics) {
         graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        graphics.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
+        graphics.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
         graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
         graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
@@ -1548,9 +1427,9 @@ public class GamePanel extends JPanel implements Runnable {
         screenGraphics.setColor(Color.black);
         screenGraphics.fillRect(0, 0, targetWidth, targetHeight);
 
-        double scale = getScreenDrawScale(targetWidth, targetHeight);
-        int drawWidth = (int) Math.ceil(screenWidth * scale);
-        int drawHeight = (int) Math.ceil(screenHeight * scale);
+        int scale = getScreenDrawScale(targetWidth, targetHeight);
+        int drawWidth = screenWidth * scale;
+        int drawHeight = screenHeight * scale;
         int drawX = (targetWidth - drawWidth) / 2;
         int drawY = (targetHeight - drawHeight) / 2;
 
@@ -1580,9 +1459,9 @@ public class GamePanel extends JPanel implements Runnable {
             targetHeight = screenHeight;
         }
 
-        double scale = getScreenDrawScale(targetWidth, targetHeight);
-        int drawWidth = (int) Math.ceil(screenWidth * scale);
-        int drawHeight = (int) Math.ceil(screenHeight * scale);
+        int scale = getScreenDrawScale(targetWidth, targetHeight);
+        int drawWidth = screenWidth * scale;
+        int drawHeight = screenHeight * scale;
         int drawX = (targetWidth - drawWidth) / 2;
         int drawY = (targetHeight - drawHeight) / 2;
 
@@ -1591,9 +1470,9 @@ public class GamePanel extends JPanel implements Runnable {
         return new Point(gameX, gameY);
     }
 
-    private double getScreenDrawScale(int targetWidth, int targetHeight) {
+    private int getScreenDrawScale(int targetWidth, int targetHeight) {
         double coverScale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
-        return Math.max(1.0, Math.ceil(coverScale));
+        return Math.max(1, (int) Math.ceil(coverScale));
     }
 
     public boolean shouldShowMouseCursor() {
@@ -1762,31 +1641,4 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    private static final class ApartmentRoom {
-        final int id;
-        final String title;
-        final int leftCol;
-        final int topRow;
-        final int rightExclusiveCol;
-        final int bottomExclusiveRow;
-        final boolean lockCamera;
-
-        ApartmentRoom(int id, String title, int leftCol, int topRow, int rightExclusiveCol,
-                      int bottomExclusiveRow, boolean lockCamera) {
-            this.id = id;
-            this.title = title;
-            this.leftCol = leftCol;
-            this.topRow = topRow;
-            this.rightExclusiveCol = rightExclusiveCol;
-            this.bottomExclusiveRow = bottomExclusiveRow;
-            this.lockCamera = lockCamera;
-        }
-
-        boolean contains(int col, int row) {
-            return col >= leftCol &&
-                    col < rightExclusiveCol &&
-                    row >= topRow &&
-                    row < bottomExclusiveRow;
-        }
-    }
 }

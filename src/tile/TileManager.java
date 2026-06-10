@@ -26,6 +26,7 @@ public class TileManager {
         loadMap("/maps/forest_doubts.txt", MapId.FOREST_DOUBTS);
         loadMap("/maps/map02.txt", MapId.VILLAGE);
         loadMap("/maps/map03.txt", MapId.MOUNTAIN);
+        loadMap("/maps/library.txt", MapId.LIBRARY);
     }
 
     private void getTileImage() {

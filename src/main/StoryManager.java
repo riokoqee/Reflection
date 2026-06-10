@@ -22,18 +22,18 @@ public class StoryManager {
     private static final String OPTIONAL_FORK = "optional_fork";
     private static final String OPTIONAL_TRAVELER = "optional_traveler";
 
-    private static final int STAGE_MAKE_BED = 0;
-    private static final int STAGE_MAKE_TEA = 1;
-    private static final int STAGE_WASH_FACE = 2;
-    private static final int STAGE_REST_IN_HALL = 3;
-    private static final int STAGE_SHADOW_FIRST = 4;
-    private static final int STAGE_SHADOW_SECOND = 5;
-    private static final int STAGE_CHILD = 6;
-    private static final int STAGE_FOREST_SHADOW = 7;
-    private static final int STAGE_FRIEND = 8;
-    private static final int STAGE_ELDER = 9;
-    private static final int STAGE_WARRIOR = 10;
-    private static final int STAGE_DONE = 11;
+    static final int STAGE_MAKE_BED = 0;
+    static final int STAGE_MAKE_TEA = 1;
+    static final int STAGE_WASH_FACE = 2;
+    static final int STAGE_REST_IN_HALL = 3;
+    static final int STAGE_SHADOW_FIRST = 4;
+    static final int STAGE_SHADOW_SECOND = 5;
+    static final int STAGE_CHILD = 6;
+    static final int STAGE_FOREST_SHADOW = 7;
+    static final int STAGE_FRIEND = 8;
+    static final int STAGE_ELDER = 9;
+    static final int STAGE_WARRIOR = 10;
+    static final int STAGE_DONE = 11;
 
     private final GamePanel gp;
     private StoryPrompt activePrompt;
@@ -212,6 +212,12 @@ public class StoryManager {
         }
         else if (matchesObject(objectName, "Traveler Pack")) {
             openTravelerEvent();
+        }
+        else if (matchesObject(objectName, "Village Library Door")) {
+            enterLibrary();
+        }
+        else if (matchesObject(objectName, "Library Exit")) {
+            exitLibrary();
         }
         else if (stage == STAGE_MAKE_BED && matchesObject(objectName, "Bed")) {
             stage = STAGE_MAKE_TEA;
@@ -516,6 +522,25 @@ public class StoryManager {
         }
     }
 
+    private void enterLibrary() {
+        gp.playSE(Sound.DOOR_OPEN);
+        gp.currentMap = MapId.LIBRARY;
+        gp.player.setPosition(24, 21);
+        gp.player.direction = "up";
+        gp.aSetter.setNPC();
+        gp.saveLoad.save();
+        gp.ui.showCheckpoint(getLocationTitle());
+    }
+
+    private void exitLibrary() {
+        gp.playSE(Sound.DOOR_OPEN);
+        gp.currentMap = MapId.VILLAGE;
+        gp.player.setPosition(28, 10);
+        gp.player.direction = "down";
+        gp.aSetter.setNPC();
+        gp.saveLoad.save();
+    }
+
     private boolean matchesObject(String objectName, String... names) {
         for (String name : names) {
             if (name.equals(objectName)) {
@@ -795,6 +820,7 @@ public class StoryManager {
             case MapId.FOREST_DOUBTS: return "Лес Сомнений";
             case MapId.VILLAGE: return "Деревня Связей";
             case MapId.MOUNTAIN: return "Гора Целей";
+            case MapId.LIBRARY: return "Библиотека";
             default: return "Внутренний мир";
         }
     }
@@ -838,51 +864,7 @@ public class StoryManager {
     }
 
     public ArrayList<PlanTask> getPlanTasks() {
-        ArrayList<PlanTask> tasks = new ArrayList<>();
-        addPlanTask(tasks, "Заправить кровать", STAGE_MAKE_BED, STAGE_MAKE_TEA);
-        addPlanTask(tasks, "Убрать посуду на кухне", STAGE_MAKE_TEA, STAGE_WASH_FACE);
-        addPlanTask(tasks, "Умыться в ванной", STAGE_WASH_FACE, STAGE_REST_IN_HALL);
-        addPlanTask(tasks, "Включить телевизор и отдохнуть на диване", STAGE_REST_IN_HALL, STAGE_SHADOW_FIRST);
-        addPlanTask(tasks, "Поговорить с Тенью у зеркала", STAGE_SHADOW_FIRST, STAGE_CHILD);
-        addPlanTask(tasks, "Найти Ребёнка на качелях", STAGE_CHILD, STAGE_FOREST_SHADOW);
-        addPlanTask(tasks, "Идти глубже к Тени", STAGE_FOREST_SHADOW, STAGE_FRIEND);
-        addPlanTask(tasks, "Поговорить с Другом", STAGE_FRIEND, STAGE_ELDER);
-        addPlanTask(tasks, "Зайти к Старику в библиотеку", STAGE_ELDER, STAGE_WARRIOR);
-        addPlanTask(tasks, "Подняться к Воину", STAGE_WARRIOR, STAGE_DONE);
-        return tasks;
-    }
-
-    private void addPlanTask(ArrayList<PlanTask> tasks, String text, int visibleStage, int completedStage) {
-        if (stage >= visibleStage) {
-            tasks.add(new PlanTask(text, getCompletedPlanText(visibleStage), stage >= completedStage));
-        }
-    }
-
-    private String getCompletedPlanText(int visibleStage) {
-        switch (visibleStage) {
-            case STAGE_MAKE_BED:
-                return "Кровать заправлена. В комнате стало тише.";
-            case STAGE_MAKE_TEA:
-                return "Посуда убрана. Вода была холоднее обычного.";
-            case STAGE_WASH_FACE:
-                return "Лицо умыто. В зеркале всё нормально. Наверное.";
-            case STAGE_REST_IN_HALL:
-                return "Телевизор шумит. Дома не стало спокойнее.";
-            case STAGE_SHADOW_FIRST:
-                return "Тень знает слишком много. Дальше ведёт лес.";
-            case STAGE_CHILD:
-                return "Качели скрипят даже после разговора.";
-            case STAGE_FOREST_SHADOW:
-                return "В лесу стало понятно: сомнение умеет говорить.";
-            case STAGE_FRIEND:
-                return "Друг услышал больше, чем было сказано.";
-            case STAGE_ELDER:
-                return "Старик оставил вопрос вместо ответа.";
-            case STAGE_WARRIOR:
-                return "Вершина достигнута. Осталось посмотреть внутрь.";
-            default:
-                return "";
-        }
+        return StoryPlan.getTasks(stage);
     }
 
     public boolean shouldShowDirtyDishes() {
@@ -1251,65 +1233,4 @@ public class StoryManager {
         phoneResultMomText = "";
     }
 
-    public static class StoryPrompt {
-        public final String id;
-        public final String speaker;
-        public final String text;
-        public final Choice[] choices;
-
-        StoryPrompt(String id, String speaker, String text, Choice[] choices) {
-            this.id = id;
-            this.speaker = speaker;
-            this.text = text;
-            this.choices = choices;
-        }
-    }
-
-    public static class PlanTask {
-        public final String text;
-        public final String completedText;
-        public final boolean completed;
-
-        PlanTask(String text, String completedText, boolean completed) {
-            this.text = text;
-            this.completedText = completedText;
-            this.completed = completed;
-        }
-
-        public String getDisplayText() {
-            if (completed && completedText != null && !completedText.isEmpty()) {
-                return completedText;
-            }
-            return text;
-        }
-    }
-
-    public static class Choice {
-        public final String text;
-        public final int growth;
-        public final int calm;
-        public final int empathy;
-        public final int confidence;
-        public final int responsibility;
-        public final int avoidance;
-        public final int selfWorth;
-        public final String resultText;
-
-        Choice(String text, int growth, int calm, int empathy, int confidence) {
-            this(text, growth, calm, empathy, confidence, 0, 0, 0, "");
-        }
-
-        Choice(String text, int growth, int calm, int empathy, int confidence,
-               int responsibility, int avoidance, int selfWorth, String resultText) {
-            this.text = text;
-            this.growth = growth;
-            this.calm = calm;
-            this.empathy = empathy;
-            this.confidence = confidence;
-            this.responsibility = responsibility;
-            this.avoidance = avoidance;
-            this.selfWorth = selfWorth;
-            this.resultText = resultText;
-        }
-    }
 }

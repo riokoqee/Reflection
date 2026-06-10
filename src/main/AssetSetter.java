@@ -128,8 +128,7 @@ public class AssetSetter {
             house("village_house_east_lower", "building_038_x13_y758_86x80", 4.0, 3.75, 42, 42),
             house("village_house_south_west", "building_050_x13_y941_86x80", 4.0, 3.75, 12, 36),
             house("village_house_south_center", "building_014_x13_y464_86x80", 4.0, 3.75, 25, 36),
-            house("village_house_south_east", "building_022_x13_y568_86x80", 4.0, 3.75, 38, 36),
-            house("village_library", "building_006_x218_y93_360x183", 8.5, 4.1, 31, 3)
+            house("village_house_south_east", "building_022_x13_y568_86x80", 4.0, 3.75, 38, 36)
     };
 
     private static final StaticPlacement[] MOUNTAIN_DECORATIONS = {
@@ -182,6 +181,7 @@ public class AssetSetter {
         placeForestObjects();
         placeVillageObjects();
         placeMountainObjects();
+        placeLibraryObjects();
     }
 
     public void setNPC() {
@@ -201,8 +201,9 @@ public class AssetSetter {
 
         placeNPC(MapId.VILLAGE, 0,
                 new StoryNPC(gp, StoryManager.FRIEND, gp.tr("Друг", "Friend"), "character:friend", 1.35, true), 13, 10);
-        placeNPC(MapId.VILLAGE, 1,
-                new StoryNPC(gp, StoryManager.ELDER, gp.tr("Старик", "Elder"), "character:elder"), 36, 14);
+
+        placeNPC(MapId.LIBRARY, 0,
+                new StoryNPC(gp, StoryManager.ELDER, gp.tr("Старик", "Elder"), "character:elder"), 24, 16);
 
         placeNPC(MapId.MOUNTAIN, 0,
                 new StoryNPC(gp, StoryManager.WARRIOR, gp.tr("Воин", "Warrior"), "character:warrior_knight"), 35, 29);
@@ -325,9 +326,18 @@ public class AssetSetter {
                 gp.tileSize * 4 / 5, gp.tileSize * 2 / 3);
         index = placeObject(MapId.APARTMENT, index, bathroomMirror, 28, 17);
 
-        StaticObject door = new StaticObject(gp, "Door", "/objects/home/door", 1.2, 1.6, false);
-        door.setSolidArea(gp.tileSize / 5, gp.tileSize / 3, gp.tileSize, gp.tileSize);
-        index = placeObject(MapId.APARTMENT, index, door, 24, 22);
+        StaticObject door = new StaticObject(gp, "Door", "/objects/home/door", 1.45, 2.0, true);
+        int doorWidth = (int) Math.round(gp.tileSize * 1.45);
+        int doorHeight = (int) Math.round(gp.tileSize * 2.0);
+        int apartmentBottomWallY = gp.tileSize * 24;
+        int doorY = apartmentBottomWallY - doorHeight + gp.tileSize / 2;
+        int doorCollisionY = apartmentBottomWallY - doorY;
+        door.setSolidArea(0, doorCollisionY, doorWidth, doorHeight - doorCollisionY);
+        door.setRenderSortY(apartmentBottomWallY + 1);
+        int corridorDoorCenterX = gp.tileSize * 23 + gp.tileSize / 2;
+        index = placeObjectAtPixel(MapId.APARTMENT, index, door,
+                corridorDoorCenterX - doorWidth / 2,
+                doorY);
 
         placeStaticObjects(MapId.APARTMENT, index, HOME_DECORATIONS);
     }
@@ -354,6 +364,7 @@ public class AssetSetter {
         for (VillageHousePlacement placement : VILLAGE_HOUSES) {
             index = placeVillageHouse(index, placement);
         }
+        placeVillageLibraryDoor(index);
     }
 
     private void placeMountainObjects() {
@@ -362,6 +373,47 @@ public class AssetSetter {
                 createStoryObject("Mountain Fork", "mountain_fork", 0.9, 0.9), 31, 33);
         placeObject(MapId.MOUNTAIN, index,
                 createStoryObject("Traveler Pack", "traveler_pack", 0.75, 0.75), 29, 34);
+    }
+
+    private void placeLibraryObjects() {
+        int index = 0;
+
+        StaticObject exitDoor = new StaticObject(gp, "Library Exit", "/objects/home/door", 1.45, 2.0, true);
+        int doorWidth = (int) Math.round(gp.tileSize * 1.45);
+        int doorHeight = (int) Math.round(gp.tileSize * 2.0);
+        int bottomWallY = gp.tileSize * 23;
+        int doorY = bottomWallY - doorHeight + gp.tileSize / 2;
+        int doorCollisionY = bottomWallY - doorY;
+        exitDoor.setSolidArea(0, doorCollisionY, doorWidth, doorHeight - doorCollisionY);
+        exitDoor.setRenderSortY(bottomWallY + 1);
+        index = placeObjectAtPixel(MapId.LIBRARY, index, exitDoor,
+                gp.tileSize * 24 + gp.tileSize / 2 - doorWidth / 2,
+                doorY);
+
+        index = placeLibraryShelf(index, "Library Shelf Left", 17, 13);
+        index = placeLibraryShelf(index, "Library Shelf Mid Left", 20, 13);
+        index = placeLibraryShelf(index, "Library Shelf Mid Right", 28, 13);
+        index = placeLibraryShelf(index, "Library Shelf Right", 31, 13);
+
+        StaticObject readingTable = new StaticObject(gp, "Library Reading Table",
+                "/objects/home/interiors/if_living_coffee_table", 1.9, 0.95, true);
+        int tableWidth = (int) Math.round(gp.tileSize * 1.9);
+        int tableHeight = (int) Math.round(gp.tileSize * 0.95);
+        readingTable.setSolidArea(gp.tileSize / 12, gp.tileSize / 10,
+                tableWidth - gp.tileSize / 6, tableHeight - gp.tileSize / 5);
+        index = placeObject(MapId.LIBRARY, index, readingTable, 23, 19);
+
+        StaticObject lamp = new StaticObject(gp, "Library Lamp", "/objects/home/decor/bedroom_lamp_gold",
+                0.65, 0.75, true);
+        lamp.setSolidArea(gp.tileSize / 8, gp.tileSize / 8,
+                gp.tileSize * 2 / 5, gp.tileSize / 2);
+        index = placeObject(MapId.LIBRARY, index, lamp, 27, 18);
+
+        StaticObject plant = new StaticObject(gp, "Library Plant", "/objects/home/decor/plant_tall_green",
+                0.85, 1.25, true);
+        plant.setSolidArea(gp.tileSize / 6, gp.tileSize * 5 / 6,
+                gp.tileSize / 2, gp.tileSize / 3);
+        placeObject(MapId.LIBRARY, index, plant, 16, 21);
     }
 
     private void placeNPC(int map, int index, Entity npc, int col, int row) {
@@ -409,6 +461,15 @@ public class AssetSetter {
         gp.obj[map][index].worldX = worldX;
         gp.obj[map][index].worldY = worldY;
         return index + 1;
+    }
+
+    private int placeLibraryShelf(int index, String name, int col, int row) {
+        StaticObject shelf = new StaticObject(gp, name, "/objects/home/dresser", 1.25, 1.6, true);
+        int shelfWidth = (int) Math.round(gp.tileSize * 1.25);
+        int shelfHeight = (int) Math.round(gp.tileSize * 1.6);
+        shelf.setSolidArea(gp.tileSize / 12, gp.tileSize / 8,
+                shelfWidth - gp.tileSize / 6, shelfHeight - gp.tileSize / 6);
+        return placeObject(MapId.LIBRARY, index, shelf, col, row);
     }
 
     private int placeStaticObjects(int map, int index, StaticPlacement[] placements) {
@@ -498,6 +559,25 @@ public class AssetSetter {
                 (int) Math.round(gp.tileSize * placement.widthTiles),
                 (int) Math.round(gp.tileSize * placement.heightTiles));
         return placeObject(MapId.VILLAGE, index, house, placement.col, placement.row);
+    }
+
+    private int placeVillageLibraryDoor(int index) {
+        double widthTiles = 0.95;
+        double heightTiles = 1.45;
+        StaticObject door = new StaticObject(gp, "Village Library Door", "/objects/home/door",
+                widthTiles, heightTiles, false);
+        int doorWidth = (int) Math.round(gp.tileSize * widthTiles);
+        int doorHeight = (int) Math.round(gp.tileSize * heightTiles);
+        int houseX = gp.tileSize * 25;
+        int houseY = gp.tileSize * 3;
+        int houseWidth = (int) Math.round(gp.tileSize * 4.0 * VILLAGE_HOUSE_SCALE);
+        int houseHeight = (int) Math.round(gp.tileSize * 3.75 * VILLAGE_HOUSE_SCALE);
+        int doorX = houseX + houseWidth / 2 - doorWidth / 2;
+        int doorY = houseY + houseHeight - doorHeight + gp.tileSize * 3 / 4;
+
+        door.setSolidArea(0, 0, doorWidth, doorHeight);
+        door.setRenderSortY(houseY + houseHeight + 1);
+        return placeObjectAtPixel(MapId.VILLAGE, index, door, doorX, doorY);
     }
 
     private int placeForestLantern(int index, int col, int row) {

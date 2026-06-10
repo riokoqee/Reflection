@@ -32,6 +32,9 @@ public class Main {
     }
 
     private static void configureStableJava2D() {
+        System.setProperty("sun.java2d.uiScale", "1");
+        System.setProperty("sun.java2d.uiScale.enabled", "false");
+        System.setProperty("sun.java2d.dpiaware", "true");
         System.setProperty("sun.java2d.d3d", "false");
         System.setProperty("sun.java2d.opengl", "false");
         System.setProperty("sun.java2d.ddoffscreen", "false");

@@ -5,8 +5,6 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 public class UI {
 
@@ -17,6 +15,11 @@ public class UI {
     public static final int TITLE_MENU_ITEM_HEIGHT = 44;
     public static final int TITLE_MENU_COMMANDS = 4;
     public static final int TITLE_SLOT_BACK_COMMAND = 3;
+    public static final int PAUSE_COMMANDS = 4;
+    public static final int PAUSE_PANEL_WIDTH = 430;
+    public static final int PAUSE_PANEL_HEIGHT = 370;
+    public static final int PAUSE_MENU_Y_OFFSET = 158;
+    public static final int PAUSE_MENU_ROW_HEIGHT = 46;
     public static final int OPTIONS_TAB_GRAPHICS = 0;
     public static final int OPTIONS_TAB_SOUND = 1;
     public static final int OPTIONS_TAB_CHAT = 2;
@@ -40,7 +43,6 @@ public class UI {
     private Graphics2D g2;
     private final Font titleFont;
     private final BufferedImage titleBackground;
-    private final Map<String, BufferedImage> gradientCache = new HashMap<>();
     public int commandNum = 0;
     private final ArrayList<String> message = new ArrayList<>();
     private final ArrayList<Integer> messageCounter = new ArrayList<>();
@@ -144,7 +146,7 @@ public class UI {
                 return 5;
             case OPTIONS_TAB_GRAPHICS:
             default:
-                return 5;
+                return 4;
         }
     }
 
@@ -293,7 +295,7 @@ public class UI {
         titleNoticeCounter--;
         g2.setFont(GameFonts.bold(18));
         g2.setColor(new Color(255, 222, 151));
-        drawShadowedString(t(titleNotice), TITLE_MENU_X + 12, TITLE_MENU_FIRST_Y + TITLE_MENU_ROW_HEIGHT * 4 + 4,
+        UiGraphics.drawShadowedString(g2, t(titleNotice), TITLE_MENU_X + 12, TITLE_MENU_FIRST_Y + TITLE_MENU_ROW_HEIGHT * 4 + 4,
                 new Color(255, 222, 151), new Color(0, 0, 0, 180));
     }
 
@@ -312,15 +314,15 @@ public class UI {
             g2.drawImage(titleBackground, 0, 0, gp.screenWidth, gp.screenHeight, null);
         }
         else {
-            fillVerticalGradient(0, 0, gp.screenWidth, gp.screenHeight,
+            UiGraphics.fillVerticalGradient(g2, 0, 0, gp.screenWidth, gp.screenHeight,
                     new Color(21, 28, 34), new Color(57, 73, 61));
         }
 
-        fillHorizontalGradient(0, 0, gp.screenWidth, gp.screenHeight,
+        UiGraphics.fillHorizontalGradient(g2, 0, 0, gp.screenWidth, gp.screenHeight,
                 new Color(1, 5, 9, 236), new Color(1, 5, 9, 35));
 
         int bottomShadeY = Math.round(gp.screenHeight * 0.62f);
-        fillVerticalGradient(0, bottomShadeY, gp.screenWidth, gp.screenHeight - bottomShadeY,
+        UiGraphics.fillVerticalGradient(g2, 0, bottomShadeY, gp.screenWidth, gp.screenHeight - bottomShadeY,
                 new Color(0, 0, 0, 0), new Color(0, 0, 0, 185));
 
         g2.setColor(new Color(255, 255, 255, 18));
@@ -336,7 +338,7 @@ public class UI {
         int y = 150;
 
         g2.setFont(titleFont);
-        drawShadowedString("Reflection", x, y, new Color(236, 245, 240), new Color(0, 0, 0, 190));
+        UiGraphics.drawShadowedString(g2, "Reflection", x, y, new Color(236, 245, 240), new Color(0, 0, 0, 190));
 
         g2.setFont(GameFonts.regular(19));
         g2.setColor(new Color(204, 216, 210));
@@ -350,7 +352,7 @@ public class UI {
         boolean selected = commandNum == command;
 
         if (selected) {
-            fillHorizontalGradient(x - 14, topY, TITLE_MENU_WIDTH, TITLE_MENU_ITEM_HEIGHT,
+            UiGraphics.fillHorizontalGradient(g2, x - 14, topY, TITLE_MENU_WIDTH, TITLE_MENU_ITEM_HEIGHT,
                     new Color(174, 215, 196, 86), new Color(174, 215, 196, 12));
             g2.setColor(new Color(255, 222, 151, 210));
             g2.fillRect(x - 14, topY + 8, 3, TITLE_MENU_ITEM_HEIGHT - 16);
@@ -358,7 +360,7 @@ public class UI {
 
         g2.setFont(GameFonts.bold(24));
         Color textColor = selected ? new Color(245, 252, 248) : new Color(188, 202, 197);
-        drawShadowedString(text, x + 24, baselineY, textColor, new Color(0, 0, 0, 170));
+        UiGraphics.drawShadowedString(g2, text, x + 24, baselineY, textColor, new Color(0, 0, 0, 170));
 
         g2.setFont(GameFonts.bold(16));
         g2.setColor(selected ? new Color(255, 222, 151) : new Color(174, 215, 196, 120));
@@ -370,7 +372,7 @@ public class UI {
         int y = 22;
         int width = 270;
         int height = 110;
-        drawSubWindow(x, y, width, height, new Color(8, 12, 16, 165));
+        UiGraphics.drawSubWindow(g2, x, y, width, height, new Color(8, 12, 16, 165));
 
         g2.setFont(GameFonts.bold(18));
         g2.setColor(new Color(231, 240, 235));
@@ -390,7 +392,7 @@ public class UI {
 
         for (int i = 0; i < message.size(); i++) {
             if (message.get(i) != null) {
-                drawShadowedString(t(message.get(i)), messageX, messageY, Color.white, Color.black);
+                UiGraphics.drawShadowedString(g2, t(message.get(i)), messageX, messageY, Color.white, Color.black);
 
                 int counter = messageCounter.get(i) + 1;
                 messageCounter.set(i, counter);
@@ -447,7 +449,7 @@ public class UI {
         if (!checkpointLocation.isEmpty()) {
             g2.setFont(GameFonts.regular(13));
             g2.setColor(new Color(206, 219, 212, Math.min(220, alpha + 10)));
-            g2.drawString(trimToWidth(t(checkpointLocation), width - 88), textX, y + 76);
+            g2.drawString(UiGraphics.trimToWidth(g2, t(checkpointLocation), width - 88), textX, y + 76);
         }
 
         checkpointSpinnerFrame++;
@@ -486,7 +488,7 @@ public class UI {
         g2.setColor(new Color(0, 0, 0, 86));
         g2.fillRoundRect(x + 9, y + 12, PLAN_NOTE_WIDTH, height, 14, 14);
 
-        fillVerticalGradient(x, y, PLAN_NOTE_WIDTH, height,
+        UiGraphics.fillVerticalGradient(g2, x, y, PLAN_NOTE_WIDTH, height,
                 new Color(232, 218, 184), new Color(184, 164, 126));
 
         g2.setColor(new Color(92, 70, 48, 165));
@@ -516,9 +518,9 @@ public class UI {
         Font taskFont = GameFonts.regular(15);
         g2.setFont(taskFont);
 
-        for (StoryManager.PlanTask task : gp.story.getPlanTasks()) {
-            ArrayList<String> lines = wrapTextLines(t(task.getDisplayText()), rowWidth - 36, taskFont);
-            int rowHeight = Math.max(28, measureLinesHeight(lines, 18) + 8);
+        for (PlanTask task : gp.story.getPlanTasks()) {
+            ArrayList<String> lines = UiGraphics.wrapTextLines(g2, t(task.getDisplayText()), rowWidth - 36, taskFont);
+            int rowHeight = Math.max(28, UiGraphics.measureLinesHeight(lines, 18) + 8);
             if (rowY + rowHeight > y + height - 22) {
                 break;
             }
@@ -531,7 +533,7 @@ public class UI {
         g2.setComposite(oldComposite);
     }
 
-    private void drawPlanTask(StoryManager.PlanTask task, ArrayList<String> lines,
+    private void drawPlanTask(PlanTask task, ArrayList<String> lines,
                               int x, int y, int width, int height) {
         int markX = x + 5;
         int markY = y + 10;
@@ -615,34 +617,35 @@ public class UI {
         g2.setColor(new Color(0, 0, 0, 115));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 
-        int panelWidth = 430;
-        int panelHeight = 470;
+        int panelWidth = PAUSE_PANEL_WIDTH;
+        int panelHeight = PAUSE_PANEL_HEIGHT;
         int panelX = gp.screenWidth / 2 - panelWidth / 2;
         int panelY = gp.screenHeight / 2 - panelHeight / 2;
 
         g2.setColor(new Color(0, 0, 0, 70));
         g2.fillRoundRect(panelX + 10, panelY + 12, panelWidth, panelHeight, 28, 28);
-        drawSubWindow(panelX, panelY, panelWidth, panelHeight, new Color(8, 14, 17, 226));
+        UiGraphics.drawSubWindow(g2, panelX, panelY, panelWidth, panelHeight, new Color(8, 14, 17, 226));
 
         g2.setColor(new Color(174, 215, 196, 75));
         g2.fillRoundRect(panelX + 24, panelY + 24, panelWidth - 48, 82, 18, 18);
 
         g2.setFont(GameFonts.bold(38));
         String text = t("ПАУЗА", "PAUSE");
-        drawShadowedString(text, getXforCenteredText(text), panelY + 66, Color.white, new Color(0, 0, 0, 160));
+        UiGraphics.drawShadowedString(g2, text, UiGraphics.getCenteredX(g2, gp.screenWidth, text), panelY + 66, Color.white, new Color(0, 0, 0, 160));
 
         g2.setFont(GameFonts.regular(15));
         g2.setColor(new Color(210, 225, 218));
         String place = t(gp.story.getLocationTitle());
         g2.drawString(place, panelX + 34, panelY + 94);
 
-        int menuY = panelY + 158;
+        int menuY = panelY + PAUSE_MENU_Y_OFFSET;
         drawPauseMenuItem(t("ПРОДОЛЖИТЬ", "CONTINUE"), 0, panelX + 54, menuY, panelWidth - 108);
-        drawPauseMenuItem(t("СОХРАНИТЬ", "SAVE"), 1, panelX + 54, menuY + 46, panelWidth - 108);
-        drawPauseMenuItem(t("ЗАГРУЗИТЬ", "LOAD"), 2, panelX + 54, menuY + 92, panelWidth - 108);
-        drawPauseMenuItem(t("НАСТРОЙКИ", "SETTINGS"), 3, panelX + 54, menuY + 138, panelWidth - 108);
-        drawPauseMenuItem(t("НОВАЯ ИГРА", "NEW GAME"), 4, panelX + 54, menuY + 184, panelWidth - 108);
-        drawPauseMenuItem(t("В ГЛАВНОЕ МЕНЮ", "MAIN MENU"), 5, panelX + 54, menuY + 230, panelWidth - 108);
+        drawPauseMenuItem(t("СОХРАНИТЬ", "SAVE"), 1,
+                panelX + 54, menuY + PAUSE_MENU_ROW_HEIGHT, panelWidth - 108);
+        drawPauseMenuItem(t("НАСТРОЙКИ", "SETTINGS"), 2,
+                panelX + 54, menuY + PAUSE_MENU_ROW_HEIGHT * 2, panelWidth - 108);
+        drawPauseMenuItem(t("В ГЛАВНОЕ МЕНЮ", "MAIN MENU"), 3,
+                panelX + 54, menuY + PAUSE_MENU_ROW_HEIGHT * 3, panelWidth - 108);
 
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(195, 208, 202));
@@ -665,7 +668,7 @@ public class UI {
 
     private void drawOptionsScreen() {
         if (gp.optionsReturnState != gp.pauseState) {
-            fillVerticalGradient(0, 0, gp.screenWidth, gp.screenHeight,
+            UiGraphics.fillVerticalGradient(g2, 0, 0, gp.screenWidth, gp.screenHeight,
                     new Color(19, 25, 31), new Color(48, 62, 55));
         }
 
@@ -679,11 +682,11 @@ public class UI {
 
         g2.setColor(new Color(0, 0, 0, 80));
         g2.fillRoundRect(panelX + 10, panelY + 12, panelWidth, panelHeight, 18, 18);
-        drawSubWindow(panelX, panelY, panelWidth, panelHeight, new Color(8, 14, 17, 238));
+        UiGraphics.drawSubWindow(g2, panelX, panelY, panelWidth, panelHeight, new Color(8, 14, 17, 238));
 
         g2.setFont(GameFonts.bold(38));
         String title = t("НАСТРОЙКИ", "SETTINGS");
-        drawShadowedString(title, getXforCenteredText(title), panelY + 62, Color.white, new Color(0, 0, 0, 160));
+        UiGraphics.drawShadowedString(g2, title, UiGraphics.getCenteredX(g2, gp.screenWidth, title), panelY + 62, Color.white, new Color(0, 0, 0, 160));
 
         int tabY = panelY + 84;
         int tabX = panelX + 36;
@@ -705,7 +708,7 @@ public class UI {
 
     private void drawTabbedOptionsScreen() {
         if (gp.optionsReturnState != gp.pauseState) {
-            fillVerticalGradient(0, 0, gp.screenWidth, gp.screenHeight,
+            UiGraphics.fillVerticalGradient(g2, 0, 0, gp.screenWidth, gp.screenHeight,
                     new Color(19, 25, 31), new Color(48, 62, 55));
         }
 
@@ -717,10 +720,10 @@ public class UI {
 
         g2.setColor(new Color(0, 0, 0, 80));
         g2.fillRoundRect(panelX + 10, panelY + 12, OPTIONS_PANEL_WIDTH, OPTIONS_PANEL_HEIGHT, 18, 18);
-        drawSubWindow(panelX, panelY, OPTIONS_PANEL_WIDTH, OPTIONS_PANEL_HEIGHT, new Color(8, 14, 17, 238));
+        UiGraphics.drawSubWindow(g2, panelX, panelY, OPTIONS_PANEL_WIDTH, OPTIONS_PANEL_HEIGHT, new Color(8, 14, 17, 238));
 
         g2.setFont(GameFonts.bold(38));
-        drawShadowedString(t("НАСТРОЙКИ", "SETTINGS"), panelX + 36, panelY + 56,
+        UiGraphics.drawShadowedString(g2, t("НАСТРОЙКИ", "SETTINGS"), panelX + 36, panelY + 56,
                 Color.white, new Color(0, 0, 0, 160));
 
         int tabY = getOptionsTabY();
@@ -737,10 +740,9 @@ public class UI {
         if (optionsTab == OPTIONS_TAB_GRAPHICS) {
             drawToggleOption(t("Полный экран", "Fullscreen"), gp.fullScreenOn, 0, rowX, rowY, rowWidth);
             drawSliderOption(t("Яркость", "Brightness"), gp.brightnessScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
-            drawCycleOption(t("Лимит FPS", "FPS limit"), gp.getFpsLimitLabel(), 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
-            drawToggleOption(t("Показ FPS", "Show FPS"), gp.showFpsCounter, 3,
-                    rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
-            drawBackOption(t("НАЗАД", "BACK"), 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
+            drawToggleOption(t("Показ FPS", "Show FPS"), gp.showFpsCounter, 2,
+                    rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
+            drawBackOption(t("НАЗАД", "BACK"), 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
         }
         else if (optionsTab == OPTIONS_TAB_SOUND) {
             drawSliderOption(t("Музыка", "Music"), gp.music.volumeScale, 5, 0, rowX, rowY, rowWidth);
@@ -814,7 +816,7 @@ public class UI {
     }
 
     private void drawDialogueScreen() {
-        StoryManager.StoryPrompt prompt = gp.story.getActivePrompt();
+        StoryPrompt prompt = gp.story.getActivePrompt();
         if (gp.story.isPhoneResultOpen()) {
             drawPhoneResultScreen();
             return;
@@ -861,9 +863,9 @@ public class UI {
             choiceFont = GameFonts.bold(choiceSize);
             bodyLineHeight = Math.max(23, bodySize + 6);
             choiceLineHeight = Math.max(20, choiceSize + 4);
-            textLines = wrapTextLines(text, textWidth, bodyFont);
+            textLines = UiGraphics.wrapTextLines(g2, text, textWidth, bodyFont);
 
-            contentHeight = 78 + measureLinesHeight(textLines, bodyLineHeight) + 24;
+            contentHeight = 78 + UiGraphics.measureLinesHeight(textLines, bodyLineHeight) + 24;
             if (hasChoices) {
                 contentHeight += 14 + measureChoicesHeight(prompt, textWidth, choiceFont, choiceLineHeight, choiceGap);
             }
@@ -883,7 +885,7 @@ public class UI {
         int height = Math.min(maxHeight, Math.max(minHeight, contentHeight));
         int y = Math.max(24, gp.screenHeight - height - 24);
 
-        drawSubWindow(x, y, width, height, gp.highContrastDialogue
+        UiGraphics.drawSubWindow(g2, x, y, width, height, gp.highContrastDialogue
                 ? new Color(1, 4, 7, 244)
                 : new Color(5, 8, 12, 220));
 
@@ -896,12 +898,12 @@ public class UI {
 
         g2.setFont(GameFonts.bold(22));
         g2.setColor(new Color(174, 215, 196));
-        g2.drawString(trimToWidth(speaker, textWidth), textX, textY);
+        g2.drawString(UiGraphics.trimToWidth(g2, speaker, textWidth), textX, textY);
 
         g2.setFont(bodyFont);
         g2.setColor(Color.white);
         textY += 36;
-        int nextY = drawTextLines(textLines, textX, textY, textWidth, bodyLineHeight, bottomY);
+        int nextY = UiGraphics.drawTextLines(g2, textLines, textX, textY, textWidth, bodyLineHeight, bottomY);
 
         if (hasChoices && dialogueRevealComplete) {
             drawChoices(prompt, textX, Math.max(nextY + 12, y + 134), textWidth,
@@ -913,7 +915,7 @@ public class UI {
         g2.setClip(oldClip);
     }
 
-    private void drawPhoneDialogueScreen(StoryManager.StoryPrompt prompt) {
+    private void drawPhoneDialogueScreen(StoryPrompt prompt) {
         Rectangle phoneScreen = drawPhoneFrame();
         int screenX = phoneScreen.x;
         int screenY = phoneScreen.y;
@@ -1091,14 +1093,14 @@ public class UI {
     private int drawPhoneBubble(String text, int x, int y, int maxWidth, boolean incoming) {
         Font font = GameFonts.regular(15 + gp.getDialogueTextSizeDelta());
         FontMetrics metrics = g2.getFontMetrics(font);
-        ArrayList<String> lines = wrapTextLines(text, maxWidth - 24, font);
+        ArrayList<String> lines = UiGraphics.wrapTextLines(g2, text, maxWidth - 24, font);
         int lineHeight = 20 + Math.max(0, gp.getDialogueTextSizeDelta());
         int bubbleWidth = 0;
         for (String line : lines) {
             bubbleWidth = Math.max(bubbleWidth, metrics.stringWidth(line));
         }
         bubbleWidth = Math.min(maxWidth, Math.max(86, bubbleWidth + 24));
-        int bubbleHeight = Math.max(34, measureLinesHeight(lines, lineHeight) + 14);
+        int bubbleHeight = Math.max(34, UiGraphics.measureLinesHeight(lines, lineHeight) + 14);
         int bubbleX = incoming ? x : x + maxWidth - bubbleWidth;
 
         g2.setColor(incoming ? new Color(35, 47, 56) : new Color(65, 101, 88));
@@ -1128,15 +1130,15 @@ public class UI {
         return y + 26;
     }
 
-    private void drawPhoneChoices(StoryManager.StoryPrompt prompt, int x, int y, int width) {
+    private void drawPhoneChoices(StoryPrompt prompt, int x, int y, int width) {
         Font font = GameFonts.bold(14 + gp.getDialogueTextSizeDelta());
         int lineHeight = 18 + Math.max(0, gp.getDialogueTextSizeDelta());
         int gap = 7;
 
         for (int i = 0; i < prompt.choices.length; i++) {
-            StoryManager.Choice choice = prompt.choices[i];
-            ArrayList<String> lines = wrapTextLines(t(choice.text), width - 44, font);
-            int rowHeight = Math.max(38, measureLinesHeight(lines, lineHeight) + 14);
+            Choice choice = prompt.choices[i];
+            ArrayList<String> lines = UiGraphics.wrapTextLines(g2, t(choice.text), width - 44, font);
+            int rowHeight = Math.max(38, UiGraphics.measureLinesHeight(lines, lineHeight) + 14);
             boolean selected = gp.story.selectedChoice == i;
 
             g2.setColor(selected ? new Color(174, 215, 196, 88) : new Color(255, 255, 255, 28));
@@ -1204,15 +1206,15 @@ public class UI {
 
         int fadeFrame = frame - fadeStartFrame;
         float progress = Math.min(1f, fadeFrame / (float) Math.max(1, gp.getIntroFadeFrames()));
-        int alpha = Math.round(255 * (1f - easeInOut(progress)));
+        int alpha = Math.round(255 * (1f - UiGraphics.easeInOut(progress)));
         g2.setColor(new Color(0, 0, 0, Math.max(0, Math.min(255, alpha))));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
     }
 
     private void drawIntroMenuFall(int frame, int duration) {
         float progress = Math.min(1f, frame / (float) Math.max(1, duration));
-        float eased = easeIn(progress);
-        float fastEase = easeOut(progress);
+        float eased = UiGraphics.easeIn(progress);
+        float fastEase = UiGraphics.easeOut(progress);
 
         g2.setColor(Color.black);
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
@@ -1266,7 +1268,7 @@ public class UI {
         }
 
         float boxProgress = Math.min(1f, Math.max(0f, frame / 28f));
-        int alpha = Math.round(235 * easeOut(boxProgress));
+        int alpha = Math.round(235 * UiGraphics.easeOut(boxProgress));
         if (alpha <= 0) {
             return;
         }
@@ -1274,7 +1276,7 @@ public class UI {
         int width = gp.screenWidth - gp.tileSize * 2;
         int height = 205;
         int y = gp.screenHeight - height - 34;
-        drawSubWindow(x, y, width, height, new Color(5, 8, 12, alpha));
+        UiGraphics.drawSubWindow(g2, x, y, width, height, new Color(5, 8, 12, alpha));
 
         g2.setFont(GameFonts.bold(22));
         g2.setColor(new Color(174, 215, 196, alpha));
@@ -1283,7 +1285,7 @@ public class UI {
         String visibleText = disclaimerText.substring(0, revealChars);
         g2.setFont(GameFonts.regular(26));
         g2.setColor(new Color(245, 248, 246, alpha));
-        drawWrappedText(visibleText, x + 28, y + 82, width - 56, 33);
+        UiGraphics.drawWrappedText(g2, visibleText, x + 28, y + 82, width - 56, 33);
 
         if (revealChars >= disclaimerText.length() && frame < typeFrames) {
             int dotAlpha = 90 + (int) (Math.sin(frame * 0.18) * 70);
@@ -1298,7 +1300,7 @@ public class UI {
 
         g2.setFont(GameFonts.bold(46));
         String text = t("РЕЗУЛЬТАТ", "RESULT");
-        drawShadowedString(text, getXforCenteredText(text), 74, Color.white, Color.black);
+        UiGraphics.drawShadowedString(g2, text, UiGraphics.getCenteredX(g2, gp.screenWidth, text), 74, Color.white, Color.black);
 
         int x = 70;
         int y = 116;
@@ -1312,7 +1314,7 @@ public class UI {
         int frameY = 116;
         int frameWidth = 390;
         int frameHeight = 290;
-        drawSubWindow(frameX, frameY, frameWidth, frameHeight, new Color(18, 24, 28, 210));
+        UiGraphics.drawSubWindow(g2, frameX, frameY, frameWidth, frameHeight, new Color(18, 24, 28, 210));
 
         g2.setFont(GameFonts.bold(25));
         g2.setColor(new Color(174, 215, 196));
@@ -1320,7 +1322,7 @@ public class UI {
 
         g2.setFont(GameFonts.regular(20));
         g2.setColor(Color.white);
-        int textY = drawWrappedText(t(gp.story.getProfileText()), frameX + 26, frameY + 78, frameWidth - 52, 27);
+        int textY = UiGraphics.drawWrappedText(g2, t(gp.story.getProfileText()), frameX + 26, frameY + 78, frameWidth - 52, 27);
 
         g2.setFont(GameFonts.bold(20));
         g2.setColor(new Color(174, 215, 196));
@@ -1328,22 +1330,22 @@ public class UI {
 
         g2.setFont(GameFonts.regular(19));
         g2.setColor(Color.white);
-        drawWrappedText(t(gp.story.getRecommendation()), frameX + 26, textY + 48, frameWidth - 52, 26);
+        UiGraphics.drawWrappedText(g2, t(gp.story.getRecommendation()), frameX + 26, textY + 48, frameWidth - 52, 26);
 
         g2.setFont(GameFonts.bold(27));
         drawResultMenuItem(t("ПРОЙТИ ЕЩЁ РАЗ", "PLAY AGAIN"), 0, gp.screenHeight - 96);
         drawResultMenuItem(t("В ГЛАВНОЕ МЕНЮ", "MAIN MENU"), 1, gp.screenHeight - 54);
     }
 
-    private void drawChoices(StoryManager.StoryPrompt prompt, int x, int y, int width,
+    private void drawChoices(StoryPrompt prompt, int x, int y, int width,
                              Font font, int lineHeight, int gap, int bottomY) {
         g2.setFont(font);
         int textX = x + 28;
         int textWidth = width - 44;
         for (int i = 0; i < prompt.choices.length; i++) {
-            StoryManager.Choice choice = prompt.choices[i];
-            ArrayList<String> lines = wrapTextLines(t(choice.text), textWidth, font);
-            int rowHeight = Math.max(31, measureLinesHeight(lines, lineHeight) + 8);
+            Choice choice = prompt.choices[i];
+            ArrayList<String> lines = UiGraphics.wrapTextLines(g2, t(choice.text), textWidth, font);
+            int rowHeight = Math.max(31, UiGraphics.measureLinesHeight(lines, lineHeight) + 8);
             if (y + rowHeight - lineHeight > bottomY) {
                 break;
             }
@@ -1368,18 +1370,18 @@ public class UI {
     }
 
     private void drawMenuItem(String text, int command, int y) {
-        int x = getXforCenteredText(text);
+        int x = UiGraphics.getCenteredX(g2, gp.screenWidth, text);
         Color color = commandNum == command ? new Color(174, 215, 196) : Color.white;
-        drawShadowedString(text, x, y, color, Color.black);
+        UiGraphics.drawShadowedString(g2, text, x, y, color, Color.black);
         if (commandNum == command) {
             g2.drawString(">", x - 34, y);
         }
     }
 
     private void drawResultMenuItem(String text, int command, int y) {
-        int x = getXforCenteredText(text);
+        int x = UiGraphics.getCenteredX(g2, gp.screenWidth, text);
         Color color = commandNum == command ? new Color(174, 215, 196) : Color.white;
-        drawShadowedString(text, x, y, color, Color.black);
+        UiGraphics.drawShadowedString(g2, text, x, y, color, Color.black);
         if (commandNum == command) {
             g2.drawString(">", x - 34, y);
         }
@@ -1397,7 +1399,7 @@ public class UI {
 
         g2.setFont(GameFonts.bold(22));
         Color color = selected ? new Color(235, 250, 242) : new Color(205, 216, 211);
-        drawShadowedString(text, x + 18, y, color, new Color(0, 0, 0, 140));
+        UiGraphics.drawShadowedString(g2, text, x + 18, y, color, new Color(0, 0, 0, 140));
 
         if (selected) {
             g2.setFont(GameFonts.bold(20));
@@ -1458,7 +1460,7 @@ public class UI {
         g2.drawRoundRect(valueX, y - 28, valueWidth, 34, 12, 12);
         g2.setFont(GameFonts.bold(16));
         g2.setColor(Color.white);
-        g2.drawString(trimToWidth(value, valueWidth - 52), valueX + 26, y - 7);
+        g2.drawString(UiGraphics.trimToWidth(g2, value, valueWidth - 52), valueX + 26, y - 7);
         g2.setFont(GameFonts.bold(18));
         g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
         g2.drawString("<", valueX - 24, y - 6);
@@ -1514,7 +1516,7 @@ public class UI {
         drawOptionShell(command, x, y, width);
         g2.setFont(GameFonts.bold(22));
         Color color = commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211);
-        drawShadowedString(label, x + 18, y, color, new Color(0, 0, 0, 140));
+        UiGraphics.drawShadowedString(g2, label, x + 18, y, color, new Color(0, 0, 0, 140));
     }
 
     private void drawOptionShell(int command, int x, int y, int width) {
@@ -1568,219 +1570,17 @@ public class UI {
         return new Color(203, 111, 105);
     }
 
-    private float easeIn(float progress) {
-        float clamped = Math.max(0f, Math.min(1f, progress));
-        return clamped * clamped * clamped;
-    }
-
-    private float easeOut(float progress) {
-        float clamped = Math.max(0f, Math.min(1f, progress));
-        float inverse = 1f - clamped;
-        return 1f - inverse * inverse * inverse;
-    }
-
-    private float easeInOut(float progress) {
-        float clamped = Math.max(0f, Math.min(1f, progress));
-        if (clamped < 0.5f) {
-            return 4f * clamped * clamped * clamped;
-        }
-        float value = -2f * clamped + 2f;
-        return 1f - value * value * value / 2f;
-    }
-
-    private void fillVerticalGradient(int x, int y, int width, int height, Color top, Color bottom) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-
-        BufferedImage gradient = getVerticalGradient(height, top, bottom);
-        g2.drawImage(gradient, x, y, width, height, null);
-    }
-
-    private void fillHorizontalGradient(int x, int y, int width, int height, Color left, Color right) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-
-        BufferedImage gradient = getHorizontalGradient(width, left, right);
-        g2.drawImage(gradient, x, y, width, height, null);
-    }
-
-    private BufferedImage getVerticalGradient(int height, Color top, Color bottom) {
-        String key = "v:" + height + ":" + top.getRGB() + ":" + bottom.getRGB();
-        BufferedImage cached = gradientCache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-
-        BufferedImage image = new BufferedImage(1, height, BufferedImage.TYPE_INT_ARGB);
-        for (int row = 0; row < height; row++) {
-            float progress = height <= 1 ? 1f : row / (float) (height - 1);
-            image.setRGB(0, row, interpolateColor(top, bottom, progress).getRGB());
-        }
-        gradientCache.put(key, image);
-        return image;
-    }
-
-    private BufferedImage getHorizontalGradient(int width, Color left, Color right) {
-        String key = "h:" + width + ":" + left.getRGB() + ":" + right.getRGB();
-        BufferedImage cached = gradientCache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-
-        BufferedImage image = new BufferedImage(width, 1, BufferedImage.TYPE_INT_ARGB);
-        for (int col = 0; col < width; col++) {
-            float progress = width <= 1 ? 1f : col / (float) (width - 1);
-            image.setRGB(col, 0, interpolateColor(left, right, progress).getRGB());
-        }
-        gradientCache.put(key, image);
-        return image;
-    }
-
-    private Color interpolateColor(Color from, Color to, float progress) {
-        float clampedProgress = Math.max(0f, Math.min(1f, progress));
-        int red = Math.round(from.getRed() + (to.getRed() - from.getRed()) * clampedProgress);
-        int green = Math.round(from.getGreen() + (to.getGreen() - from.getGreen()) * clampedProgress);
-        int blue = Math.round(from.getBlue() + (to.getBlue() - from.getBlue()) * clampedProgress);
-        int alpha = Math.round(from.getAlpha() + (to.getAlpha() - from.getAlpha()) * clampedProgress);
-        return new Color(red, green, blue, alpha);
-    }
-
-    private void drawSubWindow(int x, int y, int width, int height, Color color) {
-        g2.setColor(color);
-        g2.fillRoundRect(x, y, width, height, 18, 18);
-
-        g2.setColor(new Color(255, 255, 255, 185));
-        g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(x + 4, y + 4, width - 8, height - 8, 14, 14);
-    }
-
-    private int measureChoicesHeight(StoryManager.StoryPrompt prompt, int width, Font font, int lineHeight, int gap) {
+    private int measureChoicesHeight(StoryPrompt prompt, int width, Font font, int lineHeight, int gap) {
         int height = 0;
         int textWidth = width - 44;
         for (int i = 0; i < prompt.choices.length; i++) {
-            ArrayList<String> lines = wrapTextLines(t(prompt.choices[i].text), textWidth, font);
-            height += Math.max(31, measureLinesHeight(lines, lineHeight) + 8);
+            ArrayList<String> lines = UiGraphics.wrapTextLines(g2, t(prompt.choices[i].text), textWidth, font);
+            height += Math.max(31, UiGraphics.measureLinesHeight(lines, lineHeight) + 8);
             if (i < prompt.choices.length - 1) {
                 height += gap;
             }
         }
         return height;
-    }
-
-    private int measureLinesHeight(ArrayList<String> lines, int lineHeight) {
-        int height = 0;
-        for (String line : lines) {
-            height += line.isEmpty() ? lineHeight / 2 : lineHeight;
-        }
-        return height;
-    }
-
-    private int drawWrappedText(String text, int x, int y, int maxWidth, int lineHeight) {
-        ArrayList<String> lines = wrapTextLines(text, maxWidth, g2.getFont());
-        return drawTextLines(lines, x, y, maxWidth, lineHeight, Integer.MAX_VALUE);
-    }
-
-    private int drawTextLines(ArrayList<String> lines, int x, int y, int maxWidth, int lineHeight, int bottomY) {
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i);
-            int nextY = y + (line.isEmpty() ? lineHeight / 2 : lineHeight);
-            if (y > bottomY) {
-                return y;
-            }
-            if (nextY > bottomY && i < lines.size() - 1) {
-                g2.drawString(trimToWidth(line, maxWidth), x, y);
-                return nextY;
-            }
-            if (!line.isEmpty()) {
-                g2.drawString(line, x, y);
-            }
-            y = nextY;
-        }
-        return y;
-    }
-
-    private ArrayList<String> wrapTextLines(String text, int maxWidth, Font font) {
-        FontMetrics fm = g2.getFontMetrics(font);
-        ArrayList<String> lines = new ArrayList<>();
-        if (text == null || text.isEmpty()) {
-            return lines;
-        }
-
-        String[] paragraphs = text.split("\n", -1);
-
-        for (String paragraph : paragraphs) {
-            if (paragraph.trim().isEmpty()) {
-                lines.add("");
-                continue;
-            }
-
-            String[] words = paragraph.trim().split("\\s+");
-            String line = "";
-            for (String word : words) {
-                String testLine = line.isEmpty() ? word : line + " " + word;
-                if (fm.stringWidth(testLine) <= maxWidth) {
-                    line = testLine;
-                }
-                else if (!line.isEmpty()) {
-                    lines.add(line);
-                    line = fitWordToWidth(lines, word, maxWidth, fm);
-                }
-                else {
-                    line = fitWordToWidth(lines, word, maxWidth, fm);
-                }
-            }
-
-            if (!line.isEmpty()) {
-                lines.add(line);
-            }
-        }
-        return lines;
-    }
-
-    private String fitWordToWidth(ArrayList<String> lines, String word, int maxWidth, FontMetrics fm) {
-        if (fm.stringWidth(word) <= maxWidth) {
-            return word;
-        }
-
-        String line = "";
-        for (int i = 0; i < word.length(); i++) {
-            String next = line + word.charAt(i);
-            if (fm.stringWidth(next) > maxWidth && !line.isEmpty()) {
-                lines.add(line);
-                line = String.valueOf(word.charAt(i));
-            }
-            else {
-                line = next;
-            }
-        }
-        return line;
-    }
-
-    private void drawShadowedString(String text, int x, int y, Color textColor, Color shadowColor) {
-        g2.setColor(shadowColor);
-        g2.drawString(text, x + 3, y + 3);
-        g2.setColor(textColor);
-        g2.drawString(text, x, y);
-    }
-
-    private String trimToWidth(String text, int maxWidth) {
-        FontMetrics fm = g2.getFontMetrics();
-        if (fm.stringWidth(text) <= maxWidth) {
-            return text;
-        }
-
-        String ellipsis = "...";
-        while (!text.isEmpty() && fm.stringWidth(text + ellipsis) > maxWidth) {
-            text = text.substring(0, text.length() - 1);
-        }
-        return text + ellipsis;
-    }
-
-    private int getXforCenteredText(String text) {
-        int length = (int) g2.getFontMetrics().getStringBounds(text, g2).getWidth();
-        return gp.screenWidth / 2 - length / 2;
     }
 
 }
