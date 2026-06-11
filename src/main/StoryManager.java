@@ -12,15 +12,15 @@ public class StoryManager {
     public static final String WARRIOR = "warrior";
     public static final String TRAVELER = "traveler";
 
-    private static final String OPTIONAL_PHONE = "optional_phone";
-    private static final String OPTIONAL_PHOTO = "optional_photo";
-    private static final String OPTIONAL_MIRROR = "optional_mirror";
-    private static final String OPTIONAL_LOST_LANTERN = "optional_lost_lantern";
-    private static final String OPTIONAL_WOUNDED_BIRD = "optional_wounded_bird";
-    private static final String OPTIONAL_OLD_LETTER = "optional_old_letter";
-    private static final String OPTIONAL_HELP_REQUEST = "optional_help_request";
-    private static final String OPTIONAL_FORK = "optional_fork";
-    private static final String OPTIONAL_TRAVELER = "optional_traveler";
+    static final String OPTIONAL_PHONE = "optional_phone";
+    static final String OPTIONAL_PHOTO = "optional_photo";
+    static final String OPTIONAL_MIRROR = "optional_mirror";
+    static final String OPTIONAL_LOST_LANTERN = "optional_lost_lantern";
+    static final String OPTIONAL_WOUNDED_BIRD = "optional_wounded_bird";
+    static final String OPTIONAL_OLD_LETTER = "optional_old_letter";
+    static final String OPTIONAL_HELP_REQUEST = "optional_help_request";
+    static final String OPTIONAL_FORK = "optional_fork";
+    static final String OPTIONAL_TRAVELER = "optional_traveler";
 
     static final int STAGE_MAKE_BED = 0;
     static final int STAGE_MAKE_TEA = 1;
@@ -677,6 +677,7 @@ public class StoryManager {
     private void finishOptionalPrompt(String id, Choice choice) {
         if (OPTIONAL_PHONE.equals(id)) {
             phoneEventDone = true;
+            showMemoryUnlocked(id);
             openPhoneResult(selectedChoice);
             return;
         }
@@ -705,6 +706,8 @@ public class StoryManager {
             travelerEventDone = true;
         }
 
+        showMemoryUnlocked(id);
+
         activePrompt = null;
         clearPhoneResult();
         messageSpeaker = "Внутренний отклик";
@@ -715,6 +718,13 @@ public class StoryManager {
         pendingResult = false;
         selectedChoice = 0;
         gp.gameState = gp.dialogueState;
+    }
+
+    private void showMemoryUnlocked(String promptId) {
+        String title = StoryMemory.getUnlockTitle(promptId);
+        if (!title.isEmpty()) {
+            gp.ui.addMessage(gp.tr("Воспоминание открыто: ", "Memory unlocked: ") + gp.tr(title));
+        }
     }
 
     private void openPhoneResult(int replyIndex) {
@@ -865,6 +875,24 @@ public class StoryManager {
 
     public ArrayList<PlanTask> getPlanTasks() {
         return StoryPlan.getTasks(stage);
+    }
+
+    public ArrayList<MemoryEntry> getMemoryEntries() {
+        return StoryMemory.getEntries(this);
+    }
+
+    public int getUnlockedMemoryCount() {
+        int count = 0;
+        for (MemoryEntry memory : getMemoryEntries()) {
+            if (memory.unlocked) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public int getTotalMemoryCount() {
+        return getMemoryEntries().size();
     }
 
     public boolean shouldShowDirtyDishes() {

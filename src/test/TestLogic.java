@@ -4,10 +4,13 @@ import entity.Entity;
 import entity.SwingChildNPC;
 import main.GamePanel;
 import main.MapId;
+import main.MemoryEntry;
 import main.PlanTask;
 import main.StoryManager;
 import main.UI;
+import object.StaticObject;
 
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -52,6 +55,7 @@ public class TestLogic {
             runTest("Test 16: mountain map layout", TestLogic::testMountainMapLayout);
             runTest("Test 17: objective plan note", TestLogic::testObjectivePlanNote);
             runTest("Test 18: title save slots and intro", TestLogic::testTitleSaveSlotsAndIntro);
+            runTest("Test 19: memory system", TestLogic::testMemorySystem);
         }
         finally {
             for (int i = 0; i < saveFiles.length; i++) {
@@ -705,6 +709,10 @@ public class TestLogic {
         if (gp.obj[MapId.VILLAGE][libraryDoorIndex].collision) {
             throw new AssertionError("Village library door must be interactable without blocking the house road");
         }
+        if (!(gp.obj[MapId.VILLAGE][libraryDoorIndex] instanceof StaticObject) ||
+                ((StaticObject) gp.obj[MapId.VILLAGE][libraryDoorIndex]).isVisible()) {
+            throw new AssertionError("Village library entrance must use the house texture door, not draw an extra door");
+        }
         if (countObjects(gp, MapId.VILLAGE) != 14 ||
                 findObject(gp, MapId.VILLAGE, "Old Letter") != 999 ||
                 findObject(gp, MapId.VILLAGE, "Help Request") != 999) {
@@ -1086,6 +1094,58 @@ public class TestLogic {
         }
     }
 
+    public static void testMemorySystem() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+
+        if (gp.story.getTotalMemoryCount() < 12) {
+            throw new AssertionError("Memory journal must contain the main story and optional memories");
+        }
+        assertEquals(0, gp.story.getUnlockedMemoryCount(), "Fresh game must start without unlocked memories");
+
+        gp.story.interactObject("Phone Dresser");
+        gp.story.continueDialogue();
+        gp.story.chooseSelected();
+        assertUnlockedMemory(gp, "memory_phone", "Phone choice must unlock a memory");
+        gp.story.continueDialogue();
+
+        gp.story.interactObject("Old Photo");
+        gp.story.selectedChoice = 1;
+        gp.story.chooseSelected();
+        assertUnlockedMemory(gp, "memory_photo", "Photo choice must unlock a memory");
+        gp.story.continueDialogue();
+
+        gp.currentMap = MapId.FOREST_DOUBTS;
+        gp.story.interactObject("Wounded Bird");
+        gp.story.chooseSelected();
+        assertUnlockedMemory(gp, "memory_bird", "Bird choice must unlock a memory");
+        gp.story.continueDialogue();
+
+        if (gp.story.getUnlockedMemoryCount() != 3) {
+            throw new AssertionError("Three completed optional memories must be visible in the journal");
+        }
+
+        GamePanel morningGp = new GamePanel();
+        morningGp.setupGame();
+        morningGp.story.interactObject("Bed");
+        finishLockedDialogue(morningGp);
+        assertUnlockedMemory(morningGp, "memory_bed", "Main chores must unlock story memories");
+
+        gp.gameState = gp.playState;
+        gp.ui.togglePlanNote();
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
+                gp.screenWidth, gp.screenHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        try {
+            for (int i = 0; i < 20; i++) {
+                gp.ui.draw(g2);
+            }
+        }
+        finally {
+            g2.dispose();
+        }
+    }
+
     public static void testMountainMapLayout() {
         GamePanel gp = new GamePanel();
         gp.setupGame();
@@ -1384,6 +1444,18 @@ public class TestLogic {
             }
         }
         return count;
+    }
+
+    private static void assertUnlockedMemory(GamePanel gp, String id, String label) {
+        for (MemoryEntry memory : gp.story.getMemoryEntries()) {
+            if (id.equals(memory.id)) {
+                if (!memory.unlocked) {
+                    throw new AssertionError(label);
+                }
+                return;
+            }
+        }
+        throw new AssertionError("Memory entry not found: " + id);
     }
 
     private static void assertForestObjectsDoNotBlockPath(GamePanel gp) {

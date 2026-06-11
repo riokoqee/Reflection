@@ -364,7 +364,7 @@ public class AssetSetter {
         for (VillageHousePlacement placement : VILLAGE_HOUSES) {
             index = placeVillageHouse(index, placement);
         }
-        placeVillageLibraryDoor(index);
+        placeVillageLibraryDoorTrigger(index);
     }
 
     private void placeMountainObjects() {
@@ -561,7 +561,7 @@ public class AssetSetter {
         return placeObject(MapId.VILLAGE, index, house, placement.col, placement.row);
     }
 
-    private int placeVillageLibraryDoor(int index) {
+    private int placeVillageLibraryDoorTrigger(int index) {
         double widthTiles = 0.95;
         double heightTiles = 1.45;
         StaticObject door = new StaticObject(gp, "Village Library Door", "/objects/home/door",
@@ -573,10 +573,11 @@ public class AssetSetter {
         int houseWidth = (int) Math.round(gp.tileSize * 4.0 * VILLAGE_HOUSE_SCALE);
         int houseHeight = (int) Math.round(gp.tileSize * 3.75 * VILLAGE_HOUSE_SCALE);
         int doorX = houseX + houseWidth / 2 - doorWidth / 2;
-        int doorY = houseY + houseHeight - doorHeight + gp.tileSize * 3 / 4;
+        int doorY = houseY + houseHeight - doorHeight + gp.tileSize / 2;
 
-        door.setSolidArea(0, 0, doorWidth, doorHeight);
+        door.setSolidArea(0, 0, doorWidth, doorHeight + gp.tileSize / 8);
         door.setRenderSortY(houseY + houseHeight + 1);
+        door.setVisible(false);
         return placeObjectAtPixel(MapId.VILLAGE, index, door, doorX, doorY);
     }
 

@@ -18,6 +18,7 @@ public class StaticObject extends Entity {
     private BufferedImage alternateImage;
     private BooleanSupplier useAlternateImage;
     private Integer renderSortY;
+    private boolean visible = true;
 
     public StaticObject(GamePanel gp, String name, String imagePath, double widthTiles, double heightTiles, boolean collision) {
         this(gp, name, imagePath, widthTiles, heightTiles, collision, false);
@@ -53,6 +54,15 @@ public class StaticObject extends Entity {
         return this;
     }
 
+    public StaticObject setVisible(boolean visible) {
+        this.visible = visible;
+        return this;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
     public StaticObject setAlternateImage(String imagePath, BooleanSupplier useAlternateImage) {
         this.alternateImage = loadImage(imagePath, drawWidth, drawHeight);
         this.useAlternateImage = useAlternateImage;
@@ -82,6 +92,10 @@ public class StaticObject extends Entity {
 
     @Override
     public void draw(Graphics2D g2) {
+        if (!visible) {
+            return;
+        }
+
         int screenX = gp.worldToScreenX(worldX);
         int screenY = gp.worldToScreenY(worldY);
 

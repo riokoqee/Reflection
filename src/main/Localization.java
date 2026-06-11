@@ -103,6 +103,49 @@ public final class Localization {
         put("бег", "run");
         put("взаимодействовать", "interact");
         put("список задач", "task list");
+        put("Воспоминания", "Memories");
+        put("задачи и воспоминания", "tasks and memories");
+        put("Они появятся после важных предметов и разговоров.",
+                "They will appear after important objects and conversations.");
+        put("Тихая кровать", "Quiet Bed");
+        put("Сообщение от мамы", "Message from Mom");
+        put("Первый взгляд", "First Look");
+        put("Шорох у зеркала", "Rustle by the Mirror");
+        put("Потухший фонарь", "Dead Lantern");
+        put("Качели", "The Swing");
+        put("Друг на площади", "Friend in the Square");
+        put("Тихая библиотека", "Quiet Library");
+        put("Вершина", "Summit");
+        put("Утро началось с простого порядка. В тишине комнаты стало легче услышать себя.",
+                "The morning began with simple order. In the room's quiet, it became easier to hear yourself.");
+        put("Телефон напомнил, что связь не всегда требует правильных слов. Иногда достаточно ответить честно.",
+                "The phone reminded you that connection does not always need perfect words. Sometimes an honest answer is enough.");
+        put("На снимке осталось время, где улыбки казались проще. Воспоминание болит, но уже не режет.",
+                "The photo kept a time where smiles seemed simpler. The memory hurts, but no longer cuts.");
+        put("Отражение смотрело спокойнее, чем было внутри. Это был первый разговор без слов.",
+                "The reflection looked calmer than it felt inside. It was the first conversation without words.");
+        put("Тень появилась не как враг, а как часть, которую слишком долго оставляли в темноте.",
+                "The Shadow appeared not as an enemy, but as a part left in the dark for too long.");
+        put("Даже слабый свет может указать путь, если не требовать от него быть солнцем.",
+                "Even a weak light can show the way if you do not demand that it become the sun.");
+        put("Помощь оказалась не контролем, а осторожностью. Не всё хрупкое нужно держать крепче.",
+                "Help turned out not to be control, but care. Not every fragile thing needs to be held tighter.");
+        put("Ребёнок на качелях знал то, что взрослые части пытаются забыть.",
+                "The Child on the swing knew what the older parts try to forget.");
+        put("Друг услышал больше, чем было сказано. Иногда близость начинается там, где заканчивается защита.",
+                "The Friend heard more than was said. Sometimes closeness begins where defense ends.");
+        put("В чужих словах оказалось слишком знакомое чувство. Оно не исчезает, даже если спрятать бумагу.",
+                "Someone else's words held a feeling that was too familiar. It does not vanish even if the paper is hidden.");
+        put("Чужая просьба проверяла не силу, а готовность заметить вес, который несёт кто-то рядом.",
+                "Someone else's request tested not strength, but the willingness to notice the weight carried nearby.");
+        put("Старик не дал готовый ответ. Он оставил вопрос, рядом с которым стало невозможно притворяться.",
+                "The Elder did not give a ready answer. He left a question beside which pretending became impossible.");
+        put("Обе дороги вели вверх, но каждая спрашивала о разном: о спешке или терпении.",
+                "Both roads led upward, but each asked about something different: haste or patience.");
+        put("Поддержка не всегда звучит громко. Иногда это просто несколько шагов рядом.",
+                "Support is not always loud. Sometimes it is just a few steps beside someone.");
+        put("На вершине стало ясно: весь путь проходил внутри, а каждый голос был частью одного отражения.",
+                "At the summit it became clear: the whole path was inside, and every voice was part of one reflection.");
         put("Подсказка исчезнет сама", "This hint will fade on its own");
         put("РЕЗУЛЬТАТ", "RESULT");
         put("Рекомендация", "Recommendation");

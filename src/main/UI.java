@@ -517,11 +517,12 @@ public class UI {
         int rowWidth = PLAN_NOTE_WIDTH - 52;
         Font taskFont = GameFonts.regular(15);
         g2.setFont(taskFont);
+        int taskBottom = y + Math.max(210, height * 55 / 100);
 
         for (PlanTask task : gp.story.getPlanTasks()) {
             ArrayList<String> lines = UiGraphics.wrapTextLines(g2, t(task.getDisplayText()), rowWidth - 36, taskFont);
             int rowHeight = Math.max(28, UiGraphics.measureLinesHeight(lines, 18) + 8);
-            if (rowY + rowHeight > y + height - 22) {
+            if (rowY + rowHeight > taskBottom) {
                 break;
             }
 
@@ -529,8 +530,105 @@ public class UI {
             rowY += rowHeight + 6;
         }
 
+        drawMemorySection(x + 24, Math.max(rowY + 12, taskBottom + 8), rowWidth, y + height - 24);
+
         g2.setStroke(oldStroke);
         g2.setComposite(oldComposite);
+    }
+
+    private void drawMemorySection(int x, int y, int width, int bottom) {
+        if (y + 54 > bottom) {
+            return;
+        }
+
+        int unlocked = gp.story.getUnlockedMemoryCount();
+        int total = gp.story.getTotalMemoryCount();
+
+        g2.setColor(new Color(87, 62, 42, 150));
+        g2.drawLine(x + 2, y, x + width - 2, y);
+
+        g2.setFont(GameFonts.bold(16));
+        g2.setColor(new Color(55, 39, 29));
+        g2.drawString(t("Воспоминания", "Memories") + " " + unlocked + "/" + total, x + 2, y + 24);
+
+        int rowY = y + 38;
+        if (unlocked == 0) {
+            g2.setFont(GameFonts.regular(13));
+            g2.setColor(new Color(80, 60, 43, 190));
+            ArrayList<String> lines = UiGraphics.wrapTextLines(g2,
+                    t("Они появятся после важных предметов и разговоров.",
+                            "They will appear after important objects and conversations."),
+                    width - 10,
+                    GameFonts.regular(13));
+            for (String line : lines) {
+                if (rowY + 16 > bottom) {
+                    break;
+                }
+                g2.drawString(line, x + 4, rowY);
+                rowY += 16;
+            }
+            return;
+        }
+
+        ArrayList<MemoryEntry> memories = gp.story.getMemoryEntries();
+        for (int i = memories.size() - 1; i >= 0; i--) {
+            MemoryEntry memory = memories.get(i);
+            if (!memory.unlocked) {
+                continue;
+            }
+
+            Font textFont = GameFonts.regular(12);
+            ArrayList<String> lines = UiGraphics.wrapTextLines(g2, t(memory.text), width - 22, textFont);
+            lines = limitLines(lines, 2, width - 22, textFont);
+            int rowHeight = 42 + lines.size() * 15;
+            if (rowY + rowHeight > bottom) {
+                break;
+            }
+
+            drawMemoryEntry(memory, lines, x, rowY, width, rowHeight);
+            rowY += rowHeight + 7;
+        }
+    }
+
+    private ArrayList<String> limitLines(ArrayList<String> lines, int limit, int width, Font font) {
+        if (lines.size() <= limit) {
+            return lines;
+        }
+
+        ArrayList<String> limited = new ArrayList<>();
+        for (int i = 0; i < limit; i++) {
+            limited.add(lines.get(i));
+        }
+        String last = limited.get(limit - 1) + "...";
+        Font oldFont = g2.getFont();
+        g2.setFont(font);
+        limited.set(limit - 1, UiGraphics.trimToWidth(g2, last, width));
+        g2.setFont(oldFont);
+        return limited;
+    }
+
+    private void drawMemoryEntry(MemoryEntry memory, ArrayList<String> lines,
+                                 int x, int y, int width, int height) {
+        g2.setColor(new Color(255, 255, 255, 58));
+        g2.fillRoundRect(x, y, width, height, 8, 8);
+        g2.setColor(new Color(98, 45, 42, 175));
+        g2.fillOval(x + 9, y + 13, 9, 9);
+
+        g2.setFont(GameFonts.bold(14));
+        g2.setColor(new Color(45, 32, 25));
+        g2.drawString(t(memory.title), x + 26, y + 18);
+
+        g2.setFont(GameFonts.regular(11));
+        g2.setColor(new Color(106, 73, 52, 210));
+        g2.drawString(t(memory.location), x + 26, y + 33);
+
+        g2.setFont(GameFonts.regular(12));
+        g2.setColor(new Color(55, 41, 32));
+        int textY = y + 50;
+        for (String line : lines) {
+            g2.drawString(line, x + 11, textY);
+            textY += 15;
+        }
     }
 
     private void drawPlanTask(PlanTask task, ArrayList<String> lines,
@@ -592,7 +690,7 @@ public class UI {
         drawControlHintRow(t("WASD / стрелки", "WASD / arrows"), t("ходьба", "walk"), x + 20, y + 58);
         drawControlHintRow("Shift", t("бег", "run"), x + 20, y + 82);
         drawControlHintRow("E", t("взаимодействовать", "interact"), x + 20, y + 106);
-        drawControlHintRow("I", t("список задач", "task list"), x + 20, y + 130);
+        drawControlHintRow("I", t("задачи и воспоминания", "tasks and memories"), x + 20, y + 130);
 
         g2.setFont(GameFonts.regular(12));
         g2.setColor(new Color(190, 207, 199));
