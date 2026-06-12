@@ -713,6 +713,11 @@ public class TestLogic {
                 ((StaticObject) gp.obj[MapId.VILLAGE][libraryDoorIndex]).isVisible()) {
             throw new AssertionError("Village library entrance must use the house texture door, not draw an extra door");
         }
+        StaticObject libraryHouse = (StaticObject) gp.obj[MapId.VILLAGE][
+                findObject(gp, MapId.VILLAGE, "village_house_north_east")];
+        if (!"Library".equals(libraryHouse.getWorldLabel())) {
+            throw new AssertionError("Library house must show a Library sign above the door");
+        }
         if (countObjects(gp, MapId.VILLAGE) != 14 ||
                 findObject(gp, MapId.VILLAGE, "Old Letter") != 999 ||
                 findObject(gp, MapId.VILLAGE, "Help Request") != 999) {
@@ -757,12 +762,13 @@ public class TestLogic {
         assertLibraryInterior(gp);
 
         gp.currentMap = MapId.VILLAGE;
-        gp.player.setPosition(28, 9);
+        gp.player.setPosition(28, 10);
         gp.player.direction = "up";
         gp.gameState = gp.playState;
         gp.keyH.playState(KeyEvent.VK_E);
         gp.player.update();
-        assertEquals(MapId.LIBRARY, gp.currentMap, "Interacting with the village library door must enter the interior");
+        assertEquals(MapId.LIBRARY, gp.currentMap,
+                "Interacting with the library door from the road must enter the interior");
         assertEquals(gp.tileSize * 24, gp.player.worldX, "Library entry player X position");
         assertEquals(gp.tileSize * 21, gp.player.worldY, "Library entry player Y position");
 
@@ -770,6 +776,14 @@ public class TestLogic {
         assertEquals(MapId.VILLAGE, gp.currentMap, "Library exit must return to the village");
         assertEquals(gp.tileSize * 28, gp.player.worldX, "Library exit village X position");
         assertEquals(gp.tileSize * 10, gp.player.worldY, "Library exit village Y position");
+
+        gp.player.setPosition(28, 8);
+        gp.player.direction = "up";
+        gp.keyH.playState(KeyEvent.VK_E);
+        gp.player.update();
+        assertEquals(MapId.LIBRARY, gp.currentMap,
+                "Interacting close to the library door must prefer the invisible door trigger over the house body");
+        gp.story.interactObject("Library Exit");
 
         gp.player.worldX = 0;
         assertEquals(0, gp.getCameraX(), "Village camera must stop at the left edge");

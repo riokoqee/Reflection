@@ -262,6 +262,7 @@ public class Player extends Entity {
 
     private int findFacingObject() {
         Rectangle interactionArea = getFacingInteractionArea();
+        int fallbackIndex = NO_TARGET;
 
         for (int i = 0; i < gp.obj[gp.currentMap].length; i++) {
             Entity target = gp.obj[gp.currentMap][i];
@@ -273,11 +274,19 @@ public class Player extends Entity {
                         target.solidArea.height
                 );
                 if (interactionArea.intersects(targetArea)) {
-                    return i;
+                    if (target.isFloorLayer()) {
+                        continue;
+                    }
+                    if (!target.collision) {
+                        return i;
+                    }
+                    if (fallbackIndex == NO_TARGET) {
+                        fallbackIndex = i;
+                    }
                 }
             }
         }
-        return NO_TARGET;
+        return fallbackIndex;
     }
 
     private Rectangle getFacingInteractionArea() {

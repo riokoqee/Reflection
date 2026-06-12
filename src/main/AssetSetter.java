@@ -558,12 +558,17 @@ public class AssetSetter {
         house.setSolidArea(0, 0,
                 (int) Math.round(gp.tileSize * placement.widthTiles),
                 (int) Math.round(gp.tileSize * placement.heightTiles));
+        if ("village_house_north_east".equals(placement.name)) {
+            house.setWorldLabel("Library",
+                    (int) Math.round(gp.tileSize * placement.widthTiles / 2.0),
+                    (int) Math.round(gp.tileSize * placement.heightTiles - gp.tileSize * 1.55));
+        }
         return placeObject(MapId.VILLAGE, index, house, placement.col, placement.row);
     }
 
     private int placeVillageLibraryDoorTrigger(int index) {
-        double widthTiles = 0.95;
-        double heightTiles = 1.45;
+        double widthTiles = 1.35;
+        double heightTiles = 2.8;
         StaticObject door = new StaticObject(gp, "Village Library Door", "/objects/home/door",
                 widthTiles, heightTiles, false);
         int doorWidth = (int) Math.round(gp.tileSize * widthTiles);
@@ -573,9 +578,9 @@ public class AssetSetter {
         int houseWidth = (int) Math.round(gp.tileSize * 4.0 * VILLAGE_HOUSE_SCALE);
         int houseHeight = (int) Math.round(gp.tileSize * 3.75 * VILLAGE_HOUSE_SCALE);
         int doorX = houseX + houseWidth / 2 - doorWidth / 2;
-        int doorY = houseY + houseHeight - doorHeight + gp.tileSize / 2;
+        int doorY = houseY + houseHeight - gp.tileSize / 2;
 
-        door.setSolidArea(0, 0, doorWidth, doorHeight + gp.tileSize / 8);
+        door.setSolidArea(0, 0, doorWidth, doorHeight);
         door.setRenderSortY(houseY + houseHeight + 1);
         door.setVisible(false);
         return placeObjectAtPixel(MapId.VILLAGE, index, door, doorX, doorY);
