@@ -196,7 +196,7 @@ public class GamePanel extends JPanel implements Runnable {
         footstepAudio.preload();
 
         if (fullScreenOn) {
-            setFullScreen();
+            syncFullScreenSize();
         }
     }
 
@@ -379,15 +379,25 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    public void setFullScreen() {
-        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        GraphicsDevice gd = ge.getDefaultScreenDevice();
-        screenBufferStrategy = null;
-        Main.window.setIgnoreRepaint(true);
-        gd.setFullScreenWindow(Main.window);
+    public void showInitialWindow() {
+        if (Main.window == null) {
+            return;
+        }
 
-        screenWidth2 = Main.window.getWidth();
-        screenHeight2 = Main.window.getHeight();
+        Main.window.setIgnoreRepaint(true);
+        if (fullScreenOn) {
+            GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+            Main.window.setUndecorated(true);
+            Main.window.setBounds(gd.getDefaultConfiguration().getBounds());
+            Main.window.setVisible(true);
+            enterFullScreenMode(gd);
+        }
+        else {
+            Main.window.pack();
+            Main.window.setLocationRelativeTo(null);
+            Main.window.setVisible(true);
+            syncWindowedSize();
+        }
     }
 
     public void toggleFullScreen() {
@@ -525,19 +535,59 @@ public class GamePanel extends JPanel implements Runnable {
 
         if (fullScreenOn) {
             Main.window.setVisible(true);
-            gd.setFullScreenWindow(Main.window);
-            screenWidth2 = Main.window.getWidth();
-            screenHeight2 = Main.window.getHeight();
+            enterFullScreenMode(gd);
         }
         else {
             Main.window.pack();
             Main.window.setLocationRelativeTo(null);
             Main.window.setVisible(true);
-            screenWidth2 = screenWidth;
-            screenHeight2 = screenHeight;
+            syncWindowedSize();
         }
 
         requestFocusInWindow();
+    }
+
+    private void enterFullScreenMode(GraphicsDevice gd) {
+        if (Main.window == null) {
+            return;
+        }
+
+        Rectangle bounds = gd.getDefaultConfiguration().getBounds();
+        screenBufferStrategy = null;
+        Main.window.setBounds(bounds);
+        if (gd.isFullScreenSupported()) {
+            gd.setFullScreenWindow(Main.window);
+        }
+
+        if (!isWindowScreenSized(bounds)) {
+            gd.setFullScreenWindow(null);
+            Main.window.setBounds(bounds);
+        }
+
+        Main.window.validate();
+        syncFullScreenSize();
+        Main.window.toFront();
+        requestFocusInWindow();
+    }
+
+    private boolean isWindowScreenSized(Rectangle bounds) {
+        return Main.window != null &&
+                Main.window.getWidth() >= bounds.width - 2 &&
+                Main.window.getHeight() >= bounds.height - 2;
+    }
+
+    private void syncFullScreenSize() {
+        if (Main.window == null) {
+            syncWindowedSize();
+            return;
+        }
+        screenWidth2 = Math.max(screenWidth, Main.window.getWidth());
+        screenHeight2 = Math.max(screenHeight, Main.window.getHeight());
+    }
+
+    private void syncWindowedSize() {
+        screenWidth2 = screenWidth;
+        screenHeight2 = screenHeight;
     }
 
     public void startGameThread() {
@@ -1380,7 +1430,7 @@ public class GamePanel extends JPanel implements Runnable {
                 do {
                     Graphics2D screenGraphics = (Graphics2D) screenBufferStrategy.getDrawGraphics();
                     try {
-                        drawFrameToScreen(screenGraphics, Main.window.getWidth(), Main.window.getHeight());
+                        drawFrameToScreen(screenGraphics, getFrameContentArea());
                     }
                     finally {
                         screenGraphics.dispose();
@@ -1418,20 +1468,39 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    private void drawFrameToScreen(Graphics2D screenGraphics, int targetWidth, int targetHeight) {
+    private Rectangle getFrameContentArea() {
+        if (Main.window == null) {
+            return new Rectangle(0, 0, screenWidth2, screenHeight2);
+        }
+
+        Insets insets = Main.window.getInsets();
+        int width = Main.window.getWidth() - insets.left - insets.right;
+        int height = Main.window.getHeight() - insets.top - insets.bottom;
+        if (width <= 0 || height <= 0) {
+            width = screenWidth2;
+            height = screenHeight2;
+        }
+        return new Rectangle(Math.max(0, insets.left), Math.max(0, insets.top), width, height);
+    }
+
+    private void drawFrameToScreen(Graphics2D screenGraphics, Rectangle renderArea) {
+        int frameWidth = Main.window != null ? Main.window.getWidth() : screenWidth2;
+        int frameHeight = Main.window != null ? Main.window.getHeight() : screenHeight2;
+        screenGraphics.setColor(Color.black);
+        screenGraphics.fillRect(0, 0, frameWidth, frameHeight);
+
+        int targetWidth = renderArea.width;
+        int targetHeight = renderArea.height;
         if (targetWidth <= 0 || targetHeight <= 0) {
             targetWidth = screenWidth2;
             targetHeight = screenHeight2;
         }
 
-        screenGraphics.setColor(Color.black);
-        screenGraphics.fillRect(0, 0, targetWidth, targetHeight);
-
         int scale = getScreenDrawScale(targetWidth, targetHeight);
         int drawWidth = screenWidth * scale;
         int drawHeight = screenHeight * scale;
-        int drawX = (targetWidth - drawWidth) / 2;
-        int drawY = (targetHeight - drawHeight) / 2;
+        int drawX = renderArea.x + (targetWidth - drawWidth) / 2;
+        int drawY = renderArea.y + (targetHeight - drawHeight) / 2;
 
         if (shouldDrawWorldBuffer()) {
             prepareScreenImageGraphics(screenGraphics);
