@@ -1227,14 +1227,27 @@ public class TestLogic {
         if (tasks.size() < 2) {
             throw new AssertionError("After making the bed, the next plan task must appear");
         }
-        if (!tasks.get(0).completed) {
-            throw new AssertionError("Completed bed task must be marked done");
+        if (!"Убрать посуду на кухне".equals(tasks.get(0).text) || tasks.get(0).completed) {
+            throw new AssertionError("After making the bed, kitchen dishes task must become the first active task");
         }
-        if (!tasks.get(0).getDisplayText().contains("тише")) {
+        if (!tasks.get(1).completed) {
+            throw new AssertionError("Completed bed task must be marked done below the active task");
+        }
+        if (!tasks.get(1).getDisplayText().contains("тише")) {
             throw new AssertionError("Completed bed task must turn into a diary thought");
         }
-        if (!"Убрать посуду на кухне".equals(tasks.get(1).text) || tasks.get(1).completed) {
-            throw new AssertionError("After making the bed, kitchen dishes task must become active");
+
+        gp.story.interactObject("Dirty Dishes");
+        gp.story.continueDialogue();
+        tasks = gp.story.getPlanTasks();
+        if (tasks.size() < 3) {
+            throw new AssertionError("After clearing dishes, the bathroom task and history must be visible");
+        }
+        if (!"Умыться в ванной".equals(tasks.get(0).text) || tasks.get(0).completed) {
+            throw new AssertionError("After clearing dishes, bathroom task must become the first active task");
+        }
+        if (!tasks.get(1).completed || !"Убрать посуду на кухне".equals(tasks.get(1).text)) {
+            throw new AssertionError("Completed kitchen task must remain visible below the active task");
         }
     }
 

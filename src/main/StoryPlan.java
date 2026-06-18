@@ -29,7 +29,7 @@ final class StoryPlan {
                 StoryManager.STAGE_ELDER, StoryManager.STAGE_WARRIOR);
         addTask(tasks, stage, "Подняться к Воину",
                 StoryManager.STAGE_WARRIOR, StoryManager.STAGE_DONE);
-        return tasks;
+        return orderTasksForNote(tasks);
     }
 
     private static void addTask(ArrayList<PlanTask> tasks, int stage, String text,
@@ -37,6 +37,22 @@ final class StoryPlan {
         if (stage >= visibleStage) {
             tasks.add(new PlanTask(text, getCompletedText(visibleStage), stage >= completedStage));
         }
+    }
+
+    private static ArrayList<PlanTask> orderTasksForNote(ArrayList<PlanTask> tasks) {
+        ArrayList<PlanTask> ordered = new ArrayList<>();
+        for (PlanTask task : tasks) {
+            if (!task.completed) {
+                ordered.add(task);
+            }
+        }
+        for (int i = tasks.size() - 1; i >= 0; i--) {
+            PlanTask task = tasks.get(i);
+            if (task.completed) {
+                ordered.add(task);
+            }
+        }
+        return ordered;
     }
 
     private static String getCompletedText(int visibleStage) {
