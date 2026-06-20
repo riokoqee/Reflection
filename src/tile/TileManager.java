@@ -14,12 +14,14 @@ public class TileManager {
     private final GamePanel gp;
     public Tile[] tile;
     public int[][][] mapTileNum;
+    private BufferedImage[] cachedMapImages;
 
     public TileManager(GamePanel gp) {
         this.gp = gp;
 
         tile = new Tile[80];
         mapTileNum = new int[gp.maxMap][gp.maxWorldCol][gp.maxWorldRow];
+        cachedMapImages = new BufferedImage[gp.maxMap];
 
         getTileImage();
         loadMap("/maps/apartment.txt", MapId.APARTMENT);
@@ -144,27 +146,55 @@ public class TileManager {
     }
 
     public void draw(Graphics2D g2) {
+        BufferedImage mapImage = getCachedMapImage(gp.currentMap);
         int cameraX = gp.getCameraX();
         int cameraY = gp.getCameraY();
-        int startCol = Math.max(0, cameraX / gp.tileSize);
-        int startRow = Math.max(0, cameraY / gp.tileSize);
-        int endCol = Math.min(gp.maxWorldCol - 1, (cameraX + gp.screenWidth) / gp.tileSize + 1);
-        int endRow = Math.min(gp.maxWorldRow - 1, (cameraY + gp.screenHeight) / gp.tileSize + 1);
 
-        for (int worldCol = startCol; worldCol <= endCol; worldCol++) {
-            for (int worldRow = startRow; worldRow <= endRow; worldRow++) {
-                int tileNum = mapTileNum[gp.currentMap][worldCol][worldRow];
+        int srcX1 = Math.max(0, cameraX);
+        int srcY1 = Math.max(0, cameraY);
+        int srcX2 = Math.min(mapImage.getWidth(), cameraX + gp.screenWidth);
+        int srcY2 = Math.min(mapImage.getHeight(), cameraY + gp.screenHeight);
+        if (srcX2 <= srcX1 || srcY2 <= srcY1) {
+            return;
+        }
+
+        int dstX1 = srcX1 - cameraX;
+        int dstY1 = srcY1 - cameraY;
+        int dstX2 = dstX1 + (srcX2 - srcX1);
+        int dstY2 = dstY1 + (srcY2 - srcY1);
+        g2.drawImage(mapImage, dstX1, dstY1, dstX2, dstY2, srcX1, srcY1, srcX2, srcY2, null);
+    }
+
+    private BufferedImage getCachedMapImage(int map) {
+        if (cachedMapImages[map] == null) {
+            cachedMapImages[map] = buildMapImage(map);
+        }
+        return cachedMapImages[map];
+    }
+
+    private BufferedImage buildMapImage(int map) {
+        int width = gp.maxWorldCol * gp.tileSize;
+        int height = gp.maxWorldRow * gp.tileSize;
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D mapGraphics = image.createGraphics();
+        mapGraphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        mapGraphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+        mapGraphics.setColor(Color.black);
+        mapGraphics.fillRect(0, 0, width, height);
+
+        for (int worldCol = 0; worldCol < gp.maxWorldCol; worldCol++) {
+            for (int worldRow = 0; worldRow < gp.maxWorldRow; worldRow++) {
+                int tileNum = mapTileNum[map][worldCol][worldRow];
                 if (tileNum < 0 || tileNum >= tile.length || tile[tileNum] == null) {
                     continue;
                 }
 
                 int worldX = worldCol * gp.tileSize;
                 int worldY = worldRow * gp.tileSize;
-                int screenX = worldX - cameraX;
-                int screenY = worldY - cameraY;
-
-                g2.drawImage(tile[tileNum].image, screenX, screenY, null);
+                mapGraphics.drawImage(tile[tileNum].image, worldX, worldY, null);
             }
         }
+        mapGraphics.dispose();
+        return image;
     }
 }

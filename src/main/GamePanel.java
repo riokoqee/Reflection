@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.concurrent.locks.LockSupport;
 
 public class GamePanel extends JPanel implements Runnable {
@@ -61,9 +62,10 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int FOREST_RIGHT_EXCLUSIVE_COL = 46;
     private static final int FOREST_TOP_ROW = 4;
     private static final int FOREST_BOTTOM_EXCLUSIVE_ROW = 46;
-    private static final int FPS_LIMIT_60 = 0;
-    private static final int FPS_LIMIT_120 = 1;
-    private static final int FPS_LIMIT_UNLIMITED = 2;
+    static final int FPS_LIMIT_60 = 0;
+    public static final int GRAPHICS_QUALITY = 0;
+    public static final int GRAPHICS_BALANCED = 1;
+    public static final int GRAPHICS_LAPTOP = 2;
     public static final int LANGUAGE_RU = 0;
     public static final int LANGUAGE_EN = 1;
     private static final int INTRO_MENU_TRANSITION_FRAMES = 92;
@@ -73,6 +75,8 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int INTRO_TOTAL_FRAMES = INTRO_MENU_TRANSITION_FRAMES +
             INTRO_DISCLAIMER_TYPE_FRAMES + INTRO_DISCLAIMER_HOLD_FRAMES + INTRO_GAME_FADE_FRAMES;
     private static final int DIALOGUE_TYPE_INTERVAL_FRAMES = 10;
+    private static final boolean SYNC_TOOLKIT_AFTER_PRESENT =
+            !System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
 
     int screenWidth2 = screenWidth;
     int screenHeight2 = screenHeight;
@@ -88,12 +92,20 @@ public class GamePanel extends JPanel implements Runnable {
     private BufferedImage bedroomLampGlowImage;
     private BufferedImage forestVignetteLantern;
     private BufferedImage forestVignetteDark;
+    private boolean forestDarknessCacheValid = false;
+    private boolean forestDarknessCacheHasLantern = false;
+    private int forestDarknessCacheBrightness = Integer.MIN_VALUE;
+    private int forestDarknessCacheLightX = Integer.MIN_VALUE;
+    private int forestDarknessCacheLightY = Integer.MIN_VALUE;
+    private int forestDarknessCacheLanternX = Integer.MIN_VALUE;
+    private int forestDarknessCacheLanternY = Integer.MIN_VALUE;
     public boolean fullScreenOn = false;
     public boolean hudVisible = false;
     public int brightnessScale = 3;
     public boolean crispPixels = true;
     public boolean screenShakeEnabled = true;
     public int fpsLimitMode = FPS_LIMIT_60;
+    public int graphicsMode = GRAPHICS_BALANCED;
     public boolean showFpsCounter = false;
     public int ambienceVolumeScale = 3;
     public int footstepVolumeScale = 3;
@@ -132,6 +144,16 @@ public class GamePanel extends JPanel implements Runnable {
     private int framesThisSecond = 0;
     private long fpsSampleStartNanos = System.nanoTime();
     private volatile int currentFps = 0;
+    private long updateNanosThisSecond = 0L;
+    private long renderNanosThisSecond = 0L;
+    private long presentNanosThisSecond = 0L;
+    private int updateSamplesThisSecond = 0;
+    private int renderSamplesThisSecond = 0;
+    private int presentSamplesThisSecond = 0;
+    private volatile double currentUpdateMs = 0.0;
+    private volatile double currentRenderMs = 0.0;
+    private volatile double currentPresentMs = 0.0;
+    private volatile long currentMemoryMb = 0L;
     public CollisionChecker cChecker = new CollisionChecker(this);
     public AssetSetter aSetter = new AssetSetter(this);
     public UI ui = new UI(this);
@@ -188,8 +210,8 @@ public class GamePanel extends JPanel implements Runnable {
             Main.window.setIgnoreRepaint(true);
         }
 
-        tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
-        renderScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
+        tempScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_RGB);
+        renderScreen = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_RGB);
         forestDarknessBuffer = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
         syncSoundEffectVolumes();
         preloadCursorSound();
@@ -328,11 +350,20 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
         else if (command == 1) {
-            brightnessScale = clampSetting(brightnessScale + amount, 0, 5);
+            graphicsMode = cycleSetting(graphicsMode, amount, 3);
+            forestDarknessCacheValid = false;
         }
         else if (command == 2) {
-            showFpsCounter = !showFpsCounter;
+            brightnessScale = clampSetting(brightnessScale + amount, 0, 5);
         }
+        else if (command == 3) {
+            toggleProfilerOverlay();
+        }
+    }
+
+    public void toggleProfilerOverlay() {
+        showFpsCounter = !showFpsCounter;
+        config.saveConfig();
     }
 
     private void changeSoundOption(int command, int amount) {
@@ -424,6 +455,17 @@ public class GamePanel extends JPanel implements Runnable {
 
     public int getSoundEffectVolume() {
         return se.volumeScale;
+    }
+
+    public String getGraphicsModeLabel() {
+        switch (graphicsMode) {
+            case GRAPHICS_QUALITY:
+                return tr("Качество", "Quality");
+            case GRAPHICS_LAPTOP:
+                return tr("Ноутбук", "Laptop");
+            default:
+                return tr("Баланс", "Balanced");
+        }
     }
 
     public String getLanguageLabel() {
@@ -716,7 +758,9 @@ public class GamePanel extends JPanel implements Runnable {
             long now = System.nanoTime();
             int updateCount = 0;
             while (now >= nextUpdateTime && updateCount < 5) {
+                long updateStart = System.nanoTime();
                 update();
+                recordUpdateProfile(System.nanoTime() - updateStart);
                 nextUpdateTime += updateInterval;
                 updateCount++;
             }
@@ -726,8 +770,14 @@ public class GamePanel extends JPanel implements Runnable {
 
             long renderInterval = getRenderIntervalNanos();
             if (renderInterval == 0L || now >= nextRenderTime) {
-                drawToTempScreen();
+                long renderStart = System.nanoTime();
+                if (shouldDrawWorldBuffer()) {
+                    drawToTempScreen();
+                }
+                recordRenderProfile(System.nanoTime() - renderStart);
+                long presentStart = System.nanoTime();
                 presentFrame();
+                recordPresentProfile(System.nanoTime() - presentStart);
                 now = System.nanoTime();
                 if (renderInterval > 0L) {
                     nextRenderTime += renderInterval;
@@ -755,14 +805,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private int getRenderFpsLimit() {
-        switch (fpsLimitMode) {
-            case FPS_LIMIT_120:
-                return 120;
-            case FPS_LIMIT_UNLIMITED:
-                return 0;
-            default:
-                return 60;
-        }
+        return FPS;
     }
 
     private void waitForNextFrame(long nextDrawTime) {
@@ -1103,7 +1146,8 @@ public class GamePanel extends JPanel implements Runnable {
         tileM.draw(g2);
 
         for (int i = 0; i < obj[currentMap].length; i++) {
-            if (obj[currentMap][i] != null && obj[currentMap][i].isFloorLayer()) {
+            if (obj[currentMap][i] != null && obj[currentMap][i].isFloorLayer() &&
+                    obj[currentMap][i].isVisibleInCamera()) {
                 obj[currentMap][i].draw(g2);
             }
         }
@@ -1111,13 +1155,14 @@ public class GamePanel extends JPanel implements Runnable {
         entityList.add(player);
 
         for (int i = 0; i < npc[currentMap].length; i++) {
-            if (npc[currentMap][i] != null) {
+            if (npc[currentMap][i] != null && npc[currentMap][i].isVisibleInCamera()) {
                 entityList.add(npc[currentMap][i]);
             }
         }
 
         for (int i = 0; i < obj[currentMap].length; i++) {
-            if (obj[currentMap][i] != null && !obj[currentMap][i].isFloorLayer()) {
+            if (obj[currentMap][i] != null && !obj[currentMap][i].isFloorLayer() &&
+                    obj[currentMap][i].isVisibleInCamera()) {
                 entityList.add(obj[currentMap][i]);
             }
         }
@@ -1156,6 +1201,9 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void drawApartmentObjectLights(Graphics2D g2) {
         if (currentMap != MapId.APARTMENT) {
+            return;
+        }
+        if (graphicsMode == GRAPHICS_LAPTOP) {
             return;
         }
 
@@ -1246,39 +1294,58 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
+        if (graphicsMode == GRAPHICS_LAPTOP) {
+            drawLaptopForestMood(g2);
+            return;
+        }
+
         ensureForestEffectBuffers();
         drawForestDarkness(g2);
         drawForestVignette(g2);
     }
 
+    private void drawLaptopForestMood(Graphics2D g2) {
+        int darknessAlpha = hasLantern ? 132 : 226;
+        darknessAlpha = clampSetting(darknessAlpha + (3 - brightnessScale) * 14, 92, 242);
+        Composite oldComposite = g2.getComposite();
+        g2.setColor(new Color(2, 7, 9, darknessAlpha));
+        g2.fillRect(0, 0, screenWidth, screenHeight);
+        g2.setComposite(oldComposite);
+    }
+
     private void drawForestDarkness(Graphics2D g2) {
         if (forestDarknessBuffer == null) {
             forestDarknessBuffer = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
+            forestDarknessCacheValid = false;
         }
-
-        Graphics2D shadow = forestDarknessBuffer.createGraphics();
-        shadow.setComposite(AlphaComposite.Src);
 
         int darknessAlpha = hasLantern ? 166 : 238;
         darknessAlpha = clampSetting(darknessAlpha + (3 - brightnessScale) * 14, 110, 248);
-        shadow.setColor(new Color(2, 7, 9, darknessAlpha));
-        shadow.fillRect(0, 0, screenWidth, screenHeight);
-
         int lightX = worldToScreenX(player.worldX) + tileSize / 2;
         int lightY = worldToScreenY(player.worldY) + tileSize / 2;
         Point lanternLight = getForestLanternLightPoint();
+        int lanternX = lanternLight != null ? lanternLight.x : Integer.MIN_VALUE;
+        int lanternY = lanternLight != null ? lanternLight.y : Integer.MIN_VALUE;
 
-        shadow.setComposite(AlphaComposite.DstOut);
-        if (hasLantern) {
-            drawCenteredImage(shadow, strongLightMask, lightX, lightY);
-        }
-        else {
-            drawCenteredImage(shadow, weakLightMask, lightX, lightY);
-            if (lanternLight != null) {
-                drawCenteredImage(shadow, lanternLightMask, lanternLight.x, lanternLight.y);
+        if (!isForestDarknessCacheFresh(darknessAlpha, lightX, lightY, lanternX, lanternY)) {
+            Graphics2D shadow = forestDarknessBuffer.createGraphics();
+            shadow.setComposite(AlphaComposite.Src);
+            shadow.setColor(new Color(2, 7, 9, darknessAlpha));
+            shadow.fillRect(0, 0, screenWidth, screenHeight);
+
+            shadow.setComposite(AlphaComposite.DstOut);
+            if (hasLantern) {
+                drawCenteredImage(shadow, strongLightMask, lightX, lightY);
             }
+            else {
+                drawCenteredImage(shadow, weakLightMask, lightX, lightY);
+                if (lanternLight != null) {
+                    drawCenteredImage(shadow, lanternLightMask, lanternLight.x, lanternLight.y);
+                }
+            }
+            shadow.dispose();
+            rememberForestDarknessCache(darknessAlpha, lightX, lightY, lanternX, lanternY);
         }
-        shadow.dispose();
 
         g2.drawImage(forestDarknessBuffer, 0, 0, null);
 
@@ -1288,6 +1355,26 @@ public class GamePanel extends JPanel implements Runnable {
         else if (lanternLight != null) {
             drawCenteredImage(g2, lanternGlowImage, lanternLight.x, lanternLight.y);
         }
+    }
+
+    private boolean isForestDarknessCacheFresh(int darknessAlpha, int lightX, int lightY, int lanternX, int lanternY) {
+        return forestDarknessCacheValid &&
+                forestDarknessCacheHasLantern == hasLantern &&
+                forestDarknessCacheBrightness == darknessAlpha &&
+                forestDarknessCacheLightX == lightX &&
+                forestDarknessCacheLightY == lightY &&
+                forestDarknessCacheLanternX == lanternX &&
+                forestDarknessCacheLanternY == lanternY;
+    }
+
+    private void rememberForestDarknessCache(int darknessAlpha, int lightX, int lightY, int lanternX, int lanternY) {
+        forestDarknessCacheValid = true;
+        forestDarknessCacheHasLantern = hasLantern;
+        forestDarknessCacheBrightness = darknessAlpha;
+        forestDarknessCacheLightX = lightX;
+        forestDarknessCacheLightY = lightY;
+        forestDarknessCacheLanternX = lanternX;
+        forestDarknessCacheLanternY = lanternY;
     }
 
     private void ensureForestEffectBuffers() {
@@ -1438,7 +1525,9 @@ public class GamePanel extends JPanel implements Runnable {
                 } while (screenBufferStrategy.contentsRestored());
 
                 screenBufferStrategy.show();
-                Toolkit.getDefaultToolkit().sync();
+                if (SYNC_TOOLKIT_AFTER_PRESENT) {
+                    Toolkit.getDefaultToolkit().sync();
+                }
             } while (screenBufferStrategy.contentsLost());
             return true;
         }
@@ -1496,9 +1585,9 @@ public class GamePanel extends JPanel implements Runnable {
             targetHeight = screenHeight2;
         }
 
-        int scale = getScreenDrawScale(targetWidth, targetHeight);
-        int drawWidth = screenWidth * scale;
-        int drawHeight = screenHeight * scale;
+        double scale = getScreenDrawScale(targetWidth, targetHeight);
+        int drawWidth = Math.max(1, (int) Math.ceil(screenWidth * scale));
+        int drawHeight = Math.max(1, (int) Math.ceil(screenHeight * scale));
         int drawX = renderArea.x + (targetWidth - drawWidth) / 2;
         int drawY = renderArea.y + (targetHeight - drawHeight) / 2;
 
@@ -1528,9 +1617,9 @@ public class GamePanel extends JPanel implements Runnable {
             targetHeight = screenHeight;
         }
 
-        int scale = getScreenDrawScale(targetWidth, targetHeight);
-        int drawWidth = screenWidth * scale;
-        int drawHeight = screenHeight * scale;
+        double scale = getScreenDrawScale(targetWidth, targetHeight);
+        int drawWidth = Math.max(1, (int) Math.ceil(screenWidth * scale));
+        int drawHeight = Math.max(1, (int) Math.ceil(screenHeight * scale));
         int drawX = (targetWidth - drawWidth) / 2;
         int drawY = (targetHeight - drawHeight) / 2;
 
@@ -1539,9 +1628,12 @@ public class GamePanel extends JPanel implements Runnable {
         return new Point(gameX, gameY);
     }
 
-    private int getScreenDrawScale(int targetWidth, int targetHeight) {
+    private double getScreenDrawScale(int targetWidth, int targetHeight) {
         double coverScale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
-        return Math.max(1, (int) Math.ceil(coverScale));
+        if (graphicsMode == GRAPHICS_QUALITY) {
+            return Math.max(1.0, Math.ceil(coverScale));
+        }
+        return Math.max(1.0, coverScale);
     }
 
     public boolean shouldShowMouseCursor() {
@@ -1602,12 +1694,15 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        String text = "FPS " + currentFps;
+        String text = String.format(Locale.ROOT, "FPS %d  %.1f ms", currentFps,
+                currentUpdateMs + currentRenderMs + currentPresentMs);
+        String detail = String.format(Locale.ROOT, "U %.1f  R %.1f  P %.1f  MEM %d MB",
+                currentUpdateMs, currentRenderMs, currentPresentMs, currentMemoryMb);
         Font font = GameFonts.bold(15);
         g2.setFont(font);
         FontMetrics metrics = g2.getFontMetrics();
-        int width = metrics.stringWidth(text) + 22;
-        int height = 28;
+        int width = Math.max(metrics.stringWidth(text), metrics.stringWidth(detail)) + 22;
+        int height = 48;
         int x = screenWidth - width - 14;
         int y = 14;
 
@@ -1617,6 +1712,23 @@ public class GamePanel extends JPanel implements Runnable {
         g2.drawRoundRect(x + 1, y + 1, width - 2, height - 2, 9, 9);
         g2.setColor(Color.white);
         g2.drawString(text, x + 11, y + 19);
+        g2.setColor(new Color(210, 225, 218));
+        g2.drawString(detail, x + 11, y + 38);
+    }
+
+    private void recordUpdateProfile(long nanos) {
+        updateNanosThisSecond += nanos;
+        updateSamplesThisSecond++;
+    }
+
+    private void recordRenderProfile(long nanos) {
+        renderNanosThisSecond += nanos;
+        renderSamplesThisSecond++;
+    }
+
+    private void recordPresentProfile(long nanos) {
+        presentNanosThisSecond += nanos;
+        presentSamplesThisSecond++;
     }
 
     private void recordPresentedFrame() {
@@ -1624,9 +1736,27 @@ public class GamePanel extends JPanel implements Runnable {
         long now = System.nanoTime();
         if (now - fpsSampleStartNanos >= 1_000_000_000L) {
             currentFps = framesThisSecond;
+            currentUpdateMs = nanosToAverageMs(updateNanosThisSecond, updateSamplesThisSecond);
+            currentRenderMs = nanosToAverageMs(renderNanosThisSecond, renderSamplesThisSecond);
+            currentPresentMs = nanosToAverageMs(presentNanosThisSecond, presentSamplesThisSecond);
+            Runtime runtime = Runtime.getRuntime();
+            currentMemoryMb = (runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L);
             framesThisSecond = 0;
+            updateNanosThisSecond = 0L;
+            renderNanosThisSecond = 0L;
+            presentNanosThisSecond = 0L;
+            updateSamplesThisSecond = 0;
+            renderSamplesThisSecond = 0;
+            presentSamplesThisSecond = 0;
             fpsSampleStartNanos = now;
         }
+    }
+
+    private double nanosToAverageMs(long nanos, int samples) {
+        if (samples <= 0) {
+            return 0.0;
+        }
+        return nanos / (double) samples / 1_000_000.0;
     }
 
     public void playMusic(int i) {

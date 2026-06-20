@@ -875,7 +875,8 @@ public class TestLogic {
         assertEquals(gp.optionsState, gp.gameState, "Title settings command must open the settings menu");
         assertEquals(UI.OPTIONS_TAB_GRAPHICS, gp.ui.getOptionsTab(), "Settings menu must open on graphics tab");
         assertEquals(0, gp.ui.commandNum, "Settings menu must open on fullscreen");
-        assertEquals(4, gp.ui.getOptionsCommandCount(), "Graphics settings must show fullscreen, brightness, counter, and back");
+        assertEquals(5, gp.ui.getOptionsCommandCount(),
+                "Graphics settings must show fullscreen, mode, brightness, profiler, and back");
         if (gp.hudVisible) {
             throw new AssertionError("HUD must stay hidden during the game");
         }
@@ -889,6 +890,11 @@ public class TestLogic {
         fullScreenBefore = gp.fullScreenOn;
         gp.keyH.optionsState(KeyEvent.VK_E);
         assertEquals(fullScreenBefore ? 0 : 1, gp.fullScreenOn ? 1 : 0, "E must toggle fullscreen setting");
+
+        gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        int startGraphicsMode = gp.graphicsMode;
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals((startGraphicsMode + 1) % 3, gp.graphicsMode, "Right must cycle graphics mode");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         int startBrightness = gp.brightnessScale;

@@ -45,6 +45,14 @@ public class SwingChildNPC extends Entity {
     }
 
     @Override
+    public boolean isVisibleInCamera() {
+        int frameWidth = gp.tileSize * 4;
+        int frameHeight = gp.tileSize * 3;
+        return gp.isInCamera(worldX - frameWidth / 2, worldY - gp.tileSize * 2,
+                frameWidth, frameHeight + gp.tileSize);
+    }
+
+    @Override
     public void draw(Graphics2D g2) {
         int centerX = gp.worldToScreenX(worldX) + gp.tileSize / 2;
         int centerY = gp.worldToScreenY(worldY) + gp.tileSize / 2;

@@ -47,6 +47,8 @@ public class Config {
             bw.newLine();
             bw.write(gp.showFpsCounter ? "On" : "Off");
             bw.newLine();
+            bw.write(String.valueOf(gp.graphicsMode));
+            bw.newLine();
         }
         catch (IOException e) {
             System.err.println("Config save failed: " + e.getMessage());
@@ -62,7 +64,8 @@ public class Config {
             br.readLine();
             gp.crispPixels = true;
             gp.screenShakeEnabled = parseToggle(br.readLine(), gp.screenShakeEnabled);
-            gp.fpsLimitMode = parseRange(br.readLine(), gp.fpsLimitMode, 0, 2);
+            br.readLine();
+            gp.fpsLimitMode = GamePanel.FPS_LIMIT_60;
             gp.ambienceVolumeScale = parseVolume(br.readLine(), gp.ambienceVolumeScale);
             gp.footstepVolumeScale = parseVolume(br.readLine(), gp.footstepVolumeScale);
             gp.uiVolumeScale = parseVolume(br.readLine(), gp.uiVolumeScale);
@@ -72,6 +75,8 @@ public class Config {
             gp.highContrastDialogue = parseToggle(br.readLine(), gp.highContrastDialogue);
             gp.languageMode = parseRange(br.readLine(), gp.languageMode, GamePanel.LANGUAGE_RU, GamePanel.LANGUAGE_EN);
             gp.showFpsCounter = parseToggle(br.readLine(), gp.showFpsCounter);
+            gp.graphicsMode = parseRange(br.readLine(), gp.graphicsMode,
+                    GamePanel.GRAPHICS_QUALITY, GamePanel.GRAPHICS_LAPTOP);
             gp.hudVisible = false;
         }
         catch (Exception e) {

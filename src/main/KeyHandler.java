@@ -22,6 +22,12 @@ public class KeyHandler implements KeyListener {
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
 
+        if (code == KeyEvent.VK_F3) {
+            gp.toggleProfilerOverlay();
+            gp.playCursorSE();
+            return;
+        }
+
         if (gp.gameState == gp.titleState) {
             titleState(code);
         }

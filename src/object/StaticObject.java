@@ -106,6 +106,11 @@ public class StaticObject extends Entity {
     }
 
     @Override
+    public boolean isVisibleInCamera() {
+        return visible && gp.isInCamera(worldX, worldY, drawWidth, drawHeight);
+    }
+
+    @Override
     public void draw(Graphics2D g2) {
         if (!visible) {
             return;

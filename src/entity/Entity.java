@@ -43,6 +43,10 @@ public class Entity {
         return worldY;
     }
 
+    public boolean isVisibleInCamera() {
+        return gp.isInCamera(worldX, worldY, gp.tileSize, gp.tileSize);
+    }
+
     public void draw(Graphics2D g2) {
         BufferedImage image = null;
 

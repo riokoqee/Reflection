@@ -69,6 +69,13 @@ public class StoryNPC extends Entity {
     }
 
     @Override
+    public boolean isVisibleInCamera() {
+        int drawX = worldX - (drawSize - gp.tileSize) / 2;
+        int drawY = worldY - (drawSize - gp.tileSize);
+        return gp.isInCamera(drawX, drawY, drawSize, drawSize);
+    }
+
+    @Override
     public void draw(Graphics2D g2) {
         int screenX = gp.worldToScreenX(worldX);
         int screenY = gp.worldToScreenY(worldY);
