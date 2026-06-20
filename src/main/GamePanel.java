@@ -1125,7 +1125,9 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void prepareUiGraphics(Graphics2D graphics) {
         graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, graphicsMode == GRAPHICS_QUALITY
+                ? RenderingHints.VALUE_ANTIALIAS_ON
+                : RenderingHints.VALUE_ANTIALIAS_OFF);
         graphics.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
         graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
         graphics.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
@@ -1630,6 +1632,10 @@ public class GamePanel extends JPanel implements Runnable {
 
     private double getScreenDrawScale(int targetWidth, int targetHeight) {
         double coverScale = Math.max((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
+        if (graphicsMode == GRAPHICS_LAPTOP) {
+            double containScale = Math.min((double) targetWidth / screenWidth, (double) targetHeight / screenHeight);
+            return Math.max(1.0, containScale);
+        }
         if (graphicsMode == GRAPHICS_QUALITY) {
             return Math.max(1.0, Math.ceil(coverScale));
         }
