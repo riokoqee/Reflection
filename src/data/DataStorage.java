@@ -1,12 +1,16 @@
 package data;
 
+import main.ReportEntry;
+
 import java.io.Serializable;
+import java.util.ArrayList;
 
 public class DataStorage implements Serializable {
 
     private static final long serialVersionUID = 2L;
 
     int currentMap;
+    String playerName;
     int playerWorldX;
     int playerWorldY;
     int storyStage;
@@ -30,4 +34,5 @@ public class DataStorage implements Serializable {
     boolean helpRequestEventDone;
     boolean forkEventDone;
     boolean travelerEventDone;
+    ArrayList<ReportEntry> reportEntries;
 }

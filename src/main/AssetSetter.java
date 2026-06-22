@@ -165,8 +165,8 @@ public class AssetSetter {
             homeDecoration("Kitchen Rug", "carpet_green", 1.6, 1.25, 17, 21, false),
             homeInterior("Kitchen Dining Set", "if_dining_table_chairs", 2.25, 1.25, 14, 22, true),
 
-            homeDecoration("Bathroom Toilet", "bathroom_toilet", 0.8, 1.35, 32, 17, true),
-            homeDecoration("Bathroom Tub", "bathroom_tub", 2.0, 1.0, 29, 22, true),
+            homeDecoration("Bathroom Toilet", "bathroom_toilet", 0.8, 1.35, 31, 17, true),
+            homeDecoration("Bathroom Tub", "bathroom_tub", 2.0, 1.0, 31, 22, true),
     };
 
     private final GamePanel gp;
@@ -200,10 +200,10 @@ public class AssetSetter {
                 new StoryNPC(gp, StoryManager.SHADOW_FOREST, gp.tr("Тень", "Shadow"), "character:shadow"), 31, 21);
 
         placeNPC(MapId.VILLAGE, 0,
-                new StoryNPC(gp, StoryManager.FRIEND, gp.tr("Друг", "Friend"), "character:friend", 1.35, true), 13, 10);
+                new StoryNPC(gp, StoryManager.FRIEND, gp.tr("Друг", "Friend"), "character:friend", 1.5, true), 13, 10);
 
         placeNPC(MapId.LIBRARY, 0,
-                new StoryNPC(gp, StoryManager.ELDER, gp.tr("Старик", "Elder"), "character:elder"), 24, 16);
+                new StoryNPC(gp, StoryManager.ELDER, gp.tr("Старик", "Elder"), "character:elder", 1.38, true), 24, 16);
 
         placeNPC(MapId.MOUNTAIN, 0,
                 new StoryNPC(gp, StoryManager.WARRIOR, gp.tr("Воин", "Warrior"), "character:warrior_knight"), 35, 29);
@@ -321,10 +321,12 @@ public class AssetSetter {
                 gp.tileSize * 8);
 
         StaticObject bathroomMirror = new StaticObject(gp, "Bathroom Mirror", "/objects/home/mirror_sink",
-                1.2, 1.35, true);
-        bathroomMirror.setSolidArea(gp.tileSize / 5, gp.tileSize * 2 / 3,
-                gp.tileSize * 4 / 5, gp.tileSize * 2 / 3);
-        index = placeObject(MapId.APARTMENT, index, bathroomMirror, 28, 17);
+                1.45, 1.6, true);
+        bathroomMirror.setSolidArea(gp.tileSize / 5, gp.tileSize * 3 / 4,
+                gp.tileSize, gp.tileSize * 3 / 4);
+        index = placeObjectAtPixel(MapId.APARTMENT, index, bathroomMirror,
+                gp.tileSize * 28,
+                gp.tileSize * 16 + gp.tileSize / 4);
 
         StaticObject door = new StaticObject(gp, "Door", "/objects/home/door", 1.45, 2.0, true);
         int doorWidth = (int) Math.round(gp.tileSize * 1.45);
@@ -491,6 +493,9 @@ public class AssetSetter {
             }
             else if ("Kitchen Stove".equals(placement.name)) {
                 worldX -= gp.tileSize / 2;
+            }
+            else if ("Bathroom Toilet".equals(placement.name)) {
+                worldY -= gp.tileSize / 4;
             }
 
             index = placeObjectAtPixel(map, index, object, worldX, worldY);

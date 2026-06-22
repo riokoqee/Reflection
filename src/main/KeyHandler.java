@@ -16,6 +16,9 @@ public class KeyHandler implements KeyListener {
 
     @Override
     public void keyTyped(KeyEvent e) {
+        if (gp.gameState == gp.nameInputState) {
+            gp.ui.appendNameInputChar(e.getKeyChar());
+        }
     }
 
     @Override
@@ -45,6 +48,12 @@ public class KeyHandler implements KeyListener {
         }
         else if (gp.gameState == gp.resultState) {
             resultState(code);
+        }
+        else if (gp.gameState == gp.nameInputState) {
+            nameInputState(code);
+        }
+        else if (gp.gameState == gp.finalSceneState) {
+            finalSceneState(code);
         }
         else if (gp.gameState == gp.introState) {
             introState(code);
@@ -246,12 +255,21 @@ public class KeyHandler implements KeyListener {
 
     public void resultState(int code) {
         if (isUp(code) || isDown(code)) {
-            gp.ui.commandNum = gp.ui.commandNum == 0 ? 1 : 0;
+            gp.ui.commandNum += isDown(code) ? 1 : -1;
+            if (gp.ui.commandNum < 0) {
+                gp.ui.commandNum = 2;
+            }
+            if (gp.ui.commandNum > 2) {
+                gp.ui.commandNum = 0;
+            }
             gp.playCursorSE();
         }
         if (isConfirm(code)) {
             gp.playConfirmSE();
             if (gp.ui.commandNum == 0) {
+                gp.openResultReportFolder();
+            }
+            else if (gp.ui.commandNum == 1) {
                 gp.startNewGameInSlot(gp.saveLoad.getCurrentSlot());
             }
             else {
@@ -267,6 +285,25 @@ public class KeyHandler implements KeyListener {
                 gp.playConfirmSE();
                 gp.finishIntroSequence();
             }
+        }
+    }
+
+    public void nameInputState(int code) {
+        if (code == KeyEvent.VK_ESCAPE) {
+            gp.cancelNameInput();
+        }
+        else if (code == KeyEvent.VK_BACK_SPACE) {
+            gp.ui.deleteNameInputChar();
+            gp.playCursorSE();
+        }
+        else if (isConfirm(code)) {
+            gp.confirmPlayerName();
+        }
+    }
+
+    public void finalSceneState(int code) {
+        if (isAction(code) || code == KeyEvent.VK_SPACE || code == KeyEvent.VK_ESCAPE) {
+            gp.finishFinalScene();
         }
     }
 

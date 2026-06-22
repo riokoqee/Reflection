@@ -11,6 +11,8 @@ import java.awt.*;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferStrategy;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Locale;
@@ -51,7 +53,7 @@ public class GamePanel extends JPanel implements Runnable {
             new ApartmentRoom(ROOM_BEDROOM, "Спальня", 13, 6, 23, 16, true),
             new ApartmentRoom(ROOM_HALL, "Зал", 26, 6, 38, 16, true),
             new ApartmentRoom(ROOM_KITCHEN, "Кухня", 13, 15, 23, 25, true),
-            new ApartmentRoom(ROOM_BATHROOM, "Ванная", 26, 16, 35, 25, true),
+            new ApartmentRoom(ROOM_BATHROOM, "Ванная", 26, 16, 34, 24, true),
             new ApartmentRoom(ROOM_CORRIDOR, "Коридор", 22, 6, 27, 25, false)
     };
     private static final Color APARTMENT_ROOM_SHADOW = new Color(5, 7, 10, 178);
@@ -74,6 +76,7 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int INTRO_GAME_FADE_FRAMES = 80;
     private static final int INTRO_TOTAL_FRAMES = INTRO_MENU_TRANSITION_FRAMES +
             INTRO_DISCLAIMER_TYPE_FRAMES + INTRO_DISCLAIMER_HOLD_FRAMES + INTRO_GAME_FADE_FRAMES;
+    private static final int FINAL_SCENE_TOTAL_FRAMES = 1140;
     private static final int DIALOGUE_TYPE_INTERVAL_FRAMES = 10;
     private static final boolean SYNC_TOOLKIT_AFTER_PRESENT =
             !System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
@@ -140,6 +143,7 @@ public class GamePanel extends JPanel implements Runnable {
     private boolean whisperSoundUnavailable = false;
     private int oneShotSECursor = 0;
     private int introFrame = 0;
+    private int finalSceneFrame = 0;
     private int dialogueTypeCooldown = 0;
     private int framesThisSecond = 0;
     private long fpsSampleStartNanos = System.nanoTime();
@@ -154,6 +158,10 @@ public class GamePanel extends JPanel implements Runnable {
     private volatile double currentRenderMs = 0.0;
     private volatile double currentPresentMs = 0.0;
     private volatile long currentMemoryMb = 0L;
+    private String playerName = "";
+    private String lastResultReportPath = "";
+    private String resultReportNotice = "";
+    private int resultReportNoticeCounter = 0;
     public CollisionChecker cChecker = new CollisionChecker(this);
     public AssetSetter aSetter = new AssetSetter(this);
     public UI ui = new UI(this);
@@ -184,6 +192,8 @@ public class GamePanel extends JPanel implements Runnable {
     public final int optionsState = 5;
     public final int resultState = 9;
     public final int introState = 10;
+    public final int nameInputState = 11;
+    public final int finalSceneState = 12;
     public int optionsReturnState = titleState;
     private int optionsReturnCommand = 0;
     public static final int SE_CURSOR = Sound.MENU_CURSOR;
@@ -254,10 +264,13 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void startNewGameInSlot(int slot) {
+        lastResultReportPath = "";
+        resultReportNotice = "";
+        resultReportNoticeCounter = 0;
+        playerName = "";
         saveLoad.setCurrentSlot(slot);
         story.startNewGame();
-        saveLoad.save();
-        startIntroSequence();
+        startNameInput();
     }
 
     public boolean loadGameFromSlot(int slot) {
@@ -276,6 +289,66 @@ public class GamePanel extends JPanel implements Runnable {
         syncMouseCursor();
     }
 
+    public void startFinalScene() {
+        finalSceneFrame = 0;
+        gameState = finalSceneState;
+        ui.resetFinalSceneAnimation();
+        syncMouseCursor();
+        stopAmbientSounds();
+        footstepAudio.stop();
+        stopSwingSound();
+    }
+
+    private void startNameInput() {
+        gameState = nameInputState;
+        ui.resetNameInput();
+        syncMouseCursor();
+    }
+
+    public void confirmPlayerName() {
+        String name = ui.getNameInputText().trim();
+        if (name.isEmpty()) {
+            ui.setNameInputNotice(tr("Введите имя, чтобы продолжить", "Enter a name to continue"));
+            playBackSE();
+            return;
+        }
+
+        setPlayerName(name);
+        saveLoad.save();
+        playConfirmSE();
+        startIntroSequence();
+    }
+
+    public void cancelNameInput() {
+        gameState = titleState;
+        ui.returnToTitleMain();
+        syncMouseCursor();
+        playBackSE();
+    }
+
+    public void setPlayerName(String name) {
+        playerName = sanitizePlayerName(name);
+    }
+
+    public String getPlayerName() {
+        return playerName;
+    }
+
+    public String getPlayerNameForReport() {
+        return playerName.isEmpty() ? tr("Игрок", "Player") : playerName;
+    }
+
+    private String sanitizePlayerName(String name) {
+        if (name == null) {
+            return "";
+        }
+        String cleaned = name.trim().replaceAll("\\s+", " ");
+        if (cleaned.length() > 28) {
+            cleaned = cleaned.substring(0, 28).trim();
+        }
+        return cleaned;
+    }
+
     public void finishIntroSequence() {
         introFrame = INTRO_TOTAL_FRAMES;
         gameState = playState;
@@ -283,8 +356,88 @@ public class GamePanel extends JPanel implements Runnable {
         syncMouseCursor();
     }
 
+    public boolean saveResultReportPdf() {
+        try {
+            File file = ResultPdfExporter.export(this);
+            lastResultReportPath = file.getAbsolutePath();
+            resultReportNotice = tr("PDF сохранён: ", "PDF saved: ") + lastResultReportPath;
+            resultReportNoticeCounter = 180;
+            return true;
+        }
+        catch (IOException e) {
+            resultReportNotice = tr("Не удалось сохранить PDF: ", "Could not save PDF: ") + e.getMessage();
+            resultReportNoticeCounter = 180;
+            return false;
+        }
+    }
+
+    public boolean openResultReportFolder() {
+        try {
+            if (lastResultReportPath.isEmpty() && !saveResultReportPdf()) {
+                return false;
+            }
+
+            File folder = ResultPdfExporter.getResultsDirectory();
+            if (!openFolder(folder)) {
+                throw new IOException("desktop open is not supported");
+            }
+            resultReportNotice = tr("Папка результатов открыта", "Results folder opened");
+            resultReportNoticeCounter = 180;
+            return true;
+        }
+        catch (IOException | UnsupportedOperationException e) {
+            resultReportNotice = tr("Не удалось открыть папку результатов: ", "Could not open results folder: ")
+                    + e.getMessage();
+            resultReportNoticeCounter = 180;
+            return false;
+        }
+    }
+
+    private boolean openFolder(File folder) throws IOException {
+        if (Desktop.isDesktopSupported()) {
+            Desktop.getDesktop().open(folder);
+            return true;
+        }
+        if (System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
+            new ProcessBuilder("explorer", folder.getAbsolutePath()).start();
+            return true;
+        }
+        return false;
+    }
+
+    public String getLastResultReportPath() {
+        return lastResultReportPath;
+    }
+
+    public String getResultReportNotice() {
+        return resultReportNotice;
+    }
+
+    public int getResultReportNoticeCounter() {
+        return resultReportNoticeCounter;
+    }
+
+    public void tickResultReportNotice() {
+        if (resultReportNoticeCounter > 0) {
+            resultReportNoticeCounter--;
+        }
+    }
+
     public int getIntroFrame() {
         return introFrame;
+    }
+
+    public int getFinalSceneFrame() {
+        return finalSceneFrame;
+    }
+
+    public int getFinalSceneTotalFrames() {
+        return FINAL_SCENE_TOTAL_FRAMES;
+    }
+
+    public void finishFinalScene() {
+        finalSceneFrame = FINAL_SCENE_TOTAL_FRAMES;
+        story.finishFinalSceneResult();
     }
 
     public int getIntroFlowFrames() {
@@ -840,6 +993,9 @@ public class GamePanel extends JPanel implements Runnable {
         if (gameState == introState) {
             updateIntroSequence();
         }
+        if (gameState == finalSceneState) {
+            updateFinalScene();
+        }
 
         if (gameState == playState) {
             player.update();
@@ -873,6 +1029,15 @@ public class GamePanel extends JPanel implements Runnable {
         }
         if (introFrame >= INTRO_TOTAL_FRAMES) {
             finishIntroSequence();
+        }
+    }
+
+    private void updateFinalScene() {
+        if (finalSceneFrame < FINAL_SCENE_TOTAL_FRAMES) {
+            finalSceneFrame++;
+        }
+        if (finalSceneFrame >= FINAL_SCENE_TOTAL_FRAMES) {
+            story.finishFinalSceneResult();
         }
     }
 
@@ -1088,7 +1253,7 @@ public class GamePanel extends JPanel implements Runnable {
     private void renderWorldLayer(Graphics2D graphics) {
         clearFrame(graphics);
 
-        if (gameState == titleState) {
+        if (gameState == titleState || gameState == nameInputState) {
             return;
         }
         if (gameState == optionsState && optionsReturnState != pauseState) {
@@ -1644,6 +1809,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     public boolean shouldShowMouseCursor() {
         return gameState == titleState ||
+                gameState == nameInputState ||
                 gameState == pauseState ||
                 gameState == optionsState ||
                 gameState == resultState;
@@ -1689,7 +1855,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private boolean shouldDrawWorldBuffer() {
-        if (gameState == titleState || (gameState == optionsState && optionsReturnState != pauseState)) {
+        if (gameState == titleState || gameState == nameInputState ||
+                (gameState == optionsState && optionsReturnState != pauseState)) {
             return false;
         }
         return gameState != introState || introFrame >= getIntroFadeStartFrame();

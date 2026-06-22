@@ -38,11 +38,21 @@ public class UI {
     private static final String INTRO_DISCLAIMER_TEXT =
             "Во время игры отвечай на вопросы искренне и честно. Reflection реагирует не на правильность, а на твой выбор.";
     private static final int INTRO_TYPE_CHARS_PER_FRAME = 2;
+    private static final int NAME_INPUT_MAX_LENGTH = 28;
+    private static final int FINAL_FADE_FRAMES = 90;
+    private static final int FINAL_STEP_FRAMES = 150;
+    private static final int FINAL_TEXT_CHARS_PER_FRAME = 1;
 
     private final GamePanel gp;
     private Graphics2D g2;
     private final Font titleFont;
     private final BufferedImage titleBackground;
+    private final BufferedImage finalHeroSheet;
+    private final BufferedImage finalShadow;
+    private final BufferedImage finalChild;
+    private final BufferedImage finalFriend;
+    private final BufferedImage finalElder;
+    private final BufferedImage finalWarrior;
     public int commandNum = 0;
     private final ArrayList<String> message = new ArrayList<>();
     private final ArrayList<Integer> messageCounter = new ArrayList<>();
@@ -64,11 +74,20 @@ public class UI {
     private boolean dialogueRevealComplete = true;
     private int lastIntroFrame = -1;
     private int introSoundRevealChars = 0;
+    private String nameInputText = "";
+    private String nameInputNotice = "";
+    private int nameInputNoticeCounter = 0;
 
     public UI(GamePanel gp) {
         this.gp = gp;
         titleFont = GameFonts.bold(84);
         titleBackground = loadTitleBackground();
+        finalHeroSheet = loadImage("/player/new/Amelia_idle_anim_16x16.png");
+        finalShadow = loadImage("/player/characters/shadow.png");
+        finalChild = loadImage("/player/characters/child.png");
+        finalFriend = loadImage("/player/characters/friend.png");
+        finalElder = loadImage("/player/characters/elder.png");
+        finalWarrior = loadImage("/player/characters/warrior_knight.png");
     }
 
     private String t(String text) {
@@ -207,9 +226,51 @@ public class UI {
         dialogueRevealComplete = true;
     }
 
+    public void resetNameInput() {
+        nameInputText = "";
+        nameInputNotice = "";
+        nameInputNoticeCounter = 0;
+    }
+
+    public String getNameInputText() {
+        return nameInputText;
+    }
+
+    public void setNameInputText(String text) {
+        nameInputText = trimNameInput(text == null ? "" : text);
+    }
+
+    public void setNameInputNotice(String text) {
+        nameInputNotice = text == null ? "" : text;
+        nameInputNoticeCounter = 150;
+    }
+
+    public void appendNameInputChar(char value) {
+        if (Character.isISOControl(value) || nameInputText.length() >= NAME_INPUT_MAX_LENGTH) {
+            return;
+        }
+        nameInputText = trimNameInput(nameInputText + value);
+    }
+
+    public void deleteNameInputChar() {
+        if (!nameInputText.isEmpty()) {
+            nameInputText = nameInputText.substring(0, nameInputText.length() - 1);
+        }
+    }
+
+    private String trimNameInput(String value) {
+        return value.length() <= NAME_INPUT_MAX_LENGTH ? value : value.substring(0, NAME_INPUT_MAX_LENGTH);
+    }
+
     public void resetIntroAnimation() {
         lastIntroFrame = -1;
         introSoundRevealChars = 0;
+    }
+
+    public void resetFinalSceneAnimation() {
+        dialogueRevealKey = "";
+        dialogueRevealChars = 0;
+        dialogueRevealComplete = false;
     }
 
     public void draw(Graphics2D g2) {
@@ -219,6 +280,9 @@ public class UI {
 
         if (gp.gameState == gp.titleState) {
             drawTitleScreen();
+        }
+        else if (gp.gameState == gp.nameInputState) {
+            drawNameInputScreen();
         }
         else if (gp.gameState == gp.playState) {
             drawMessage();
@@ -234,6 +298,9 @@ public class UI {
         }
         else if (gp.gameState == gp.dialogueState) {
             drawDialogueScreen();
+        }
+        else if (gp.gameState == gp.finalSceneState) {
+            drawFinalScene();
         }
         else if (gp.gameState == gp.resultState) {
             drawResultScreen();
@@ -309,6 +376,16 @@ public class UI {
         }
     }
 
+    private BufferedImage loadImage(String path) {
+        try {
+            return ImageIO.read(getClass().getResourceAsStream(path));
+        }
+        catch (Exception e) {
+            System.err.println("UI image failed: " + path + " " + e.getMessage());
+            return null;
+        }
+    }
+
     private void drawTitleBackground() {
         if (titleBackground != null) {
             g2.drawImage(titleBackground, 0, 0, gp.screenWidth, gp.screenHeight, null);
@@ -367,6 +444,59 @@ public class UI {
         g2.drawString(String.format("%02d", command + 1), x - 6, baselineY - 1);
     }
 
+    private void drawNameInputScreen() {
+        drawTitleBackground();
+        drawTitleBrand();
+
+        int width = 560;
+        int height = 245;
+        int x = gp.screenWidth / 2 - width / 2;
+        int y = 230;
+        UiGraphics.drawSubWindow(g2, x, y, width, height, new Color(8, 12, 16, 220));
+
+        g2.setFont(GameFonts.bold(32));
+        g2.setColor(new Color(236, 245, 240));
+        String title = t("Как тебя зовут?", "What is your name?");
+        g2.drawString(title, UiGraphics.getCenteredX(g2, gp.screenWidth, title), y + 52);
+
+        g2.setFont(GameFonts.regular(19));
+        g2.setColor(new Color(190, 206, 199));
+        String subtitle = t("Имя будет добавлено в итоговый PDF для психолога.",
+                "The name will be added to the final PDF for the psychologist.");
+        g2.drawString(subtitle, UiGraphics.getCenteredX(g2, gp.screenWidth, subtitle), y + 82);
+
+        int inputX = x + 54;
+        int inputY = y + 112;
+        int inputW = width - 108;
+        int inputH = 58;
+        g2.setColor(new Color(0, 0, 0, 165));
+        g2.fillRoundRect(inputX, inputY, inputW, inputH, 12, 12);
+        g2.setColor(new Color(174, 215, 196, 210));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(inputX, inputY, inputW, inputH, 12, 12);
+
+        g2.setFont(GameFonts.bold(28));
+        boolean empty = nameInputText.isEmpty();
+        String displayedName = empty ? t("Имя", "Name") : nameInputText;
+        if (!empty && System.currentTimeMillis() / 420 % 2 == 0) {
+            displayedName += "|";
+        }
+        g2.setColor(empty ? new Color(128, 150, 143) : new Color(244, 250, 247));
+        g2.drawString(UiGraphics.trimToWidth(g2, displayedName, inputW - 36), inputX + 18, inputY + 38);
+
+        g2.setFont(GameFonts.semibold(18));
+        g2.setColor(new Color(255, 222, 151));
+        String hint = t("Enter — продолжить    Esc — назад", "Enter - continue    Esc - back");
+        g2.drawString(hint, UiGraphics.getCenteredX(g2, gp.screenWidth, hint), y + 206);
+
+        if (nameInputNoticeCounter > 0 && !nameInputNotice.isEmpty()) {
+            nameInputNoticeCounter--;
+            g2.setFont(GameFonts.bold(17));
+            g2.setColor(new Color(226, 118, 104));
+            g2.drawString(t(nameInputNotice), UiGraphics.getCenteredX(g2, gp.screenWidth, t(nameInputNotice)), y + 228);
+        }
+    }
+
     private void drawHud() {
         int x = 24;
         int y = 22;
@@ -411,18 +541,35 @@ public class UI {
             return;
         }
 
+        drawCornerNotice(
+                t("Контрольная точка", "Checkpoint"),
+                t("Сохранение...", "Saving..."),
+                checkpointLocation.isEmpty() ? "" : t(checkpointLocation),
+                checkpointCounter,
+                checkpointSpinnerFrame,
+                false);
+        checkpointSpinnerFrame++;
+        checkpointCounter--;
+        if (checkpointCounter <= 0) {
+            checkpointLocation = "";
+        }
+    }
+
+    private void drawCornerNotice(String title, String subtitle, String detail,
+                                  int counter, int spinnerFrame, boolean error) {
         int width = Math.min(326, gp.screenWidth - 48);
         int height = 92;
         int x = gp.screenWidth - width - 24;
         int y = 24;
 
-        int alpha = checkpointCounter < 30 ? Math.max(0, checkpointCounter * 7) : 210;
+        int alpha = counter < 30 ? Math.max(0, counter * 7) : 210;
+        Color accent = error ? new Color(226, 118, 104) : new Color(174, 215, 196);
         g2.setColor(new Color(0, 0, 0, Math.min(150, alpha)));
         g2.fillRoundRect(x + 7, y + 8, width, height, 18, 18);
 
         g2.setColor(new Color(7, 11, 15, Math.min(232, alpha + 22)));
         g2.fillRoundRect(x, y, width, height, 18, 18);
-        g2.setColor(new Color(174, 215, 196, Math.min(220, alpha)));
+        g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), Math.min(220, alpha)));
         g2.setStroke(new BasicStroke(2));
         g2.drawRoundRect(x + 3, y + 3, width - 6, height - 6, 15, 15);
 
@@ -433,29 +580,23 @@ public class UI {
         g2.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g2.setColor(new Color(255, 255, 255, Math.min(46, alpha)));
         g2.drawOval(spinnerX, spinnerY, spinnerSize, spinnerSize);
-        g2.setColor(new Color(174, 215, 196, Math.min(245, alpha + 20)));
-        g2.drawArc(spinnerX, spinnerY, spinnerSize, spinnerSize, (checkpointSpinnerFrame * 16) % 360, 260);
+        g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), Math.min(245, alpha + 20)));
+        g2.drawArc(spinnerX, spinnerY, spinnerSize, spinnerSize, (spinnerFrame * 16) % 360, 260);
         g2.setStroke(oldStroke);
 
         int textX = x + 68;
         g2.setFont(GameFonts.bold(17));
         g2.setColor(new Color(236, 248, 242, Math.min(255, alpha + 30)));
-        g2.drawString(t("Контрольная точка", "Checkpoint"), textX, y + 31);
+        g2.drawString(UiGraphics.trimToWidth(g2, title, width - 88), textX, y + 31);
 
         g2.setFont(GameFonts.regular(15));
-        g2.setColor(new Color(174, 215, 196, Math.min(240, alpha + 20)));
-        g2.drawString(t("Сохранение...", "Saving..."), textX, y + 55);
+        g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), Math.min(240, alpha + 20)));
+        g2.drawString(UiGraphics.trimToWidth(g2, subtitle, width - 88), textX, y + 55);
 
-        if (!checkpointLocation.isEmpty()) {
+        if (!detail.isEmpty()) {
             g2.setFont(GameFonts.regular(13));
             g2.setColor(new Color(206, 219, 212, Math.min(220, alpha + 10)));
-            g2.drawString(UiGraphics.trimToWidth(g2, t(checkpointLocation), width - 88), textX, y + 76);
-        }
-
-        checkpointSpinnerFrame++;
-        checkpointCounter--;
-        if (checkpointCounter <= 0) {
-            checkpointLocation = "";
+            g2.drawString(UiGraphics.trimToWidth(g2, detail, width - 88), textX, y + 76);
         }
     }
 
@@ -1395,6 +1536,253 @@ public class UI {
         }
     }
 
+    private void drawFinalScene() {
+        int frame = gp.getFinalSceneFrame();
+        float fadeProgress = Math.min(1f, frame / (float) FINAL_FADE_FRAMES);
+        if (frame < FINAL_FADE_FRAMES) {
+            int alpha = Math.round(255 * UiGraphics.easeInOut(fadeProgress));
+            drawFinalCinemaBars(fadeProgress);
+            g2.setColor(new Color(0, 0, 0, alpha));
+            g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+            return;
+        }
+
+        int sceneFrame = Math.max(0, frame - FINAL_FADE_FRAMES);
+        int stepCount = getFinalSceneStepCount();
+        int step = Math.min(stepCount - 1, sceneFrame / FINAL_STEP_FRAMES);
+        int stepFrame = sceneFrame - step * FINAL_STEP_FRAMES;
+        float sceneProgress = Math.min(1f, sceneFrame / 54f);
+
+        drawFinalSceneBackground(sceneProgress);
+        drawFinalCharacters(step, sceneProgress);
+        drawFinalCinemaBars(1f);
+        drawFinalSceneText(step, stepFrame, sceneProgress);
+    }
+
+    private void drawFinalSceneBackground(float progress) {
+        g2.setColor(Color.black);
+        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+
+        int alpha = Math.round(62 * UiGraphics.easeOut(progress));
+        UiGraphics.fillVerticalGradient(g2, 0, 0, gp.screenWidth, gp.screenHeight,
+                new Color(9, 12, 17, alpha), new Color(0, 0, 0, 255));
+
+        int roomWidth = Math.round(gp.screenWidth * 0.64f);
+        int roomHeight = Math.round(gp.screenHeight * 0.34f);
+        int roomX = gp.screenWidth / 2 - roomWidth / 2;
+        int roomY = gp.screenHeight / 2 - roomHeight / 2 + 34;
+        g2.setColor(new Color(24, 30, 34, Math.round(74 * progress)));
+        g2.fillOval(roomX, roomY, roomWidth, roomHeight);
+        g2.setColor(new Color(174, 215, 196, Math.round(32 * progress)));
+        g2.drawOval(roomX + 18, roomY + 16, roomWidth - 36, roomHeight - 32);
+    }
+
+    private void drawFinalCharacters(int step, float progress) {
+        int active = getFinalSceneActiveCharacter(step);
+        int centerX = gp.screenWidth / 2;
+        int centerY = gp.screenHeight / 2 + 58;
+        int appearOffset = Math.round((1f - UiGraphics.easeOut(progress)) * 24);
+
+        drawFinalCharacter(finalElder, t("Старик", "Elder"),
+                centerX - 150, centerY - 96 + appearOffset, 80, 80, active == 0, active == -1, progress);
+        drawFinalCharacter(finalShadow, t("Тень", "Shadow"),
+                centerX, centerY - 138 + appearOffset, 72, 72, active == 1, active == -1, progress);
+        drawFinalCharacter(finalChild, t("Ребёнок", "Child"),
+                centerX + 150, centerY - 96 + appearOffset, 78, 78, active == 2, active == -1, progress);
+        drawFinalHero(centerX, centerY + 28 + appearOffset, progress);
+        drawFinalCharacter(finalFriend, t("Друг", "Friend"),
+                centerX - 118, centerY + 44 + appearOffset, 80, 80, active == 3, active == -1, progress);
+        drawFinalCharacter(finalWarrior, t("Воин", "Warrior"),
+                centerX + 122, centerY + 44 + appearOffset, 86, 86, active == 4, active == -1, progress);
+    }
+
+    private void drawFinalHero(int centerX, int bottomY, float progress) {
+        int width = 58;
+        int height = 116;
+        int x = centerX - width / 2;
+        int y = bottomY - height;
+
+        Composite oldComposite = g2.getComposite();
+        g2.setComposite(AlphaComposite.SrcOver.derive(Math.max(0f, Math.min(1f, progress))));
+        g2.setColor(new Color(174, 215, 196, 38));
+        g2.fillOval(centerX - 42, bottomY - 18, 84, 26);
+        if (finalHeroSheet != null) {
+            int sourceX = 18 * 16;
+            g2.drawImage(finalHeroSheet, x, y, x + width, y + height,
+                    sourceX, 0, sourceX + 16, 32, null);
+        }
+        else {
+            g2.setColor(new Color(174, 215, 196));
+            g2.fillRoundRect(x + 12, y + 20, width - 24, height - 20, 14, 14);
+        }
+        g2.setComposite(oldComposite);
+    }
+
+    private void drawFinalCharacter(BufferedImage image, String label, int centerX, int bottomY,
+                                    int width, int height, boolean active, boolean allActive, float progress) {
+        float baseAlpha = active || allActive ? 1f : 0.32f;
+        float alpha = Math.max(0f, Math.min(1f, baseAlpha * progress));
+        float pulse = active ? 1f + (float) Math.sin(gp.getFinalSceneFrame() * 0.09f) * 0.035f : 1f;
+        int drawW = Math.round(width * pulse);
+        int drawH = Math.round(height * pulse);
+        int x = centerX - drawW / 2;
+        int y = bottomY - drawH;
+
+        Composite oldComposite = g2.getComposite();
+        g2.setComposite(AlphaComposite.SrcOver.derive(alpha));
+        if (active) {
+            g2.setColor(new Color(174, 215, 196, 46));
+            g2.fillOval(centerX - drawW / 2 - 18, bottomY - drawH - 16, drawW + 36, drawH + 42);
+        }
+        g2.setColor(new Color(0, 0, 0, Math.round(110 * alpha)));
+        g2.fillOval(centerX - drawW / 2 + 6, bottomY - 15, drawW - 12, 22);
+        if (image != null) {
+            g2.drawImage(image, x, y, drawW, drawH, null);
+        }
+        else {
+            g2.setColor(new Color(178, 190, 184, Math.round(255 * alpha)));
+            g2.fillRoundRect(x + 10, y + 8, drawW - 20, drawH - 8, 12, 12);
+        }
+
+        if (active) {
+            g2.setFont(GameFonts.bold(18));
+            String trimmed = UiGraphics.trimToWidth(g2, label, 120);
+            UiGraphics.drawShadowedString(g2, trimmed,
+                    centerX - g2.getFontMetrics().stringWidth(trimmed) / 2,
+                    y - 12,
+                    new Color(236, 246, 240),
+                    new Color(0, 0, 0, 180));
+        }
+        g2.setComposite(oldComposite);
+    }
+
+    private void drawFinalCinemaBars(float progress) {
+        float eased = UiGraphics.easeOut(progress);
+        int barHeight = Math.round(gp.screenHeight * 0.145f * eased);
+        g2.setColor(Color.black);
+        g2.fillRect(0, 0, gp.screenWidth, barHeight);
+        g2.fillRect(0, gp.screenHeight - barHeight, gp.screenWidth, barHeight);
+    }
+
+    private void drawFinalSceneText(int step, int stepFrame, float progress) {
+        String speaker = getFinalSceneSpeaker(step);
+        String fullText = getFinalSceneText(step);
+        int revealChars = Math.min(fullText.length(), Math.max(0, stepFrame - 16) * FINAL_TEXT_CHARS_PER_FRAME);
+        String text = revealFinalText("final|" + gp.languageMode + "|" + step + "|" + fullText, fullText, revealChars);
+
+        int panelWidth = gp.screenWidth - gp.tileSize * 2;
+        int panelHeight = 142;
+        int x = gp.tileSize;
+        int y = gp.screenHeight - panelHeight - 22;
+        int alpha = Math.round(224 * UiGraphics.easeOut(progress));
+
+        g2.setColor(new Color(0, 0, 0, Math.min(220, alpha)));
+        g2.fillRoundRect(x, y, panelWidth, panelHeight, 18, 18);
+        g2.setColor(new Color(174, 215, 196, Math.min(150, alpha)));
+        g2.drawRoundRect(x + 3, y + 3, panelWidth - 6, panelHeight - 6, 14, 14);
+
+        g2.setFont(GameFonts.bold(22));
+        g2.setColor(new Color(174, 215, 196, alpha));
+        g2.drawString(speaker, x + 28, y + 39);
+
+        g2.setFont(GameFonts.regular(25));
+        g2.setColor(new Color(242, 247, 244, alpha));
+        UiGraphics.drawWrappedText(g2, text, x + 28, y + 76, panelWidth - 56, 31);
+
+        if (dialogueRevealComplete) {
+            int dotAlpha = 90 + (int) (Math.sin(gp.getFinalSceneFrame() * 0.16) * 70);
+            g2.setColor(new Color(255, 222, 151, Math.max(35, dotAlpha)));
+            g2.fillOval(x + panelWidth - 50, y + panelHeight - 36, 8, 8);
+        }
+
+        g2.setFont(GameFonts.regular(14));
+        g2.setColor(new Color(190, 204, 198, Math.min(180, alpha)));
+        String hint = t("E / Enter - пропустить", "E / Enter - skip");
+        g2.drawString(hint, x + panelWidth - g2.getFontMetrics().stringWidth(hint) - 28, y + panelHeight - 18);
+    }
+
+    private String revealFinalText(String key, String text, int targetChars) {
+        if (!key.equals(dialogueRevealKey)) {
+            dialogueRevealKey = key;
+            dialogueRevealChars = 0;
+            dialogueRevealComplete = false;
+        }
+
+        int previousChars = dialogueRevealChars;
+        dialogueRevealChars = Math.max(dialogueRevealChars, Math.min(text.length(), targetChars));
+        if (dialogueRevealChars > previousChars) {
+            gp.playDialogueTypeSE();
+        }
+        dialogueRevealComplete = dialogueRevealChars >= text.length();
+        return text.substring(0, Math.min(dialogueRevealChars, text.length()));
+    }
+
+    private int getFinalSceneStepCount() {
+        return 7;
+    }
+
+    private int getFinalSceneActiveCharacter(int step) {
+        switch (step) {
+            case 1:
+                return 0;
+            case 2:
+                return 1;
+            case 3:
+                return 2;
+            case 4:
+                return 3;
+            case 5:
+                return 4;
+            default:
+                return -1;
+        }
+    }
+
+    private String getFinalSceneSpeaker(int step) {
+        switch (step) {
+            case 1:
+                return t("Старик", "Elder");
+            case 2:
+                return t("Тень", "Shadow");
+            case 3:
+                return t("Ребёнок", "Child");
+            case 4:
+                return t("Друг", "Friend");
+            case 5:
+                return t("Воин", "Warrior");
+            case 6:
+                return "Reflection";
+            default:
+                return t("Вершина", "Summit");
+        }
+    }
+
+    private String getFinalSceneText(int step) {
+        switch (step) {
+            case 1:
+                return t("Старик: Понимание уже рядом. Не ищи ответ снаружи.",
+                        "Elder: Understanding is close. Do not search for the answer outside.");
+            case 2:
+                return t("Тень: Я не враг. Я та часть, которую ты боялся увидеть.",
+                        "Shadow: I am not an enemy. I am the part you were afraid to see.");
+            case 3:
+                return t("Ребёнок: Я помню страх, но рядом с ним всегда было желание жить.",
+                        "Child: I remember fear, but beside it there was always a wish to live.");
+            case 4:
+                return t("Друг: Даже когда ты уходил в тишину, связь не исчезала полностью.",
+                        "Friend: Even when you stepped into silence, the bond never disappeared completely.");
+            case 5:
+                return t("Воин: Весь путь проходил внутри твоего разума. Каждая встреча была частью тебя.",
+                        "Warrior: The whole path took place inside your mind. Every encounter was a part of you.");
+            case 6:
+                return t("Теперь Reflection соберёт результат: выборы, решения, воспоминания и метрики, которые выросли из твоего прохождения.",
+                        "Now Reflection will collect the result: choices, decisions, memories, and metrics shaped by your playthrough.");
+            default:
+                return t("Комната гаснет. Все пятеро стоят кругом, и темнота больше не кажется пустой.",
+                        "The room fades out. All five stand around you, and the darkness no longer feels empty.");
+        }
+    }
+
     private void drawResultScreen() {
         g2.setColor(new Color(10, 12, 15, 235));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
@@ -1433,9 +1821,40 @@ public class UI {
         g2.setColor(Color.white);
         UiGraphics.drawWrappedText(g2, t(gp.story.getRecommendation()), frameX + 26, textY + 48, frameWidth - 52, 26);
 
+        drawResultReportToast();
+
         g2.setFont(GameFonts.bold(27));
-        drawResultMenuItem(t("ПРОЙТИ ЕЩЁ РАЗ", "PLAY AGAIN"), 0, gp.screenHeight - 96);
-        drawResultMenuItem(t("В ГЛАВНОЕ МЕНЮ", "MAIN MENU"), 1, gp.screenHeight - 54);
+        drawResultMenuItem(t("ПАПКА С РЕЗУЛЬТАТОМ", "RESULT FOLDER"), 0, gp.screenHeight - 128);
+        drawResultMenuItem(t("ПРОЙТИ ЕЩЁ РАЗ", "PLAY AGAIN"), 1, gp.screenHeight - 86);
+        drawResultMenuItem(t("В ГЛАВНОЕ МЕНЮ", "MAIN MENU"), 2, gp.screenHeight - 44);
+    }
+
+    private void drawResultReportToast() {
+        if (gp.getResultReportNoticeCounter() <= 0 || gp.getResultReportNotice().isEmpty()) {
+            return;
+        }
+
+        String notice = gp.getResultReportNotice();
+        boolean error = notice.startsWith("Не удалось") || notice.startsWith("Could not");
+        String path = gp.getLastResultReportPath();
+        String detail = error ? notice : fileName(path);
+        drawCornerNotice(
+                error ? t("PDF не сохранён", "PDF failed") : t("PDF сохранён", "PDF saved"),
+                error ? t("Проверь папку игры", "Check the game folder") : t("Файл готов", "File is ready"),
+                detail,
+                gp.getResultReportNoticeCounter(),
+                dialogueSpinnerFrame,
+                error);
+        dialogueSpinnerFrame++;
+        gp.tickResultReportNotice();
+    }
+
+    private String fileName(String path) {
+        if (path == null || path.isEmpty()) {
+            return "";
+        }
+        int slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        return slash >= 0 ? path.substring(slash + 1) : path;
     }
 
     private void drawChoices(StoryPrompt prompt, int x, int y, int width,

@@ -179,13 +179,12 @@ public class MouseHandler extends MouseAdapter {
     private int getResultCommand(Point point) {
         int width = 640;
         int x = gp.screenWidth / 2 - width / 2;
-        int firstY = gp.screenHeight - 96;
-        if (new Rectangle(x, firstY - 34, width, 40).contains(point)) {
-            return 0;
-        }
-        int secondY = gp.screenHeight - 54;
-        if (new Rectangle(x, secondY - 34, width, 40).contains(point)) {
-            return 1;
+        int firstY = gp.screenHeight - 128;
+        for (int command = 0; command < 3; command++) {
+            int y = firstY + command * 42;
+            if (new Rectangle(x, y - 34, width, 40).contains(point)) {
+                return command;
+            }
         }
         return NO_COMMAND;
     }

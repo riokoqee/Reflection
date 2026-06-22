@@ -56,6 +56,8 @@ public class TestLogic {
             runTest("Test 17: objective plan note", TestLogic::testObjectivePlanNote);
             runTest("Test 18: title save slots and intro", TestLogic::testTitleSaveSlotsAndIntro);
             runTest("Test 19: memory system", TestLogic::testMemorySystem);
+            runTest("Test 20: result PDF report", TestLogic::testResultPdfReport);
+            runTest("Test 21: final cinematic scene", TestLogic::testFinalCinematicScene);
         }
         finally {
             for (int i = 0; i < saveFiles.length; i++) {
@@ -262,8 +264,10 @@ public class TestLogic {
         assertBlocked(gp, 26, 17, "Compact bathroom left wall");
         assertWalkable(gp, 27, 20, "Compact bathroom doorway");
         assertWalkable(gp, 28, 20, "Compact bathroom floor");
-        assertBlocked(gp, 34, 17, "Compact bathroom right wall");
-        assertBlocked(gp, 35, 20, "Removed bathroom right side");
+        assertBlocked(gp, 33, 17, "Compact bathroom right wall");
+        assertBlocked(gp, 34, 20, "Removed bathroom right side");
+        assertBlocked(gp, 30, 23, "Compact bathroom bottom wall");
+        assertBlocked(gp, 30, 24, "Removed bathroom bottom side");
 
         assertPlayerBlocked(gp, gp.tileSize * 14, gp.tileSize * 7 - gp.player.solidArea.y, "up", "Top boundary");
         assertPlayerBlocked(gp, gp.tileSize * 14,
@@ -1166,6 +1170,81 @@ public class TestLogic {
         }
     }
 
+    public static void testResultPdfReport() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+        gp.story.startNewGame();
+        gp.setPlayerName("Тестовый игрок");
+        gp.story.interactObject("Bed");
+        finishLockedDialogue(gp);
+
+        if (!gp.saveResultReportPdf()) {
+            throw new AssertionError("Result PDF report must be saved");
+        }
+
+        File pdf = new File(gp.getLastResultReportPath());
+        try {
+            File parent = pdf.getParentFile();
+            if (parent == null || !"results".equals(parent.getName())) {
+                throw new AssertionError("Result PDF report must be saved inside the results folder");
+            }
+            byte[] header = Files.readAllBytes(pdf.toPath());
+            if (header.length < 5 ||
+                    header[0] != '%' || header[1] != 'P' || header[2] != 'D' || header[3] != 'F') {
+                throw new AssertionError("Saved report must be a PDF file");
+            }
+            if (pdf.length() < 10_000) {
+                throw new AssertionError("Saved report must contain rendered pages");
+            }
+        }
+        catch (IOException e) {
+            throw new AssertionError("Saved report must be readable: " + e.getMessage());
+        }
+        finally {
+            if (pdf.exists() && !pdf.delete()) {
+                pdf.deleteOnExit();
+            }
+        }
+    }
+
+    public static void testFinalCinematicScene() {
+        GamePanel gp = new GamePanel();
+        gp.setupGame();
+        gp.story.startNewGame();
+        gp.setPlayerName("Final Test");
+        gp.story.growth = 72;
+        gp.story.calm = 48;
+        gp.story.empathy = 80;
+
+        gp.startFinalScene();
+        assertEquals(gp.finalSceneState, gp.gameState, "Final scene must become the active game state");
+
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
+                gp.screenWidth, gp.screenHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        try {
+            gp.ui.draw(g2);
+        }
+        finally {
+            g2.dispose();
+        }
+
+        gp.finishFinalScene();
+        assertEquals(gp.resultState, gp.gameState, "Skipping the final scene must open the result screen");
+
+        File pdf = new File(gp.getLastResultReportPath());
+        try {
+            if (!pdf.isFile()) {
+                throw new AssertionError("Final scene must save a result PDF");
+            }
+        }
+        finally {
+            if (pdf.exists() && !pdf.delete()) {
+                pdf.deleteOnExit();
+            }
+        }
+    }
+
     public static void testMountainMapLayout() {
         GamePanel gp = new GamePanel();
         gp.setupGame();
@@ -1262,6 +1341,7 @@ public class TestLogic {
         gp.setupGame();
 
         gp.story.startNewGame();
+        gp.setPlayerName("Слот два");
         gp.saveLoad.save(2);
         if (!gp.saveLoad.hasAnySave() || !gp.saveLoad.hasSave(2)) {
             throw new AssertionError("Save slot 2 must be available after saving");
@@ -1279,6 +1359,9 @@ public class TestLogic {
         gp.keyH.titleState(KeyEvent.VK_ENTER);
         assertEquals(gp.playState, gp.gameState, "Loading a populated slot must enter gameplay");
         assertEquals(2, gp.saveLoad.getCurrentSlot(), "Loading slot 2 must make it the active save slot");
+        if (!"Слот два".equals(gp.getPlayerName())) {
+            throw new AssertionError("Loading a save slot must restore the player name");
+        }
 
         gp.gameState = gp.titleState;
         gp.ui.returnToTitleMain();
@@ -1290,7 +1373,13 @@ public class TestLogic {
 
         gp.ui.commandNum = 2;
         gp.keyH.titleState(KeyEvent.VK_ENTER);
+        assertEquals(gp.nameInputState, gp.gameState, "Starting a new slot must ask for the player name");
+        gp.ui.setNameInputText("Аскар");
+        gp.confirmPlayerName();
         assertEquals(gp.introState, gp.gameState, "Starting a new slot must show the intro disclaimer");
+        if (!"Аскар".equals(gp.getPlayerName())) {
+            throw new AssertionError("Confirmed name must be stored on the game panel");
+        }
         assertEquals(3, gp.saveLoad.getCurrentSlot(), "New game in slot 3 must make slot 3 active");
         if (!gp.saveLoad.hasSave(3)) {
             throw new AssertionError("Starting a new slot must create a save in that slot");

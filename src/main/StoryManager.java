@@ -52,6 +52,7 @@ public class StoryManager {
     private boolean removeDirtyDishesAfterDialogue = false;
     private boolean pendingPhonePromptAfterDresser = false;
     private boolean autoCloseTimedMessage = false;
+    private final ResultReport resultReport = new ResultReport();
 
     public int growth;
     public int calm;
@@ -80,6 +81,9 @@ public class StoryManager {
 
     public void startNewGame() {
         resetMetrics();
+        resultReport.reset();
+        recordReportEvent("Квартира", "Начало прохождения",
+                "Игра началась в квартире. Стартовые метрики сохранены как базовая точка отчёта.");
         resetOptionalEvents();
         stage = STAGE_MAKE_BED;
         apartmentShadowConversationStarted = false;
@@ -134,6 +138,30 @@ public class StoryManager {
         pendingPhonePromptAfterDresser = false;
         autoCloseTimedMessage = false;
         clearDialogue();
+    }
+
+    public ArrayList<ReportEntry> getReportEntries() {
+        return resultReport.copyEntries();
+    }
+
+    public int getReportChoiceCount() {
+        return resultReport.countChoices();
+    }
+
+    public int getReportEventCount() {
+        return resultReport.countEvents();
+    }
+
+    public void loadReportEntries(ArrayList<ReportEntry> entries) {
+        resultReport.load(entries);
+        if (entries == null || entries.isEmpty()) {
+            recordReportEvent(getLocationTitle(), "Загружено старое сохранение",
+                    "Подробная история выборов отсутствует, потому что сохранение было создано до появления PDF-отчётов.");
+        }
+    }
+
+    public String getReportMetricSnapshot() {
+        return ResultReport.metricsText(growth, calm, empathy, confidence, responsibility, avoidance, selfWorth);
     }
 
     public int getStage() {
@@ -221,6 +249,8 @@ public class StoryManager {
         }
         else if (stage == STAGE_MAKE_BED && matchesObject(objectName, "Bed")) {
             stage = STAGE_MAKE_TEA;
+            recordReportEvent("Спальня", "Заправлена кровать",
+                    "Кровать приведена в порядок. В плане появилась следующая задача: убрать посуду на кухне.");
             openTimedMessage("Квартира",
                     "Кровать приведена в порядок. В квартире стало чуть спокойнее. Теперь можно пройти на кухню и убрать посуду.",
                     gp.playSEAndGetDurationFrames(Sound.BED_INTERACT));
@@ -228,6 +258,8 @@ public class StoryManager {
         else if (stage == STAGE_MAKE_TEA && matchesObject(objectName, "Dirty Dishes", "Kitchen Wall Sink")) {
             stage = STAGE_WASH_FACE;
             removeDirtyDishesAfterDialogue = true;
+            recordReportEvent("Кухня", "Убрана грязная посуда",
+                    "Грязные тарелки были убраны из раковины. После события объект посуды исчезает с кухни.");
             int dishesFrames = gp.playSEAndGetDurationFrames(Sound.DISHES);
             int waterFrames = gp.playSEAndGetDurationFrames(Sound.WATER_SINK);
             openTimedMessage("Кухня",
@@ -236,6 +268,8 @@ public class StoryManager {
         }
         else if (stage == STAGE_WASH_FACE && matchesObject(objectName, "Bathroom Mirror")) {
             stage = STAGE_REST_IN_HALL;
+            recordReportEvent("Ванная", "Герой умылся",
+                    "Задача ванной завершена. Следующая цель переносит игрока в зал.");
             openTimedMessage("Ванная",
                     "Холодная вода возвращает ощущение утра. В зале стало необычно тихо.",
                     gp.playSEAndGetDurationFrames(Sound.WATER_SINK));
@@ -246,6 +280,8 @@ public class StoryManager {
                 return;
             }
             stage = STAGE_SHADOW_FIRST;
+            recordReportEvent("Зал", "Отдых на диване",
+                    "Игрок включил телевизор и сел на диван. После паузы в квартире появилась Тень у зеркала.");
             gp.aSetter.setNPC();
             int sofaFrames = gp.playSEAndGetDurationFrames(Sound.SOFA_SIT);
             int shadowFrames = gp.playSEAndGetDurationFrames(Sound.SHADOW_WHOOSH);
@@ -269,11 +305,15 @@ public class StoryManager {
 
     private void toggleBedroomLamp() {
         gp.bedroomLampOn = !gp.bedroomLampOn;
+        recordReportEvent("Спальня", gp.bedroomLampOn ? "Лампа включена" : "Лампа выключена",
+                gp.bedroomLampOn ? "В спальне появился мягкий свет." : "Свет спальни был выключен.");
         gp.playSE(Sound.LIGHT_SWITCH);
     }
 
     private void toggleTV() {
         gp.tvOn = !gp.tvOn;
+        recordReportEvent("Зал", gp.tvOn ? "Телевизор включён" : "Телевизор выключен",
+                gp.tvOn ? "На экране появился шум, необходимый для отдыха на диване." : "Телевизор снова погас.");
         gp.playSE(Sound.MENU_CONFIRM);
     }
 
@@ -281,6 +321,8 @@ public class StoryManager {
         if (!phoneDresserOpen && !phoneEventDone) {
             phoneDresserOpen = true;
             pendingPhonePromptAfterDresser = true;
+            recordReportEvent("Спальня", "Открыт комод",
+                    "В комоде найден телефон. После открытия начинается переписка с мамой.");
             gp.playSE(Sound.MENU_CONFIRM);
             openMessage("Комод",
                     "Ящик выдвигается с тихим щелчком. Внутри лежит телефон, и экран сразу загорается сообщением от мамы.");
@@ -528,6 +570,8 @@ public class StoryManager {
         gp.player.setPosition(24, 21);
         gp.player.direction = "up";
         gp.aSetter.setNPC();
+        recordReportEvent("Библиотека", "Вход в библиотеку",
+                "Игрок вошёл в дом-библиотеку деревни, где находится Старик.");
         gp.saveLoad.save();
         gp.ui.showCheckpoint(getLocationTitle());
     }
@@ -538,6 +582,8 @@ public class StoryManager {
         gp.player.setPosition(28, 10);
         gp.player.direction = "down";
         gp.aSetter.setNPC();
+        recordReportEvent("Деревня Связей", "Выход из библиотеки",
+                "Игрок вернулся из библиотеки в деревню.");
         gp.saveLoad.save();
     }
 
@@ -616,6 +662,7 @@ public class StoryManager {
 
         StoryPrompt prompt = activePrompt;
         Choice choice = prompt.choices[selectedChoice];
+        String beforeMetrics = getReportMetricSnapshot();
         growth += choice.growth;
         calm += choice.calm;
         empathy += choice.empathy;
@@ -624,6 +671,7 @@ public class StoryManager {
         avoidance += choice.avoidance;
         selfWorth += choice.selfWorth;
         clampMetrics();
+        resultReport.recordChoice(getLocationTitle(), prompt, choice, beforeMetrics, getReportMetricSnapshot());
 
         if (isOptionalPrompt(prompt.id)) {
             finishOptionalPrompt(prompt.id, choice);
@@ -654,12 +702,23 @@ public class StoryManager {
         }
         else if ("warrior".equals(prompt.id)) {
             stage = STAGE_DONE;
-            finishChoice(
-                    "Вершина",
-                    "Все пятеро стоят кругом.\n\nСтарик: Понимание уже рядом?\nТень: Мы никогда не были снаружи.\nРебёнок: Мы - это ты.\nДруг: Всё, что было видно... это твоя голова.\nВоин: Этот путь проходил внутри собственного разума.\n\nЭто был твой внутренний мир. Каждый выбор здесь похож на выбор, который ты делаешь в реальной жизни.",
-                    -1, 0, 0, true
-            );
+            startFinalScene();
         }
+    }
+
+    private void startFinalScene() {
+        activePrompt = null;
+        clearPhoneResult();
+        messageSpeaker = "";
+        messageText = "";
+        dialogueLockCounter = 0;
+        dialogueLockTotalFrames = 0;
+        pendingMap = -1;
+        pendingResult = false;
+        selectedChoice = 0;
+        recordReportEvent("Вершина", "Финальная сцена",
+                "Воин раскрыл смысл пути: все встреченные персонажи оказались частями внутреннего мира игрока.");
+        gp.startFinalScene();
     }
 
     private boolean isOptionalPrompt(String id) {
@@ -785,6 +844,8 @@ public class StoryManager {
             gp.currentMap = pendingMap;
             gp.player.setPosition(pendingCol, pendingRow);
             gp.player.direction = "down";
+            recordReportEvent(getLocationTitle(), "Переход в новую локацию",
+                    "Игрок перешёл в локацию: " + getLocationTitle() + ".");
             pendingMap = -1;
         }
 
@@ -792,6 +853,10 @@ public class StoryManager {
 
         if (shouldShowResult) {
             gp.gameState = gp.resultState;
+            gp.ui.commandNum = 0;
+            recordReportEvent(getLocationTitle(), "Финал открыт",
+                    "Путь завершён. Итоговый профиль и PDF-отчёт доступны на экране результата.");
+            gp.saveResultReportPdf();
         }
         else {
             gp.gameState = gp.playState;
@@ -806,6 +871,20 @@ public class StoryManager {
         if (openedNewLocation && !shouldShowResult) {
             gp.ui.showCheckpoint(getLocationTitle());
         }
+    }
+
+    public void finishFinalSceneResult() {
+        if (gp.gameState == gp.resultState) {
+            return;
+        }
+
+        clearDialogue();
+        gp.gameState = gp.resultState;
+        gp.ui.commandNum = 0;
+        recordReportEvent(getLocationTitle(), "Финал открыт",
+                "Путь завершён. Итоговый профиль и PDF-отчёт доступны на экране результата.");
+        gp.saveResultReportPdf();
+        gp.saveLoad.save();
     }
 
     public boolean canContinueDialogue() {
@@ -1202,6 +1281,11 @@ public class StoryManager {
     private Choice optionalChoice(String text, int growth, int calm, int empathy, int confidence,
                                   int responsibility, int avoidance, int selfWorth, String resultText) {
         return new Choice(text, growth, calm, empathy, confidence, responsibility, avoidance, selfWorth, resultText);
+    }
+
+    private void recordReportEvent(String location, String title, String result) {
+        String metrics = getReportMetricSnapshot();
+        resultReport.recordEvent(location, title, result, metrics, metrics);
     }
 
     private void resetMetrics() {

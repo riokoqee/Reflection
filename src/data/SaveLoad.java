@@ -48,6 +48,7 @@ public class SaveLoad {
             DataStorage ds = new DataStorage();
 
             ds.currentMap = gp.currentMap;
+            ds.playerName = gp.getPlayerName();
             ds.playerWorldX = gp.player.worldX;
             ds.playerWorldY = gp.player.worldY;
             ds.storyStage = gp.story.getStage();
@@ -71,6 +72,7 @@ public class SaveLoad {
             ds.helpRequestEventDone = gp.story.helpRequestEventDone;
             ds.forkEventDone = gp.story.forkEventDone;
             ds.travelerEventDone = gp.story.travelerEventDone;
+            ds.reportEntries = gp.story.getReportEntries();
 
             oos.writeObject(ds);
         }
@@ -90,6 +92,7 @@ public class SaveLoad {
             currentSlot = normalizedSlot;
 
             gp.currentMap = ds.currentMap;
+            gp.setPlayerName(ds.playerName);
             gp.player.worldX = ds.playerWorldX;
             gp.player.worldY = ds.playerWorldY;
             gp.player.direction = "down";
@@ -108,6 +111,7 @@ public class SaveLoad {
             gp.story.helpRequestEventDone = ds.helpRequestEventDone;
             gp.story.forkEventDone = ds.forkEventDone;
             gp.story.travelerEventDone = ds.travelerEventDone;
+            gp.story.loadReportEntries(ds.reportEntries);
             gp.aSetter.setObject();
             gp.aSetter.setNPC();
             return true;

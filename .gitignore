@@ -28,3 +28,5 @@ bin/
 config.txt
 save.dat
 save_slot_*.dat
+Reflection_Result_*.pdf
+results/
