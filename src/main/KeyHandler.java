@@ -194,7 +194,7 @@ public class KeyHandler implements KeyListener {
     }
 
     public void optionsState(int code) {
-        if (gp.ui.isEditingSoundOption()) {
+        if (gp.ui.isEditingAdjustableOption()) {
             if (code == KeyEvent.VK_LEFT) {
                 gp.changeCurrentOption(-1);
                 gp.playCursorSE();
@@ -206,7 +206,7 @@ public class KeyHandler implements KeyListener {
                 return;
             }
             if (isConfirm(code) || code == KeyEvent.VK_E || code == KeyEvent.VK_ESCAPE) {
-                gp.ui.endSoundOptionEdit();
+                gp.ui.endOptionEdit();
                 gp.playBackSE();
                 return;
             }

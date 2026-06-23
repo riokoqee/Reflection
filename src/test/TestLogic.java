@@ -6,6 +6,7 @@ import main.GamePanel;
 import main.MapId;
 import main.MemoryEntry;
 import main.PlanTask;
+import main.ResultPdfExporter;
 import main.StoryManager;
 import main.UI;
 import object.StaticObject;
@@ -16,6 +17,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 
 public class TestLogic {
@@ -605,6 +607,20 @@ public class TestLogic {
         if (gp.obj[1][woundedBirdIndex].getRenderSortY() >= gp.obj[1][woundedBirdIndex].worldY) {
             throw new AssertionError("Wounded bird must render as a ground object behind the player");
         }
+        if (gp.obj[1][woundedBirdIndex].isFloorLayer()) {
+            throw new AssertionError("Wounded bird must stay interactable and cannot be a floor layer");
+        }
+        gp.currentMap = MapId.FOREST_DOUBTS;
+        gp.player.worldX = gp.obj[1][woundedBirdIndex].worldX;
+        gp.player.worldY = gp.obj[1][woundedBirdIndex].worldY - gp.tileSize;
+        gp.player.direction = "down";
+        gp.keyH.enterPressed = true;
+        gp.player.update();
+        if (!gp.story.hasChoices() || gp.story.getActivePrompt() == null ||
+                !"Раненая птица".equals(gp.story.getActivePrompt().speaker)) {
+            throw new AssertionError("Player must be able to interact with the wounded bird from the map");
+        }
+        gp.keyH.enterPressed = false;
         if (!(gp.npc[1][0] instanceof SwingChildNPC)) {
             throw new AssertionError("Forest child must use the animated swing NPC");
         }
@@ -675,6 +691,9 @@ public class TestLogic {
         assertEquals(gp.tileSize * 41, gp.obj[1][lanternIndex].worldY, "Lantern Y position");
         if (gp.obj[1][lanternIndex].collision) {
             throw new AssertionError("Lantern must be walkable so the player can pick it up");
+        }
+        if (gp.obj[1][lanternIndex].getRenderSortY() >= gp.obj[1][lanternIndex].worldY) {
+            throw new AssertionError("Lantern must render under the player while staying collectible");
         }
 
         int lanternTop = gp.obj[1][lanternIndex].worldY + gp.obj[1][lanternIndex].solidArea.y;
@@ -924,7 +943,17 @@ public class TestLogic {
         gp.keyH.optionsState(KeyEvent.VK_A);
         assertEquals(startBrightness, gp.brightnessScale, "A must not decrease brightness");
         gp.keyH.optionsState(KeyEvent.VK_ENTER);
-        assertEquals(Math.min(5, startBrightness + 1), gp.brightnessScale, "Enter must increase brightness");
+        if (!gp.ui.isEditingBrightnessOption()) {
+            throw new AssertionError("Enter must select brightness for editing");
+        }
+        assertEquals(startBrightness, gp.brightnessScale, "Enter must not change brightness immediately");
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals(Math.min(5, startBrightness + 1), gp.brightnessScale,
+                "Right must increase brightness in edit mode");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        if (gp.ui.isEditingBrightnessOption()) {
+            throw new AssertionError("Enter must leave brightness edit mode");
+        }
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         boolean showFpsBefore = gp.showFpsCounter;
@@ -1251,6 +1280,7 @@ public class TestLogic {
             if (pdf.length() < 10_000) {
                 throw new AssertionError("Saved report must contain rendered pages");
             }
+            assertEnglishReportTranslation(gp);
         }
         catch (IOException e) {
             throw new AssertionError("Saved report must be readable: " + e.getMessage());
@@ -1260,6 +1290,78 @@ public class TestLogic {
                 pdf.deleteOnExit();
             }
         }
+    }
+
+    private static void assertEnglishReportTranslation(GamePanel gp) {
+        gp.languageMode = GamePanel.LANGUAGE_EN;
+        String[] samples = {
+                "Событие",
+                "Выбор",
+                "Диалог: Старик",
+                "Начало прохождения",
+                "Игра началась в квартире. Стартовые метрики сохранены как базовая точка отчёта.",
+                "Заправлена кровать",
+                "Кровать приведена в порядок. В плане появилась следующая задача: убрать посуду на кухне.",
+                "Убрана грязная посуда",
+                "Грязные тарелки были убраны из раковины. После события объект посуды исчезает с кухни.",
+                "Герой умылся",
+                "Задача ванной завершена. Следующая цель переносит игрока в зал.",
+                "Отдых на диване",
+                "Игрок включил телевизор и сел на диван. После паузы в квартире появилась Тень у зеркала.",
+                "Лампа включена",
+                "Телевизор выключен",
+                "Открыт комод",
+                "В комоде найден телефон. После открытия начинается переписка с мамой.",
+                "Вход в библиотеку",
+                "Игрок вошёл в дом-библиотеку деревни, где находится Старик.",
+                "Выход из библиотеки",
+                "Игрок вернулся из библиотеки в деревню.",
+                "Финальная сцена",
+                "Воин раскрыл смысл пути: все встреченные персонажи оказались частями внутреннего мира игрока.",
+                "Переход в новую локацию",
+                "Игрок перешёл в локацию: Гора Целей.",
+                "Финал открыт",
+                "Путь завершён. Итоговый профиль и PDF-отчёт доступны на экране результата.",
+                "Маленькая птица бьётся крылом у корней. Она не может взлететь.",
+                "Честно? Мне хреново.",
+                "Рост 35, Покой 36, Эмпатия 37, Уверенность 38, Ответственность 39, Избегание 40, Самоценность 41",
+                "Рост +12, Покой -4, Эмпатия +9, Ответственность +3, Метрики не изменились"
+        };
+
+        for (String sample : samples) {
+            String translated = translateReportTextForTest(gp, sample);
+            if (containsCyrillic(translated)) {
+                throw new AssertionError("English report text still contains Cyrillic: " + translated);
+            }
+        }
+    }
+
+    private static String translateReportTextForTest(GamePanel gp, String text) {
+        try {
+            Method method = ResultPdfExporter.class.getDeclaredMethod("translateReportText", GamePanel.class, String.class);
+            method.setAccessible(true);
+            return (String) method.invoke(null, gp, text);
+        }
+        catch (ReflectiveOperationException e) {
+            throw new AssertionError("Cannot access report translation helper: " + e.getMessage());
+        }
+    }
+
+    private static boolean containsCyrillic(String value) {
+        if (value == null) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            Character.UnicodeBlock block = Character.UnicodeBlock.of(value.charAt(i));
+            if (block == Character.UnicodeBlock.CYRILLIC ||
+                    block == Character.UnicodeBlock.CYRILLIC_SUPPLEMENTARY ||
+                    block == Character.UnicodeBlock.CYRILLIC_EXTENDED_A ||
+                    block == Character.UnicodeBlock.CYRILLIC_EXTENDED_B ||
+                    block == Character.UnicodeBlock.CYRILLIC_EXTENDED_C) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void testFinalCinematicScene() {

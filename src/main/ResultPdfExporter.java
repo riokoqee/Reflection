@@ -14,7 +14,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.DeflaterOutputStream;
 
 public final class ResultPdfExporter {
@@ -29,8 +31,116 @@ public final class ResultPdfExporter {
     private static final Color GOLD = new Color(179, 127, 55);
     private static final String CONTACT_EMAIL = "rioko988@gmail.com";
     private static final String CONTACT_PHONE = "+77074418393";
+    private static final Map<String, String> REPORT_ENGLISH = new HashMap<>();
+
+    static {
+        putReport("Начало прохождения", "Playthrough started");
+        putReport("Игра началась в квартире. Стартовые метрики сохранены как базовая точка отчёта.",
+                "The game started in the apartment. Starting metrics were saved as the report baseline.");
+        putReport("Загружено старое сохранение", "Old save loaded");
+        putReport("Подробная история выборов отсутствует, потому что сохранение было создано до появления PDF-отчётов.",
+                "A detailed choice history is missing because this save was created before PDF reports were added.");
+        putReport("Заправлена кровать", "Bed made");
+        putReport("Кровать приведена в порядок. В плане появилась следующая задача: убрать посуду на кухне.",
+                "The bed was put in order. The next task appeared in the plan: clear the dishes in the kitchen.");
+        putReport("Убрана грязная посуда", "Dirty dishes cleared");
+        putReport("Грязные тарелки были убраны из раковины. После события объект посуды исчезает с кухни.",
+                "The dirty plates were cleared from the sink. After the event, the dishes disappear from the kitchen.");
+        putReport("Герой умылся", "Player washed up");
+        putReport("Задача ванной завершена. Следующая цель переносит игрока в зал.",
+                "The bathroom task was completed. The next goal moves the player to the living room.");
+        putReport("Отдых на диване", "Rested on the sofa");
+        putReport("Игрок включил телевизор и сел на диван. После паузы в квартире появилась Тень у зеркала.",
+                "The player turned on the TV and sat on the sofa. After a pause, the Shadow appeared by the mirror in the apartment.");
+        putReport("Лампа включена", "Lamp turned on");
+        putReport("Лампа выключена", "Lamp turned off");
+        putReport("В спальне появился мягкий свет.", "A soft light appeared in the bedroom.");
+        putReport("Свет спальни был выключен.", "The bedroom light was turned off.");
+        putReport("Телевизор включён", "TV turned on");
+        putReport("Телевизор выключен", "TV turned off");
+        putReport("На экране появился шум, необходимый для отдыха на диване.",
+                "Static appeared on the screen, creating the ordinary noise needed for resting on the sofa.");
+        putReport("Телевизор снова погас.", "The TV went dark again.");
+        putReport("Открыт комод", "Dresser opened");
+        putReport("В комоде найден телефон. После открытия начинается переписка с мамой.",
+                "A phone was found in the dresser. Opening it starts the chat with Mom.");
+        putReport("Вход в библиотеку", "Entered the library");
+        putReport("Игрок вошёл в дом-библиотеку деревни, где находится Старик.",
+                "The player entered the village library house where the Elder waits.");
+        putReport("Выход из библиотеки", "Left the library");
+        putReport("Игрок вернулся из библиотеки в деревню.",
+                "The player returned from the library to the village.");
+        putReport("Финальная сцена", "Final scene");
+        putReport("Воин раскрыл смысл пути: все встреченные персонажи оказались частями внутреннего мира игрока.",
+                "The Warrior revealed the meaning of the path: every character met along the way was part of the player's inner world.");
+        putReport("Переход в новую локацию", "Moved to a new location");
+        putReport("Финал открыт", "Ending unlocked");
+        putReport("Путь завершён. Итоговый профиль и PDF-отчёт доступны на экране результата.",
+                "The path is complete. The final profile and PDF report are available on the result screen.");
+    }
 
     private ResultPdfExporter() {
+    }
+
+    private static void putReport(String ru, String en) {
+        REPORT_ENGLISH.put(ru, en);
+    }
+
+    private static String translateReportText(GamePanel gp, String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        if (!gp.isEnglish()) {
+            return text;
+        }
+
+        String localized = gp.tr(text);
+        if (localized.equals(text)) {
+            String reportText = REPORT_ENGLISH.get(text);
+            if (reportText != null) {
+                localized = reportText;
+            }
+        }
+
+        localized = localized.replace("Игрок перешёл в локацию: ", "Player moved to location: ");
+        localized = localized.replace("Диалог:", "Dialogue:");
+        localized = localized.replace("Событие", "Event");
+        localized = localized.replace("Выбор", "Choice");
+        localized = localized.replace("Метрики не изменились", "Metrics did not change");
+        localized = localized.replace("Деревня Связей", "Village of Bonds");
+        localized = localized.replace("Лес Сомнений", "Forest of Doubt");
+        localized = localized.replace("Гора Целей", "Mountain of Goals");
+        localized = localized.replace("Внутренний отклик", "Inner Response");
+        localized = localized.replace("Внутренний мир", "Inner World");
+        localized = localized.replace("Библиотека", "Library");
+        localized = localized.replace("Квартира", "Apartment");
+        localized = localized.replace("Спальня", "Bedroom");
+        localized = localized.replace("Кухня", "Kitchen");
+        localized = localized.replace("Ванная", "Bathroom");
+        localized = localized.replace("Зал", "Living Room");
+        localized = localized.replace("Коридор", "Corridor");
+        localized = localized.replace("Комод", "Dresser");
+        localized = localized.replace("Вершина", "Summit");
+        localized = localized.replace("Потухший фонарь", "Dead Lantern");
+        localized = localized.replace("Раненая птица", "Wounded Bird");
+        localized = localized.replace("Старое письмо", "Old Letter");
+        localized = localized.replace("Просьба о помощи", "A Request for Help");
+        localized = localized.replace("Развилка", "Fork in the Path");
+        localized = localized.replace("Путник", "Traveler");
+        localized = localized.replace("Ответственность", "Responsibility");
+        localized = localized.replace("Уверенность", "Confidence");
+        localized = localized.replace("Самоценность", "Self-worth");
+        localized = localized.replace("Избегание", "Avoidance");
+        localized = localized.replace("Эмпатия", "Empathy");
+        localized = localized.replace("Покой", "Calm");
+        localized = localized.replace("Рост", "Growth");
+        localized = localized.replace("Старик", "Elder");
+        localized = localized.replace("Тень", "Shadow");
+        localized = localized.replace("Ребёнок", "Child");
+        localized = localized.replace("Друг", "Friend");
+        localized = localized.replace("Воин", "Warrior");
+        localized = localized.replace("Мама", "Mom");
+        return localized;
     }
 
     public static File getResultsDirectory() throws IOException {
@@ -169,10 +279,11 @@ public final class ResultPdfExporter {
         ArrayList<BufferedImage> render() {
             newPage();
             drawHeader();
+            drawDisclaimer();
             drawSummary();
             drawMetrics();
-            drawWorldState();
             drawAnalysis();
+            drawWorldState();
             drawEntries();
             drawContacts();
             finishPage();
@@ -238,6 +349,33 @@ public final class ResultPdfExporter {
             y += 205;
         }
 
+        private void drawDisclaimer() {
+            String title = label("Важное уточнение", "Important note");
+            String text = label(
+                    "Этот отчёт является игровой диагностикой и краткой саморефлексией на основе ваших решений в Reflection. Он не является медицинским диагнозом, клиническим заключением или научно доказанным фактом о вашем состоянии. Используйте его как повод для разговора с собой или специалистом, а не как замену консультации психолога, психотерапевта или врача.",
+                    "This report is a game-based diagnostic summary and self-reflection based on your choices in Reflection. It is not a medical diagnosis, clinical conclusion, or scientifically proven fact about your condition. Use it as a starting point for reflection or a conversation with a specialist, not as a replacement for advice from a psychologist, psychotherapist, or doctor.");
+            g.setFont(GameFonts.regular(23));
+            int textWidth = PAGE_WIDTH - MARGIN * 2 - 58;
+            int lines = countWrappedLines(text, textWidth);
+            int cardHeight = Math.max(132, 72 + lines * 28);
+            ensure(cardHeight + 16);
+
+            int top = y;
+            g.setColor(new Color(255, 249, 232));
+            g.fillRoundRect(MARGIN, top, PAGE_WIDTH - MARGIN * 2, cardHeight, 18, 18);
+            g.setColor(new Color(203, 160, 82));
+            g.setStroke(new BasicStroke(3));
+            g.drawRoundRect(MARGIN, top, PAGE_WIDTH - MARGIN * 2, cardHeight, 18, 18);
+
+            g.setFont(GameFonts.bold(28));
+            g.setColor(new Color(95, 76, 42));
+            g.drawString(title, MARGIN + 28, top + 42);
+            g.setFont(GameFonts.regular(23));
+            g.setColor(INK);
+            drawText(text, MARGIN + 28, top + 78, textWidth, 28);
+            y = top + cardHeight + 18;
+        }
+
         private void drawSummary() {
             section(label("Профиль результата", "Result profile"));
             String profileText = gp.tr(gp.story.getProfileText());
@@ -275,7 +413,6 @@ public final class ResultPdfExporter {
         }
 
         private void drawAnalysis() {
-            section(label("Статистика и аналитика", "Statistics and analysis"));
             int choices = gp.story.getReportChoiceCount();
             int events = gp.story.getReportEventCount();
             int memories = gp.story.getUnlockedMemoryCount();
@@ -300,13 +437,17 @@ public final class ResultPdfExporter {
                     metricLabel(5),
                     metricLabel(6)
             };
+            String recommendation = label("Рекомендация: ", "Recommendation: ") + gp.tr(gp.story.getRecommendation());
+            int textWidth = 580;
+            g.setFont(GameFonts.regular(25));
+            int cardHeight = Math.max(360, 260 + countWrappedLines(recommendation, textWidth) * 30);
+            ensure(90 + cardHeight);
+            section(label("Статистика и аналитика", "Statistics and analysis"));
             int cardTop = y;
-            int cardHeight = 410;
             cardStart(cardHeight);
             g.setFont(GameFonts.regular(25));
             g.setColor(INK);
             int lineY = y + 36;
-            int textWidth = 610;
             lineY = drawBullet(label("Выборов в диалогах: ", "Dialogue choices: ") + choices, MARGIN + 28, lineY);
             lineY = drawBullet(label("Событий и взаимодействий: ", "Events and interactions: ") + events, MARGIN + 28, lineY);
             lineY = drawBullet(label("Открыто воспоминаний: ", "Unlocked memories: ") + memories +
@@ -315,14 +456,14 @@ public final class ResultPdfExporter {
             lineY = drawBullet(label("Зона внимания: ", "Needs attention: ") + weakest, MARGIN + 28, lineY);
             lineY = drawBullet(label("Пирог справа показывает доли итоговых метрик в процентах.",
                     "The pie chart shows the final metric shares."), MARGIN + 28, lineY);
-            drawPieChart(MARGIN + 830, cardTop + 132, 78, metricValues, metricLabels);
-            drawText(label("Рекомендация: ", "Recommendation: ") + gp.tr(gp.story.getRecommendation()),
-                    MARGIN + 28, lineY + 10, textWidth, 31);
+            drawPieChart(MARGIN + 725, cardTop + 146, 66, metricValues, metricLabels);
+            drawText(recommendation, MARGIN + 28, lineY + 8, textWidth, 30);
             y = cardTop + cardHeight;
             y += 20;
         }
 
         private void drawWorldState() {
+            ensure(370);
             section(label("Состояние мира", "World state"));
             int cardTop = y;
             int cardHeight = 280;
@@ -460,11 +601,11 @@ public final class ResultPdfExporter {
             g.setStroke(new BasicStroke(3));
             g.drawOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
-            int legendX = centerX - radius - 8;
-            int legendY = centerY + radius + 36;
+            int legendX = centerX + radius + 34;
+            int legendY = centerY - 72;
             g.setFont(GameFonts.regular(18));
             for (int i = 0; i < labels.length; i++) {
-                int rowY = legendY + i * 24;
+                int rowY = legendY + i * 23;
                 g.setColor(colors[i % colors.length]);
                 g.fillRoundRect(legendX, rowY - 14, 18, 12, 5, 5);
                 g.setColor(INK);
@@ -689,31 +830,7 @@ public final class ResultPdfExporter {
         }
 
         private String localizeReportText(String text) {
-            if (text == null || text.isEmpty()) {
-                return "";
-            }
-            if (!gp.isEnglish()) {
-                return text;
-            }
-
-            String localized = gp.tr(text);
-            localized = localized.replace("Диалог:", "Dialogue:");
-            localized = localized.replace("Событие", "Event");
-            localized = localized.replace("Выбор", "Choice");
-            localized = localized.replace("Метрики не изменились", "Metrics did not change");
-            localized = localized.replace("Ответственность", "Responsibility");
-            localized = localized.replace("Уверенность", "Confidence");
-            localized = localized.replace("Самоценность", "Self-worth");
-            localized = localized.replace("Избегание", "Avoidance");
-            localized = localized.replace("Эмпатия", "Empathy");
-            localized = localized.replace("Покой", "Calm");
-            localized = localized.replace("Рост", "Growth");
-            localized = localized.replace("Старик", "Elder");
-            localized = localized.replace("Тень", "Shadow");
-            localized = localized.replace("Ребёнок", "Child");
-            localized = localized.replace("Друг", "Friend");
-            localized = localized.replace("Воин", "Warrior");
-            return localized;
+            return translateReportText(gp, text);
         }
     }
 }

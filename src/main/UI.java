@@ -77,7 +77,8 @@ public class UI {
     private String nameInputText = "";
     private String nameInputNotice = "";
     private int nameInputNoticeCounter = 0;
-    private int activeSoundOptionCommand = -1;
+    private int activeOptionEditTab = -1;
+    private int activeOptionEditCommand = -1;
 
     public UI(GamePanel gp) {
         this.gp = gp;
@@ -146,7 +147,7 @@ public class UI {
 
     public void setOptionsTab(int tab) {
         optionsTab = Math.max(0, Math.min(OPTIONS_TAB_COUNT - 1, tab));
-        activeSoundOptionCommand = -1;
+        endOptionEdit();
         commandNum = Math.min(commandNum, getOptionsCommandCount() - 1);
     }
 
@@ -176,19 +177,50 @@ public class UI {
     }
 
     public boolean isEditingSoundOption() {
-        return optionsTab == OPTIONS_TAB_SOUND &&
-                activeSoundOptionCommand >= 0 &&
-                activeSoundOptionCommand < getOptionsCommandCount() - 1;
+        return isEditingOption(OPTIONS_TAB_SOUND);
+    }
+
+    public boolean isEditingBrightnessOption() {
+        return optionsTab == OPTIONS_TAB_GRAPHICS &&
+                activeOptionEditTab == OPTIONS_TAB_GRAPHICS &&
+                activeOptionEditCommand == 2;
+    }
+
+    public boolean isEditingAdjustableOption() {
+        return isEditingSoundOption() || isEditingBrightnessOption();
     }
 
     public void beginSoundOptionEdit() {
         if (optionsTab == OPTIONS_TAB_SOUND && !isOptionsBackCommand()) {
-            activeSoundOptionCommand = commandNum;
+            beginOptionEdit();
+        }
+    }
+
+    public void beginBrightnessOptionEdit() {
+        if (optionsTab == OPTIONS_TAB_GRAPHICS && commandNum == 2) {
+            beginOptionEdit();
         }
     }
 
     public void endSoundOptionEdit() {
-        activeSoundOptionCommand = -1;
+        endOptionEdit();
+    }
+
+    public void endOptionEdit() {
+        activeOptionEditTab = -1;
+        activeOptionEditCommand = -1;
+    }
+
+    private void beginOptionEdit() {
+        activeOptionEditTab = optionsTab;
+        activeOptionEditCommand = commandNum;
+    }
+
+    private boolean isEditingOption(int tab) {
+        return optionsTab == tab &&
+                activeOptionEditTab == tab &&
+                activeOptionEditCommand >= 0 &&
+                activeOptionEditCommand < getOptionsCommandCount() - 1;
     }
 
     public boolean isDialogueTextFullyVisible() {
@@ -960,7 +992,7 @@ public class UI {
                     rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
             drawSliderOption(t("Яркость", "Brightness"), gp.brightnessScale, 5, 2,
                     rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
-            drawToggleOption(t("Профайлер FPS", "FPS profiler"), gp.showFpsCounter, 3,
+            drawToggleOption("FPS", gp.showFpsCounter, 3,
                     rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
             drawBackOption(t("НАЗАД", "BACK"), 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
         }
@@ -985,10 +1017,17 @@ public class UI {
 
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(176, 190, 184));
-        String hint = isEditingSoundOption()
-                ? t("← / → - громкость, E / Enter - готово", "← / → - volume, E / Enter - done")
-                : t("Q - вперёд, Tab - назад, E / Enter - изменить",
-                        "Q - next tab, Tab - previous tab, E / Enter - change");
+        String hint;
+        if (isEditingSoundOption()) {
+            hint = t("← / → - громкость, E / Enter - готово", "← / → - volume, E / Enter - done");
+        }
+        else if (isEditingBrightnessOption()) {
+            hint = t("← / → - яркость, E / Enter - готово", "← / → - brightness, E / Enter - done");
+        }
+        else {
+            hint = t("Q - вперёд, Tab - назад, E / Enter - изменить",
+                    "Q - next tab, Tab - previous tab, E / Enter - change");
+        }
         g2.drawString(hint, panelX + 36, panelY + OPTIONS_PANEL_HEIGHT - 24);
     }
 
@@ -1919,7 +1958,7 @@ public class UI {
     private void drawSliderOption(String label, int value, int maxValue, int command, int x, int y, int width) {
         drawOptionShell(command, x, y, width);
 
-        boolean active = optionsTab == OPTIONS_TAB_SOUND && activeSoundOptionCommand == command;
+        boolean active = activeOptionEditTab == optionsTab && activeOptionEditCommand == command;
         g2.setFont(GameFonts.bold(19));
         g2.setColor(active ? new Color(255, 222, 151) :
                 commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));

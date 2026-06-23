@@ -500,6 +500,10 @@ public class GamePanel extends JPanel implements Runnable {
             config.saveConfig();
             return;
         }
+        if (ui.getOptionsTab() == UI.OPTIONS_TAB_GRAPHICS && ui.commandNum == 2) {
+            ui.beginBrightnessOptionEdit();
+            return;
+        }
         changeCurrentOption(1);
     }
 
@@ -1869,15 +1873,12 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        String text = String.format(Locale.ROOT, "FPS %d  %.1f ms", currentFps,
-                currentUpdateMs + currentRenderMs + currentPresentMs);
-        String detail = String.format(Locale.ROOT, "U %.1f  R %.1f  P %.1f  MEM %d MB",
-                currentUpdateMs, currentRenderMs, currentPresentMs, currentMemoryMb);
+        String text = String.format(Locale.ROOT, "FPS %d", currentFps);
         Font font = GameFonts.bold(15);
         g2.setFont(font);
         FontMetrics metrics = g2.getFontMetrics();
-        int width = Math.max(metrics.stringWidth(text), metrics.stringWidth(detail)) + 22;
-        int height = 48;
+        int width = metrics.stringWidth(text) + 22;
+        int height = 28;
         int x = screenWidth - width - 14;
         int y = 14;
 
@@ -1887,8 +1888,6 @@ public class GamePanel extends JPanel implements Runnable {
         g2.drawRoundRect(x + 1, y + 1, width - 2, height - 2, 9, 9);
         g2.setColor(Color.white);
         g2.drawString(text, x + 11, y + 19);
-        g2.setColor(new Color(210, 225, 218));
-        g2.drawString(detail, x + 11, y + 38);
     }
 
     private void recordUpdateProfile(long nanos) {

@@ -352,9 +352,10 @@ public class AssetSetter {
         }
         index = placeStaticObjects(MapId.FOREST_DOUBTS, index, FOREST_DECORATIONS);
         index = placeObject(MapId.FOREST_DOUBTS, index,
-                createStoryObject("Lost Lantern", "lost_lantern", 0.8, 0.9), 18, 35);
+                createStoryObject("Lost Lantern", "lost_lantern", 0.8, 0.9)
+                        .setRenderSortY(gp.tileSize * 35 - 1), 18, 35);
         index = placeObject(MapId.FOREST_DOUBTS, index,
-                createFloorStoryObject("Wounded Bird", "wounded_bird", 0.75, 0.55)
+                createStoryObject("Wounded Bird", "wounded_bird", 0.75, 0.55)
                         .setRenderSortY(gp.tileSize * 28 - 1), 28, 28);
         if (!gp.hasLantern) {
             placeForestLantern(index, 23, 41);
@@ -548,22 +549,6 @@ public class AssetSetter {
         return object;
     }
 
-    private StaticObject createFloorStoryObject(String name, String imageName, double widthTiles, double heightTiles) {
-        StaticObject object = new StaticObject(
-                gp,
-                name,
-                "/objects/story/" + imageName,
-                widthTiles,
-                heightTiles,
-                false,
-                true
-        );
-        object.setSolidArea(0, 0,
-                Math.max(1, (int) Math.round(gp.tileSize * widthTiles)),
-                Math.max(1, (int) Math.round(gp.tileSize * heightTiles)));
-        return object;
-    }
-
     private boolean isFloorPlacement(StaticPlacement placement) {
         return placement.name.contains("Rug") || placement.name.contains("Carpet");
     }
@@ -612,6 +597,7 @@ public class AssetSetter {
         StaticObject lantern = new StaticObject(gp, "Lantern", "/objects/lantern", 1.7, 1.7, false);
         lantern.setSolidArea(gp.tileSize / 2, gp.tileSize / 4,
                 gp.tileSize * 3 / 4, gp.tileSize + gp.tileSize / 4);
+        lantern.setRenderSortY(gp.tileSize * row - 1);
         return placeObject(MapId.FOREST_DOUBTS, index, lantern, col, row);
     }
 
