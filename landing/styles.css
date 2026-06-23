@@ -603,7 +603,7 @@ h2 {
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
-  padding: 28px 36px;
+  padding: 28px 148px 28px 36px;
   color: var(--soft);
   background: #05070a;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -917,7 +917,7 @@ h2 {
   }
 
   .site-footer {
-    padding: 26px 24px 92px;
+    padding: 26px 24px 132px;
   }
 
   .faq-widget {

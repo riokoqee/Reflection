@@ -209,6 +209,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.addMouseListener(mouseH);
         this.addMouseMotionListener(mouseH);
         this.setFocusable(true);
+        this.setFocusTraversalKeysEnabled(false);
     }
 
     public void setupGame() {

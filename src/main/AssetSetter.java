@@ -268,7 +268,7 @@ public class AssetSetter {
         int oldPhotoWidth = (int) Math.round(gp.tileSize * 0.68);
         int oldPhotoHeight = (int) Math.round(gp.tileSize * 0.5);
         StaticObject oldPhoto = createStoryObject("Old Photo", "old_photo", 0.68, 0.5)
-                .setRenderSortY(bedroomTableY + gp.tileSize + 1);
+                .setRenderSortY(bedroomTableY + 1);
         index = placeObjectAtPixel(MapId.APARTMENT, index, oldPhoto,
                 bedroomTableX + (bedroomTableWidth - oldPhotoWidth) / 2,
                 bedroomTableY + (bedroomTableHeight - oldPhotoHeight) / 2);
@@ -354,7 +354,8 @@ public class AssetSetter {
         index = placeObject(MapId.FOREST_DOUBTS, index,
                 createStoryObject("Lost Lantern", "lost_lantern", 0.8, 0.9), 18, 35);
         index = placeObject(MapId.FOREST_DOUBTS, index,
-                createStoryObject("Wounded Bird", "wounded_bird", 0.75, 0.55), 28, 28);
+                createStoryObject("Wounded Bird", "wounded_bird", 0.75, 0.55)
+                        .setRenderSortY(gp.tileSize * 28 - 1), 28, 28);
         if (!gp.hasLantern) {
             placeForestLantern(index, 23, 41);
         }

@@ -342,6 +342,9 @@ public class TestLogic {
         if (gp.obj[0][oldPhotoIndex].getRenderSortY() <= gp.obj[0][photoTableIndex].getRenderSortY()) {
             throw new AssertionError("Old photo must render above the bedroom table");
         }
+        if (gp.obj[0][oldPhotoIndex].getRenderSortY() >= gp.obj[0][photoTableIndex].worldY + gp.tileSize) {
+            throw new AssertionError("Old photo must render behind the player when walking in front of the table");
+        }
         assertEquals(gp.tileSize / 12, gp.obj[0][photoTableIndex].solidArea.x,
                 "Bedroom photo table collision X offset");
         assertEquals(gp.tileSize / 12, gp.obj[0][photoTableIndex].solidArea.y,
@@ -595,6 +598,13 @@ public class TestLogic {
         assertEquals(gp.tileSize * 4, gp.obj[1][0].worldY, "First forest edge tree Y position");
         assertEquals(gp.tileSize * 30, gp.npc[1][0].worldX, "Child endpoint X position");
         assertEquals(gp.tileSize * 8, gp.npc[1][0].worldY, "Child endpoint Y position");
+        int woundedBirdIndex = findObject(gp, 1, "Wounded Bird");
+        if (woundedBirdIndex == 999) {
+            throw new AssertionError("Forest must contain the wounded bird event object");
+        }
+        if (gp.obj[1][woundedBirdIndex].getRenderSortY() >= gp.obj[1][woundedBirdIndex].worldY) {
+            throw new AssertionError("Wounded bird must render as a ground object behind the player");
+        }
         if (!(gp.npc[1][0] instanceof SwingChildNPC)) {
             throw new AssertionError("Forest child must use the animated swing NPC");
         }
@@ -872,6 +882,9 @@ public class TestLogic {
     public static void testSettingsMenuControls() {
         GamePanel gp = new GamePanel();
         gp.setupGame();
+        if (gp.getFocusTraversalKeysEnabled()) {
+            throw new AssertionError("Game panel must receive Tab key presses in the settings menu");
+        }
 
         gp.gameState = gp.titleState;
         gp.ui.commandNum = 2;
