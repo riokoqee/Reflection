@@ -491,6 +491,10 @@ public class GamePanel extends JPanel implements Runnable {
             closeOptionsMenu();
             return;
         }
+        if (ui.getOptionsTab() == UI.OPTIONS_TAB_SOUND) {
+            ui.beginSoundOptionEdit();
+            return;
+        }
         if (ui.getOptionsTab() == UI.OPTIONS_TAB_GRAPHICS && ui.commandNum == 0) {
             toggleFullScreen();
             config.saveConfig();
@@ -522,24 +526,21 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void changeSoundOption(int command, int amount) {
         if (command == 0) {
-            changeMusicVolume(amount);
-        }
-        else if (command == 1) {
             changeSoundEffectVolume(amount);
         }
-        else if (command == 2) {
+        else if (command == 1) {
             ambienceVolumeScale = clampVolume(ambienceVolumeScale + amount);
             syncSoundEffectVolumes();
         }
-        else if (command == 3) {
+        else if (command == 2) {
             footstepVolumeScale = clampVolume(footstepVolumeScale + amount);
             syncSoundEffectVolumes();
         }
-        else if (command == 4) {
+        else if (command == 3) {
             uiVolumeScale = clampVolume(uiVolumeScale + amount);
             syncSoundEffectVolumes();
         }
-        else if (command == 5) {
+        else if (command == 4) {
             whisperVolumeScale = clampVolume(whisperVolumeScale + amount);
             syncSoundEffectVolumes();
         }

@@ -194,6 +194,25 @@ public class KeyHandler implements KeyListener {
     }
 
     public void optionsState(int code) {
+        if (gp.ui.isEditingSoundOption()) {
+            if (code == KeyEvent.VK_LEFT) {
+                gp.changeCurrentOption(-1);
+                gp.playCursorSE();
+                return;
+            }
+            if (code == KeyEvent.VK_RIGHT) {
+                gp.changeCurrentOption(1);
+                gp.playCursorSE();
+                return;
+            }
+            if (isConfirm(code) || code == KeyEvent.VK_E || code == KeyEvent.VK_ESCAPE) {
+                gp.ui.endSoundOptionEdit();
+                gp.playBackSE();
+                return;
+            }
+            return;
+        }
+
         if (isUp(code)) {
             moveCommand(-1, gp.ui.getOptionsCommandCount() - 1);
         }

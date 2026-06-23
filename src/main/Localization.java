@@ -372,8 +372,8 @@ public final class Localization {
         put("На площади становится тише. В библиотеке всё ещё горит свет.",
                 "The square grows quieter. A light is still burning in the library.");
         put("Мост за библиотекой ведёт к Горе Целей.", "The bridge behind the library leads to the Mountain of Goals.");
-        put("Все пятеро стоят кругом.\n\nСтарик: Понимание уже рядом?\nТень: Мы никогда не были снаружи.\nРебёнок: Мы - это ты.\nДруг: Всё, что было видно... это твоя голова.\nВоин: Этот путь проходил внутри собственного разума.\n\nЭто был твой внутренний мир. Каждый выбор здесь похож на выбор, который ты делаешь в реальной жизни.",
-                "All five stand in a circle.\n\nElder: Is understanding close now?\nShadow: We were never outside.\nChild: We are you.\nFriend: Everything that was visible... was inside your head.\nWarrior: This path passed through your own mind.\n\nThis was your inner world. Every choice here resembles a choice you make in real life.");
+        put("Все пятеро стоят кругом.\n\nПонимание уже рядом?\nМы никогда не были снаружи.\nМы - это ты.\nВсё, что было видно... это твоя голова.\nЭтот путь проходил внутри собственного разума.\n\nЭто был твой внутренний мир. Каждый выбор здесь похож на выбор, который ты делаешь в реальной жизни.",
+                "All five stand in a circle.\n\nIs understanding close now?\nWe were never outside.\nWe are you.\nEverything that was visible... was inside your head.\nThis path passed through your own mind.\n\nThis was your inner world. Every choice here resembles a choice you make in real life.");
 
         put("Ты наконец-то смотришь на меня... Я уже давно здесь. Просто взгляд всегда уходил в сторону.",
                 "You are finally looking at me... I have been here for a long time. Your gaze just kept turning away.");

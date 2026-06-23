@@ -43,11 +43,24 @@ public final class ResultPdfExporter {
 
     public static File export(GamePanel gp) throws IOException {
         String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm").format(LocalDateTime.now());
+        String playerName = sanitizeFileName(gp.getPlayerNameForReport());
         File file = new File(getResultsDirectory(),
-                "Reflection_Result_slot" + gp.saveLoad.getCurrentSlot() + "_" + timestamp + ".pdf");
+                "ReflectionResult" + playerName + "_" + timestamp + ".pdf");
         ArrayList<BufferedImage> pages = new Renderer(gp).render();
         writePdf(file, pages);
         return file.getAbsoluteFile();
+    }
+
+    private static String sanitizeFileName(String value) {
+        String cleaned = value == null ? "" : value.trim().replaceAll("\\s+", "_");
+        cleaned = cleaned.replaceAll("[^\\p{L}\\p{N}_-]", "");
+        if (cleaned.isEmpty()) {
+            cleaned = "Player";
+        }
+        if (cleaned.length() > 42) {
+            cleaned = cleaned.substring(0, 42);
+        }
+        return cleaned;
     }
 
     private static void writePdf(File file, List<BufferedImage> pages) throws IOException {
@@ -188,7 +201,7 @@ public final class ResultPdfExporter {
             g.setFont(GameFonts.regular(24));
             g.setColor(new Color(130, 122, 105));
             g.drawString("Reflection", MARGIN, PAGE_HEIGHT - 52);
-            String number = "стр. " + pageNumber;
+            String number = label("стр. ", "page ") + pageNumber;
             g.drawString(number, PAGE_WIDTH - MARGIN - g.getFontMetrics().stringWidth(number), PAGE_HEIGHT - 52);
             g.dispose();
             pages.add(page);
@@ -214,18 +227,19 @@ public final class ResultPdfExporter {
             g.drawString("Reflection", MARGIN + 18, y + 42);
             g.setFont(GameFonts.semibold(34));
             g.setColor(new Color(231, 240, 235));
-            g.drawString("Итоговый отчёт прохождения", MARGIN + 20, y + 88);
+            g.drawString(label("Итоговый отчёт прохождения", "Final playthrough report"), MARGIN + 20, y + 88);
 
             g.setFont(GameFonts.regular(25));
             g.setColor(new Color(204, 216, 210));
             String date = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").format(LocalDateTime.now());
-            g.drawString("Игрок: " + gp.getPlayerNameForReport() + "  •  Слот " +
-                    gp.saveLoad.getCurrentSlot() + "  •  " + date, MARGIN + 20, y + 124);
+            g.drawString(label("Игрок: ", "Player: ") + gp.getPlayerNameForReport() + "  •  " +
+                    label("Слот ", "Slot ") + gp.saveLoad.getCurrentSlot() + "  •  " + date,
+                    MARGIN + 20, y + 124);
             y += 205;
         }
 
         private void drawSummary() {
-            section("Профиль результата");
+            section(label("Профиль результата", "Result profile"));
             String profileText = gp.tr(gp.story.getProfileText());
             g.setFont(GameFonts.regular(25));
             int profileLines = countWrappedLines(profileText, PAGE_WIDTH - MARGIN * 2 - 56);
@@ -234,7 +248,7 @@ public final class ResultPdfExporter {
             cardStart(cardHeight);
             g.setFont(GameFonts.semibold(27));
             g.setColor(MUTED);
-            g.drawString("Пользователь: " + gp.getPlayerNameForReport(), MARGIN + 28, y + 38);
+            g.drawString(label("Пользователь: ", "User: ") + gp.getPlayerNameForReport(), MARGIN + 28, y + 38);
             g.setFont(GameFonts.bold(34));
             g.setColor(ACCENT);
             g.drawString(gp.tr(gp.story.getProfileTitle()), MARGIN + 28, y + 78);
@@ -248,20 +262,20 @@ public final class ResultPdfExporter {
         private void drawMetrics() {
             ensure(390);
             y += 18;
-            section("Метрики");
+            section(label("Метрики", "Metrics"));
             int startY = y;
-            drawMetric("Рост", gp.story.growth, MARGIN, startY);
-            drawMetric("Покой", gp.story.calm, MARGIN + 520, startY);
-            drawMetric("Эмпатия", gp.story.empathy, MARGIN, startY + 84);
-            drawMetric("Уверенность", gp.story.confidence, MARGIN + 520, startY + 84);
-            drawMetric("Ответственность", gp.story.responsibility, MARGIN, startY + 168);
-            drawMetric("Избегание", gp.story.avoidance, MARGIN + 520, startY + 168);
-            drawMetric("Самоценность", gp.story.selfWorth, MARGIN, startY + 252);
+            drawMetric(metricLabel(0), gp.story.growth, MARGIN, startY);
+            drawMetric(metricLabel(1), gp.story.calm, MARGIN + 520, startY);
+            drawMetric(metricLabel(2), gp.story.empathy, MARGIN, startY + 84);
+            drawMetric(metricLabel(3), gp.story.confidence, MARGIN + 520, startY + 84);
+            drawMetric(metricLabel(4), gp.story.responsibility, MARGIN, startY + 168);
+            drawMetric(metricLabel(5), gp.story.avoidance, MARGIN + 520, startY + 168);
+            drawMetric(metricLabel(6), gp.story.selfWorth, MARGIN, startY + 252);
             y = startY + 330;
         }
 
         private void drawAnalysis() {
-            section("Статистика и аналитика");
+            section(label("Статистика и аналитика", "Statistics and analysis"));
             int choices = gp.story.getReportChoiceCount();
             int events = gp.story.getReportEventCount();
             int memories = gp.story.getUnlockedMemoryCount();
@@ -278,13 +292,13 @@ public final class ResultPdfExporter {
                     gp.story.selfWorth
             };
             String[] metricLabels = {
-                    "Рост",
-                    "Покой",
-                    "Эмпатия",
-                    "Уверенность",
-                    "Ответственность",
-                    "Избегание",
-                    "Самоценность"
+                    metricLabel(0),
+                    metricLabel(1),
+                    metricLabel(2),
+                    metricLabel(3),
+                    metricLabel(4),
+                    metricLabel(5),
+                    metricLabel(6)
             };
             int cardTop = y;
             int cardHeight = 410;
@@ -293,39 +307,44 @@ public final class ResultPdfExporter {
             g.setColor(INK);
             int lineY = y + 36;
             int textWidth = 610;
-            lineY = drawBullet("Выборов в диалогах: " + choices, MARGIN + 28, lineY);
-            lineY = drawBullet("Событий и взаимодействий: " + events, MARGIN + 28, lineY);
-            lineY = drawBullet("Открыто воспоминаний: " + memories + " из " + totalMemories, MARGIN + 28, lineY);
-            lineY = drawBullet("Самая сильная сторона: " + strongest, MARGIN + 28, lineY);
-            lineY = drawBullet("Зона внимания: " + weakest, MARGIN + 28, lineY);
-            lineY = drawBullet("Пирог справа показывает доли итоговых метрик в процентах.", MARGIN + 28, lineY);
+            lineY = drawBullet(label("Выборов в диалогах: ", "Dialogue choices: ") + choices, MARGIN + 28, lineY);
+            lineY = drawBullet(label("Событий и взаимодействий: ", "Events and interactions: ") + events, MARGIN + 28, lineY);
+            lineY = drawBullet(label("Открыто воспоминаний: ", "Unlocked memories: ") + memories +
+                    label(" из ", " of ") + totalMemories, MARGIN + 28, lineY);
+            lineY = drawBullet(label("Самая сильная сторона: ", "Strongest side: ") + strongest, MARGIN + 28, lineY);
+            lineY = drawBullet(label("Зона внимания: ", "Needs attention: ") + weakest, MARGIN + 28, lineY);
+            lineY = drawBullet(label("Пирог справа показывает доли итоговых метрик в процентах.",
+                    "The pie chart shows the final metric shares."), MARGIN + 28, lineY);
             drawPieChart(MARGIN + 830, cardTop + 132, 78, metricValues, metricLabels);
-            drawText("Рекомендация: " + gp.tr(gp.story.getRecommendation()),
+            drawText(label("Рекомендация: ", "Recommendation: ") + gp.tr(gp.story.getRecommendation()),
                     MARGIN + 28, lineY + 10, textWidth, 31);
             y = cardTop + cardHeight;
             y += 20;
         }
 
         private void drawWorldState() {
-            section("Состояние мира");
+            section(label("Состояние мира", "World state"));
             int cardTop = y;
             int cardHeight = 280;
             cardStart(cardHeight);
             g.setFont(GameFonts.regular(25));
             g.setColor(INK);
             int lineY = y + 36;
-            lineY = drawBullet("Текущая локация: " + gp.tr(gp.story.getLocationTitle()), MARGIN + 28, lineY);
-            lineY = drawBullet("Фонарь у игрока: " + yesNo(gp.hasLantern), MARGIN + 28, lineY);
-            lineY = drawBullet("Лампа в спальне: " + (gp.bedroomLampOn ? "включена" : "выключена"), MARGIN + 28, lineY);
-            lineY = drawBullet("Телевизор в зале: " + (gp.tvOn ? "включён" : "выключен"), MARGIN + 28, lineY);
-            lineY = drawBullet("Телефон найден: " + yesNo(gp.story.isPhoneDresserOpen()), MARGIN + 28, lineY);
-            lineY = drawBullet("Дополнительные события завершены: " + completedOptionalEvents() + " из 9", MARGIN + 28, lineY);
+            lineY = drawBullet(label("Текущая локация: ", "Current location: ") + gp.tr(gp.story.getLocationTitle()), MARGIN + 28, lineY);
+            lineY = drawBullet(label("Фонарь у игрока: ", "Lantern carried: ") + yesNo(gp.hasLantern), MARGIN + 28, lineY);
+            lineY = drawBullet(label("Лампа в спальне: ", "Bedroom lamp: ") +
+                    (gp.bedroomLampOn ? label("включена", "on") : label("выключена", "off")), MARGIN + 28, lineY);
+            lineY = drawBullet(label("Телевизор в зале: ", "Living room TV: ") +
+                    (gp.tvOn ? label("включён", "on") : label("выключен", "off")), MARGIN + 28, lineY);
+            lineY = drawBullet(label("Телефон найден: ", "Phone found: ") + yesNo(gp.story.isPhoneDresserOpen()), MARGIN + 28, lineY);
+            lineY = drawBullet(label("Дополнительные события завершены: ", "Optional events completed: ") +
+                    completedOptionalEvents() + label(" из 9", " of 9"), MARGIN + 28, lineY);
             y = Math.max(lineY + 8, cardTop + cardHeight);
             y += 20;
         }
 
         private String yesNo(boolean value) {
-            return value ? "да" : "нет";
+            return value ? label("да", "yes") : label("нет", "no");
         }
 
         private int completedOptionalEvents() {
@@ -343,10 +362,11 @@ public final class ResultPdfExporter {
         }
 
         private void drawEntries() {
-            section("Хронология прохождения");
+            section(label("Хронология прохождения", "Playthrough timeline"));
             ArrayList<ReportEntry> entries = gp.story.getReportEntries();
             if (entries.isEmpty()) {
-                drawPlain("Для этого сохранения подробная история ещё не записана. Новые прохождения будут сохранять выборы и события автоматически.");
+                drawPlain(label("Для этого сохранения подробная история ещё не записана. Новые прохождения будут сохранять выборы и события автоматически.",
+                        "This save does not yet contain a detailed history. New playthroughs will record choices and events automatically."));
                 return;
             }
             for (ReportEntry entry : entries) {
@@ -360,18 +380,19 @@ public final class ResultPdfExporter {
         private void drawContacts() {
             ensure(300);
             y += 22;
-            section("Обратная связь");
+            section(label("Обратная связь", "Feedback"));
             int cardTop = y;
             int cardHeight = 190;
             cardStart(cardHeight);
             g.setFont(GameFonts.regular(26));
             g.setColor(INK);
-            y = drawText("Если отчёт нужно расширить, добавить новые графики, интерпретации или экспорт в другой формат, можно связаться для доработки.",
+            y = drawText(label("Если отчёт нужно расширить, добавить новые графики, интерпретации или экспорт в другой формат, можно связаться для доработки.",
+                            "If the report needs more charts, interpretation, or another export format, contact me for improvements."),
                     MARGIN + 28, y + 38, PAGE_WIDTH - MARGIN * 2 - 56, 33);
             g.setFont(GameFonts.semibold(27));
             g.setColor(ACCENT);
             g.drawString("Email: " + CONTACT_EMAIL, MARGIN + 28, y + 26);
-            g.drawString("Телефон: " + CONTACT_PHONE, MARGIN + 28, y + 62);
+            g.drawString(label("Телефон: ", "Phone: ") + CONTACT_PHONE, MARGIN + 28, y + 62);
             y = Math.max(y + 86, cardTop + cardHeight);
         }
 
@@ -489,39 +510,40 @@ public final class ResultPdfExporter {
             int textY = top + 34;
             g.setFont(GameFonts.bold(27));
             g.setColor(INK);
-            g.drawString(entry.order + ". " + entry.type + " — " + entry.title, textX, textY);
+            g.drawString(entry.order + ". " + localizeReportText(entry.type) + " — " +
+                    localizeReportText(entry.title), textX, textY);
             g.setFont(GameFonts.regular(22));
             g.setColor(MUTED);
-            g.drawString(entry.location, textX, textY + 28);
+            g.drawString(localizeReportText(entry.location), textX, textY + 28);
 
             g.setColor(INK);
             int bodyY = textY + 66;
             if (!entry.prompt.isEmpty()) {
-                bodyY = drawText("Контекст: " + entry.prompt, textX, bodyY,
+                bodyY = drawText(label("Контекст: ", "Context: ") + localizeReportText(entry.prompt), textX, bodyY,
                         PAGE_WIDTH - MARGIN * 2 - 56, 27);
             }
             if (!entry.choice.isEmpty()) {
-                bodyY = drawText("Выбор: " + entry.choice, textX, bodyY + 8,
+                bodyY = drawText(label("Выбор: ", "Choice: ") + localizeReportText(entry.choice), textX, bodyY + 8,
                         PAGE_WIDTH - MARGIN * 2 - 56, 27);
             }
             if (!entry.metricDelta.isEmpty()) {
                 g.setFont(GameFonts.semibold(23));
                 g.setColor(ACCENT);
-                bodyY = drawText("Изменения: " + entry.metricDelta, textX, bodyY + 8,
+                bodyY = drawText(label("Изменения: ", "Changes: ") + localizeReportText(entry.metricDelta), textX, bodyY + 8,
                         PAGE_WIDTH - MARGIN * 2 - 56, 28);
             }
             if (!entry.result.isEmpty()) {
                 g.setFont(GameFonts.regular(22));
                 g.setColor(INK);
-                bodyY = drawText("Итог: " + entry.result, textX, bodyY + 8,
+                bodyY = drawText(label("Итог: ", "Result: ") + localizeReportText(entry.result), textX, bodyY + 8,
                         PAGE_WIDTH - MARGIN * 2 - 56, 27);
             }
             if (!entry.beforeMetrics.isEmpty() && !entry.afterMetrics.isEmpty()) {
                 g.setFont(GameFonts.regular(19));
                 g.setColor(MUTED);
-                bodyY = drawText("До: " + entry.beforeMetrics, textX, bodyY + 8,
+                bodyY = drawText(label("До: ", "Before: ") + localizeReportText(entry.beforeMetrics), textX, bodyY + 8,
                         PAGE_WIDTH - MARGIN * 2 - 56, 23);
-                drawText("После: " + entry.afterMetrics, textX, bodyY + 4,
+                drawText(label("После: ", "After: ") + localizeReportText(entry.afterMetrics), textX, bodyY + 4,
                         PAGE_WIDTH - MARGIN * 2 - 56, 23);
             }
             y = top + height;
@@ -532,24 +554,24 @@ public final class ResultPdfExporter {
             int height = 106;
             if (!entry.prompt.isEmpty()) {
                 g.setFont(GameFonts.regular(22));
-                height += countWrappedLines("Контекст: " + entry.prompt, textWidth) * 27 + 8;
+                height += countWrappedLines(label("Контекст: ", "Context: ") + localizeReportText(entry.prompt), textWidth) * 27 + 8;
             }
             if (!entry.choice.isEmpty()) {
                 g.setFont(GameFonts.regular(22));
-                height += countWrappedLines("Выбор: " + entry.choice, textWidth) * 27 + 8;
+                height += countWrappedLines(label("Выбор: ", "Choice: ") + localizeReportText(entry.choice), textWidth) * 27 + 8;
             }
             if (!entry.metricDelta.isEmpty()) {
                 g.setFont(GameFonts.semibold(23));
-                height += countWrappedLines("Изменения: " + entry.metricDelta, textWidth) * 28 + 8;
+                height += countWrappedLines(label("Изменения: ", "Changes: ") + localizeReportText(entry.metricDelta), textWidth) * 28 + 8;
             }
             if (!entry.result.isEmpty()) {
                 g.setFont(GameFonts.regular(22));
-                height += countWrappedLines("Итог: " + entry.result, textWidth) * 27 + 8;
+                height += countWrappedLines(label("Итог: ", "Result: ") + localizeReportText(entry.result), textWidth) * 27 + 8;
             }
             if (!entry.beforeMetrics.isEmpty() && !entry.afterMetrics.isEmpty()) {
                 g.setFont(GameFonts.regular(19));
-                height += countWrappedLines("До: " + entry.beforeMetrics, textWidth) * 23 + 4;
-                height += countWrappedLines("После: " + entry.afterMetrics, textWidth) * 23 + 4;
+                height += countWrappedLines(label("До: ", "Before: ") + localizeReportText(entry.beforeMetrics), textWidth) * 23 + 4;
+                height += countWrappedLines(label("После: ", "After: ") + localizeReportText(entry.afterMetrics), textWidth) * 23 + 4;
             }
             return Math.max(146, height + 18);
         }
@@ -616,7 +638,7 @@ public final class ResultPdfExporter {
         }
 
         private String strongestMetric() {
-            String[] names = {"Рост", "Покой", "Эмпатия", "Уверенность", "Ответственность", "Самоценность"};
+            String[] names = {metricLabel(0), metricLabel(1), metricLabel(2), metricLabel(3), metricLabel(4), metricLabel(6)};
             int[] values = {gp.story.growth, gp.story.calm, gp.story.empathy, gp.story.confidence,
                     gp.story.responsibility, gp.story.selfWorth};
             int best = 0;
@@ -629,7 +651,7 @@ public final class ResultPdfExporter {
         }
 
         private String weakestMetric() {
-            String[] names = {"Рост", "Покой", "Эмпатия", "Уверенность", "Ответственность", "Самоценность"};
+            String[] names = {metricLabel(0), metricLabel(1), metricLabel(2), metricLabel(3), metricLabel(4), metricLabel(6)};
             int[] values = {gp.story.growth, gp.story.calm, gp.story.empathy, gp.story.confidence,
                     gp.story.responsibility, gp.story.selfWorth};
             int weakest = 0;
@@ -639,6 +661,59 @@ public final class ResultPdfExporter {
                 }
             }
             return names[weakest] + " (" + values[weakest] + ")";
+        }
+
+        private String label(String ru, String en) {
+            return gp.isEnglish() ? en : ru;
+        }
+
+        private String metricLabel(int index) {
+            switch (index) {
+                case 0:
+                    return label("Рост", "Growth");
+                case 1:
+                    return label("Покой", "Calm");
+                case 2:
+                    return label("Эмпатия", "Empathy");
+                case 3:
+                    return label("Уверенность", "Confidence");
+                case 4:
+                    return label("Ответственность", "Responsibility");
+                case 5:
+                    return label("Избегание", "Avoidance");
+                case 6:
+                    return label("Самоценность", "Self-worth");
+                default:
+                    return "";
+            }
+        }
+
+        private String localizeReportText(String text) {
+            if (text == null || text.isEmpty()) {
+                return "";
+            }
+            if (!gp.isEnglish()) {
+                return text;
+            }
+
+            String localized = gp.tr(text);
+            localized = localized.replace("Диалог:", "Dialogue:");
+            localized = localized.replace("Событие", "Event");
+            localized = localized.replace("Выбор", "Choice");
+            localized = localized.replace("Метрики не изменились", "Metrics did not change");
+            localized = localized.replace("Ответственность", "Responsibility");
+            localized = localized.replace("Уверенность", "Confidence");
+            localized = localized.replace("Самоценность", "Self-worth");
+            localized = localized.replace("Избегание", "Avoidance");
+            localized = localized.replace("Эмпатия", "Empathy");
+            localized = localized.replace("Покой", "Calm");
+            localized = localized.replace("Рост", "Growth");
+            localized = localized.replace("Старик", "Elder");
+            localized = localized.replace("Тень", "Shadow");
+            localized = localized.replace("Ребёнок", "Child");
+            localized = localized.replace("Друг", "Friend");
+            localized = localized.replace("Воин", "Warrior");
+            return localized;
         }
     }
 }

@@ -938,26 +938,41 @@ public class TestLogic {
         gp.keyH.optionsState(KeyEvent.VK_Q);
         assertEquals(UI.OPTIONS_TAB_SOUND, gp.ui.getOptionsTab(), "Q must return to sound tab");
         assertEquals(0, gp.ui.commandNum, "Changing options tab must reset selected row");
-        int startMusicVolume = gp.getMusicVolume();
-        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals(startMusicVolume, gp.getMusicVolume(), "Right must not increase music volume");
-        gp.keyH.optionsState(KeyEvent.VK_ENTER);
-        assertEquals(Math.min(5, startMusicVolume + 1), gp.getMusicVolume(), "Enter must increase music volume");
+        assertEquals(6, gp.ui.getOptionsCommandCount(),
+                "Sound settings must show effects, ambience, footsteps, interface, whispers, and back");
 
-        gp.keyH.optionsState(KeyEvent.VK_DOWN);
-        assertEquals(1, gp.ui.commandNum, "Down must move to sound effects volume");
         int startSoundVolume = gp.getSoundEffectVolume();
-        gp.keyH.optionsState(KeyEvent.VK_LEFT);
-        assertEquals(startSoundVolume, gp.getSoundEffectVolume(), "Left must not decrease sound effects volume");
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals(startSoundVolume, gp.getSoundEffectVolume(), "Right must not increase sound effects before edit mode");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        if (!gp.ui.isEditingSoundOption()) {
+            throw new AssertionError("Enter must select the sound effects volume row for editing");
+        }
+        assertEquals(startSoundVolume, gp.getSoundEffectVolume(), "Enter must not change sound effects volume immediately");
+        gp.keyH.optionsState(KeyEvent.VK_RIGHT);
+        assertEquals(Math.min(5, startSoundVolume + 1), gp.getSoundEffectVolume(),
+                "Right must increase sound effects volume in edit mode");
         gp.keyH.optionsState(KeyEvent.VK_E);
-        assertEquals(Math.min(5, startSoundVolume + 1), gp.getSoundEffectVolume(), "E must increase sound effects volume");
+        if (gp.ui.isEditingSoundOption()) {
+            throw new AssertionError("E must leave sound volume edit mode");
+        }
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
+        assertEquals(1, gp.ui.commandNum, "Down must move to ambience volume");
         int startAmbienceVolume = gp.ambienceVolumeScale;
+        gp.keyH.optionsState(KeyEvent.VK_LEFT);
+        assertEquals(startAmbienceVolume, gp.ambienceVolumeScale, "Left must not decrease ambience before edit mode");
+        gp.keyH.optionsState(KeyEvent.VK_E);
+        if (!gp.ui.isEditingSoundOption()) {
+            throw new AssertionError("E must select ambience volume for editing");
+        }
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals(startAmbienceVolume, gp.ambienceVolumeScale, "Right must not increase ambience volume");
+        assertEquals(Math.min(5, startAmbienceVolume + 1), gp.ambienceVolumeScale,
+                "Right must increase ambience volume in edit mode");
         gp.keyH.optionsState(KeyEvent.VK_ENTER);
-        assertEquals(Math.min(5, startAmbienceVolume + 1), gp.ambienceVolumeScale, "Enter must increase ambience volume");
+        if (gp.ui.isEditingSoundOption()) {
+            throw new AssertionError("Enter must leave ambience volume edit mode");
+        }
 
         gp.keyH.optionsState(KeyEvent.VK_Q);
         assertEquals(UI.OPTIONS_TAB_CHAT, gp.ui.getOptionsTab(), "Q must move to chat tab");
@@ -1224,6 +1239,9 @@ public class TestLogic {
             File parent = pdf.getParentFile();
             if (parent == null || !"results".equals(parent.getName())) {
                 throw new AssertionError("Result PDF report must be saved inside the results folder");
+            }
+            if (!pdf.getName().startsWith("ReflectionResultТестовый_игрок_")) {
+                throw new AssertionError("Result PDF file name must include the entered player name");
             }
             byte[] header = Files.readAllBytes(pdf.toPath());
             if (header.length < 5 ||

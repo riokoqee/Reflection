@@ -77,6 +77,7 @@ public class UI {
     private String nameInputText = "";
     private String nameInputNotice = "";
     private int nameInputNoticeCounter = 0;
+    private int activeSoundOptionCommand = -1;
 
     public UI(GamePanel gp) {
         this.gp = gp;
@@ -145,6 +146,7 @@ public class UI {
 
     public void setOptionsTab(int tab) {
         optionsTab = Math.max(0, Math.min(OPTIONS_TAB_COUNT - 1, tab));
+        activeSoundOptionCommand = -1;
         commandNum = Math.min(commandNum, getOptionsCommandCount() - 1);
     }
 
@@ -160,7 +162,7 @@ public class UI {
     public int getOptionsCommandCount() {
         switch (optionsTab) {
             case OPTIONS_TAB_SOUND:
-                return 7;
+                return 6;
             case OPTIONS_TAB_CHAT:
                 return 5;
             case OPTIONS_TAB_GRAPHICS:
@@ -171,6 +173,22 @@ public class UI {
 
     public boolean isOptionsBackCommand() {
         return commandNum == getOptionsCommandCount() - 1;
+    }
+
+    public boolean isEditingSoundOption() {
+        return optionsTab == OPTIONS_TAB_SOUND &&
+                activeSoundOptionCommand >= 0 &&
+                activeSoundOptionCommand < getOptionsCommandCount() - 1;
+    }
+
+    public void beginSoundOptionEdit() {
+        if (optionsTab == OPTIONS_TAB_SOUND && !isOptionsBackCommand()) {
+            activeSoundOptionCommand = commandNum;
+        }
+    }
+
+    public void endSoundOptionEdit() {
+        activeSoundOptionCommand = -1;
     }
 
     public boolean isDialogueTextFullyVisible() {
@@ -905,46 +923,6 @@ public class UI {
         }
     }
 
-    private void drawOptionsScreen() {
-        if (gp.optionsReturnState != gp.pauseState) {
-            UiGraphics.fillVerticalGradient(g2, 0, 0, gp.screenWidth, gp.screenHeight,
-                    new Color(19, 25, 31), new Color(48, 62, 55));
-        }
-
-        g2.setColor(new Color(0, 0, 0, 135));
-        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
-
-        int panelWidth = OPTIONS_PANEL_WIDTH;
-        int panelHeight = OPTIONS_PANEL_HEIGHT;
-        int panelX = gp.screenWidth / 2 - panelWidth / 2;
-        int panelY = gp.screenHeight / 2 - panelHeight / 2;
-
-        g2.setColor(new Color(0, 0, 0, 80));
-        g2.fillRoundRect(panelX + 10, panelY + 12, panelWidth, panelHeight, 18, 18);
-        UiGraphics.drawSubWindow(g2, panelX, panelY, panelWidth, panelHeight, new Color(8, 14, 17, 238));
-
-        g2.setFont(GameFonts.bold(38));
-        String title = t("НАСТРОЙКИ", "SETTINGS");
-        UiGraphics.drawShadowedString(g2, title, UiGraphics.getCenteredX(g2, gp.screenWidth, title), panelY + 62, Color.white, new Color(0, 0, 0, 160));
-
-        int tabY = panelY + 84;
-        int tabX = panelX + 36;
-        int tabWidth = 174;
-        drawOptionsTab(t("Графика", "Graphics"), OPTIONS_TAB_GRAPHICS, tabX, tabY, tabWidth);
-        drawOptionsTab(t("Звук", "Sound"), OPTIONS_TAB_SOUND, tabX + tabWidth + 12, tabY, tabWidth);
-        drawOptionsTab(t("Чат", "Chat"), OPTIONS_TAB_CHAT, tabX + (tabWidth + 12) * 2, tabY, tabWidth);
-
-        int rowX = panelX + 52;
-        int rowY = panelY + 162;
-        int rowWidth = panelWidth - 104;
-        int rowStep = 55;
-
-        drawVolumeOption(t("Музыка", "Music"), gp.music.volumeScale, 0, rowX, rowY, rowWidth);
-        drawVolumeOption(t("Звуки", "Sounds"), gp.se.volumeScale, 1, rowX, rowY + rowStep, rowWidth);
-        drawToggleOption(t("Полный экран", "Fullscreen"), gp.fullScreenOn, 2, rowX, rowY + rowStep * 2, rowWidth);
-        drawBackOption(t("НАЗАД", "BACK"), 3, rowX, rowY + rowStep * 3, rowWidth);
-    }
-
     private void drawTabbedOptionsScreen() {
         if (gp.optionsReturnState != gp.pauseState) {
             UiGraphics.fillVerticalGradient(g2, 0, 0, gp.screenWidth, gp.screenHeight,
@@ -987,13 +965,12 @@ public class UI {
             drawBackOption(t("НАЗАД", "BACK"), 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
         }
         else if (optionsTab == OPTIONS_TAB_SOUND) {
-            drawSliderOption(t("Музыка", "Music"), gp.music.volumeScale, 5, 0, rowX, rowY, rowWidth);
-            drawSliderOption(t("Эффекты", "Effects"), gp.se.volumeScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
-            drawSliderOption(t("Окружение", "Ambience"), gp.ambienceVolumeScale, 5, 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
-            drawSliderOption(t("Шаги", "Footsteps"), gp.footstepVolumeScale, 5, 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
-            drawSliderOption(t("Интерфейс", "Interface"), gp.uiVolumeScale, 5, 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
-            drawSliderOption(t("Шепоты", "Whispers"), gp.whisperVolumeScale, 5, 5, rowX, rowY + OPTIONS_ROW_STEP * 5, rowWidth);
-            drawBackOption(t("НАЗАД", "BACK"), 6, rowX, rowY + OPTIONS_ROW_STEP * 6, rowWidth);
+            drawSliderOption(t("Эффекты", "Effects"), gp.se.volumeScale, 5, 0, rowX, rowY, rowWidth);
+            drawSliderOption(t("Окружение", "Ambience"), gp.ambienceVolumeScale, 5, 1, rowX, rowY + OPTIONS_ROW_STEP, rowWidth);
+            drawSliderOption(t("Шаги", "Footsteps"), gp.footstepVolumeScale, 5, 2, rowX, rowY + OPTIONS_ROW_STEP * 2, rowWidth);
+            drawSliderOption(t("Интерфейс", "Interface"), gp.uiVolumeScale, 5, 3, rowX, rowY + OPTIONS_ROW_STEP * 3, rowWidth);
+            drawSliderOption(t("Шепоты", "Whispers"), gp.whisperVolumeScale, 5, 4, rowX, rowY + OPTIONS_ROW_STEP * 4, rowWidth);
+            drawBackOption(t("НАЗАД", "BACK"), 5, rowX, rowY + OPTIONS_ROW_STEP * 5, rowWidth);
         }
         else {
             drawCycleOption(t("Язык", "Language"), gp.getLanguageLabel(), 0, rowX, rowY, rowWidth);
@@ -1008,9 +985,11 @@ public class UI {
 
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(176, 190, 184));
-        g2.drawString(t("Q - вперёд, Tab - назад, E / Enter - изменить",
-                        "Q - next tab, Tab - previous tab, E / Enter - change"),
-                panelX + 36, panelY + OPTIONS_PANEL_HEIGHT - 24);
+        String hint = isEditingSoundOption()
+                ? t("← / → - громкость, E / Enter - готово", "← / → - volume, E / Enter - done")
+                : t("Q - вперёд, Tab - назад, E / Enter - изменить",
+                        "Q - next tab, Tab - previous tab, E / Enter - change");
+        g2.drawString(hint, panelX + 36, panelY + OPTIONS_PANEL_HEIGHT - 24);
     }
 
     public int getOptionsPanelX() {
@@ -1665,7 +1644,6 @@ public class UI {
     }
 
     private void drawFinalSceneText(int step, int stepFrame, float progress) {
-        String speaker = getFinalSceneSpeaker(step);
         String fullText = getFinalSceneText(step);
         int revealChars = Math.min(fullText.length(), Math.max(0, stepFrame - 16) * FINAL_TEXT_CHARS_PER_FRAME);
         String text = revealFinalText("final|" + gp.languageMode + "|" + step + "|" + fullText, fullText, revealChars);
@@ -1681,13 +1659,9 @@ public class UI {
         g2.setColor(new Color(174, 215, 196, Math.min(150, alpha)));
         g2.drawRoundRect(x + 3, y + 3, panelWidth - 6, panelHeight - 6, 14, 14);
 
-        g2.setFont(GameFonts.bold(22));
-        g2.setColor(new Color(174, 215, 196, alpha));
-        g2.drawString(speaker, x + 28, y + 39);
-
         g2.setFont(GameFonts.regular(25));
         g2.setColor(new Color(242, 247, 244, alpha));
-        UiGraphics.drawWrappedText(g2, text, x + 28, y + 76, panelWidth - 56, 31);
+        UiGraphics.drawWrappedText(g2, text, x + 28, y + 48, panelWidth - 56, 31);
 
         if (dialogueRevealComplete) {
             int dotAlpha = 90 + (int) (Math.sin(gp.getFinalSceneFrame() * 0.16) * 70);
@@ -1760,20 +1734,20 @@ public class UI {
     private String getFinalSceneText(int step) {
         switch (step) {
             case 1:
-                return t("Старик: Понимание уже рядом. Не ищи ответ снаружи.",
-                        "Elder: Understanding is close. Do not search for the answer outside.");
+                return t("Понимание уже рядом. Не ищи ответ снаружи.",
+                        "Understanding is close. Do not search for the answer outside.");
             case 2:
-                return t("Тень: Я не враг. Я та часть, которую ты боялся увидеть.",
-                        "Shadow: I am not an enemy. I am the part you were afraid to see.");
+                return t("Я не враг. Я та часть, которую ты боялся увидеть.",
+                        "I am not an enemy. I am the part you were afraid to see.");
             case 3:
-                return t("Ребёнок: Я помню страх, но рядом с ним всегда было желание жить.",
-                        "Child: I remember fear, but beside it there was always a wish to live.");
+                return t("Я помню страх, но рядом с ним всегда было желание жить.",
+                        "I remember fear, but beside it there was always a wish to live.");
             case 4:
-                return t("Друг: Даже когда ты уходил в тишину, связь не исчезала полностью.",
-                        "Friend: Even when you stepped into silence, the bond never disappeared completely.");
+                return t("Даже когда ты уходил в тишину, связь не исчезала полностью.",
+                        "Even when you stepped into silence, the bond never disappeared completely.");
             case 5:
-                return t("Воин: Весь путь проходил внутри твоего разума. Каждая встреча была частью тебя.",
-                        "Warrior: The whole path took place inside your mind. Every encounter was a part of you.");
+                return t("Весь путь проходил внутри твоего разума. Каждая встреча была частью тебя.",
+                        "The whole path took place inside your mind. Every encounter was a part of you.");
             case 6:
                 return t("Теперь Reflection соберёт результат: выборы, решения, воспоминания и метрики, которые выросли из твоего прохождения.",
                         "Now Reflection will collect the result: choices, decisions, memories, and metrics shaped by your playthrough.");
@@ -1945,19 +1919,29 @@ public class UI {
     private void drawSliderOption(String label, int value, int maxValue, int command, int x, int y, int width) {
         drawOptionShell(command, x, y, width);
 
+        boolean active = optionsTab == OPTIONS_TAB_SOUND && activeSoundOptionCommand == command;
         g2.setFont(GameFonts.bold(19));
-        g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
+        g2.setColor(active ? new Color(255, 222, 151) :
+                commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
         g2.drawString(label, x + 18, y);
 
         int barX = x + width - 276;
         int barY = y - 20;
         int blockWidth = 26;
         int blockGap = 7;
+        int totalBarWidth = maxValue * blockWidth + (maxValue - 1) * blockGap;
 
         for (int i = 0; i < maxValue; i++) {
             boolean filled = i < value;
             g2.setColor(filled ? new Color(174, 215, 196) : new Color(255, 255, 255, 45));
             g2.fillRoundRect(barX + i * (blockWidth + blockGap), barY, blockWidth, 18, 8, 8);
+        }
+
+        if (active) {
+            g2.setColor(new Color(255, 222, 151, 210));
+            g2.drawRoundRect(barX - 12, barY - 8, totalBarWidth + 24, 34, 12, 12);
+            g2.setFont(GameFonts.bold(16));
+            g2.drawString("←  →", barX + totalBarWidth + 20, y - 6);
         }
     }
 
@@ -1977,25 +1961,6 @@ public class UI {
         g2.setFont(GameFonts.bold(16));
         g2.setColor(Color.white);
         g2.drawString(UiGraphics.trimToWidth(g2, value, valueWidth - 52), valueX + 26, y - 7);
-    }
-
-    private void drawVolumeOption(String label, int value, int command, int x, int y, int width) {
-        drawOptionShell(command, x, y, width);
-
-        g2.setFont(GameFonts.bold(21));
-        g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
-        g2.drawString(label, x + 18, y);
-
-        int barX = x + width - 240;
-        int barY = y - 20;
-        int blockWidth = 28;
-        int blockHeight = 18;
-
-        for (int i = 0; i < 5; i++) {
-            boolean filled = i < value;
-            g2.setColor(filled ? new Color(174, 215, 196) : new Color(255, 255, 255, 45));
-            g2.fillRoundRect(barX + i * (blockWidth + 8), barY, blockWidth, blockHeight, 8, 8);
-        }
     }
 
     private void drawToggleOption(String label, boolean enabled, int command, int x, int y, int width) {

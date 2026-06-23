@@ -354,7 +354,7 @@ public class AssetSetter {
         index = placeObject(MapId.FOREST_DOUBTS, index,
                 createStoryObject("Lost Lantern", "lost_lantern", 0.8, 0.9), 18, 35);
         index = placeObject(MapId.FOREST_DOUBTS, index,
-                createStoryObject("Wounded Bird", "wounded_bird", 0.75, 0.55)
+                createFloorStoryObject("Wounded Bird", "wounded_bird", 0.75, 0.55)
                         .setRenderSortY(gp.tileSize * 28 - 1), 28, 28);
         if (!gp.hasLantern) {
             placeForestLantern(index, 23, 41);
@@ -541,6 +541,22 @@ public class AssetSetter {
                 widthTiles,
                 heightTiles,
                 false
+        );
+        object.setSolidArea(0, 0,
+                Math.max(1, (int) Math.round(gp.tileSize * widthTiles)),
+                Math.max(1, (int) Math.round(gp.tileSize * heightTiles)));
+        return object;
+    }
+
+    private StaticObject createFloorStoryObject(String name, String imageName, double widthTiles, double heightTiles) {
+        StaticObject object = new StaticObject(
+                gp,
+                name,
+                "/objects/story/" + imageName,
+                widthTiles,
+                heightTiles,
+                false,
+                true
         );
         object.setSolidArea(0, 0,
                 Math.max(1, (int) Math.round(gp.tileSize * widthTiles)),
