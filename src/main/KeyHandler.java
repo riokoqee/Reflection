@@ -201,21 +201,15 @@ public class KeyHandler implements KeyListener {
             moveCommand(1, gp.ui.getOptionsCommandCount() - 1);
         }
         if (code == KeyEvent.VK_Q) {
-            gp.ui.moveOptionsTab(-1);
+            gp.ui.moveOptionsTab(1);
             gp.playCursorSE();
         }
         if (code == KeyEvent.VK_TAB) {
-            gp.ui.moveOptionsTab(1);
+            gp.ui.moveOptionsTab(-1);
             gp.playCursorSE();
         }
         if (code == KeyEvent.VK_ESCAPE) {
             gp.closeOptionsMenu();
-        }
-        if (isLeft(code)) {
-            changeOption(-1);
-        }
-        if (isRight(code)) {
-            changeOption(1);
         }
         if (isConfirm(code) || code == KeyEvent.VK_E) {
             boolean closing = gp.ui.isOptionsBackCommand();
@@ -339,11 +333,6 @@ public class KeyHandler implements KeyListener {
         if (gp.ui.commandNum > maxCommand) {
             gp.ui.commandNum = 0;
         }
-        gp.playCursorSE();
-    }
-
-    private void changeOption(int amount) {
-        gp.changeCurrentOption(amount);
         gp.playCursorSE();
     }
 

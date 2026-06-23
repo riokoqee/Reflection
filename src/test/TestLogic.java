@@ -911,43 +911,63 @@ public class TestLogic {
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         int startGraphicsMode = gp.graphicsMode;
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals((startGraphicsMode + 1) % 3, gp.graphicsMode, "Right must cycle graphics mode");
+        assertEquals(startGraphicsMode, gp.graphicsMode, "Right must not cycle graphics mode");
+        gp.keyH.optionsState(KeyEvent.VK_D);
+        assertEquals(startGraphicsMode, gp.graphicsMode, "D must not cycle graphics mode");
+        gp.keyH.optionsState(KeyEvent.VK_E);
+        assertEquals((startGraphicsMode + 1) % 3, gp.graphicsMode, "E must cycle graphics mode");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         int startBrightness = gp.brightnessScale;
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals(Math.min(5, startBrightness + 1), gp.brightnessScale, "Right must increase brightness");
+        assertEquals(startBrightness, gp.brightnessScale, "Right must not increase brightness");
+        gp.keyH.optionsState(KeyEvent.VK_A);
+        assertEquals(startBrightness, gp.brightnessScale, "A must not decrease brightness");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(Math.min(5, startBrightness + 1), gp.brightnessScale, "Enter must increase brightness");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         boolean showFpsBefore = gp.showFpsCounter;
         gp.keyH.optionsState(KeyEvent.VK_ENTER);
         assertEquals(showFpsBefore ? 0 : 1, gp.showFpsCounter ? 1 : 0, "Enter must toggle FPS counter");
 
+        gp.keyH.optionsState(KeyEvent.VK_Q);
+        assertEquals(UI.OPTIONS_TAB_SOUND, gp.ui.getOptionsTab(), "Q must move to next tab");
         gp.keyH.optionsState(KeyEvent.VK_TAB);
-        assertEquals(UI.OPTIONS_TAB_SOUND, gp.ui.getOptionsTab(), "Tab must move to sound tab");
+        assertEquals(UI.OPTIONS_TAB_GRAPHICS, gp.ui.getOptionsTab(), "Tab must move to previous tab");
+        gp.keyH.optionsState(KeyEvent.VK_Q);
+        assertEquals(UI.OPTIONS_TAB_SOUND, gp.ui.getOptionsTab(), "Q must return to sound tab");
         assertEquals(0, gp.ui.commandNum, "Changing options tab must reset selected row");
         int startMusicVolume = gp.getMusicVolume();
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals(Math.min(5, startMusicVolume + 1), gp.getMusicVolume(), "Right must increase music volume");
+        assertEquals(startMusicVolume, gp.getMusicVolume(), "Right must not increase music volume");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(Math.min(5, startMusicVolume + 1), gp.getMusicVolume(), "Enter must increase music volume");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         assertEquals(1, gp.ui.commandNum, "Down must move to sound effects volume");
         int startSoundVolume = gp.getSoundEffectVolume();
         gp.keyH.optionsState(KeyEvent.VK_LEFT);
-        assertEquals(Math.max(0, startSoundVolume - 1), gp.getSoundEffectVolume(), "Left must decrease sound effects volume");
+        assertEquals(startSoundVolume, gp.getSoundEffectVolume(), "Left must not decrease sound effects volume");
+        gp.keyH.optionsState(KeyEvent.VK_E);
+        assertEquals(Math.min(5, startSoundVolume + 1), gp.getSoundEffectVolume(), "E must increase sound effects volume");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         int startAmbienceVolume = gp.ambienceVolumeScale;
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals(Math.min(5, startAmbienceVolume + 1), gp.ambienceVolumeScale, "Right must increase ambience volume");
+        assertEquals(startAmbienceVolume, gp.ambienceVolumeScale, "Right must not increase ambience volume");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals(Math.min(5, startAmbienceVolume + 1), gp.ambienceVolumeScale, "Enter must increase ambience volume");
 
-        gp.keyH.optionsState(KeyEvent.VK_TAB);
-        assertEquals(UI.OPTIONS_TAB_CHAT, gp.ui.getOptionsTab(), "Tab must move to chat tab");
+        gp.keyH.optionsState(KeyEvent.VK_Q);
+        assertEquals(UI.OPTIONS_TAB_CHAT, gp.ui.getOptionsTab(), "Q must move to chat tab");
         assertEquals(5, gp.ui.getOptionsCommandCount(), "Chat settings must show language, text, speed, contrast, and back");
 
         int startLanguage = gp.languageMode;
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals((startLanguage + 1) % 2, gp.languageMode, "Right must cycle language");
+        assertEquals(startLanguage, gp.languageMode, "Right must not cycle language");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals((startLanguage + 1) % 2, gp.languageMode, "Enter must cycle language");
         if (!"English".equals(gp.getLanguageLabel())) {
             throw new AssertionError("Language label must switch to English");
         }
@@ -958,12 +978,16 @@ public class TestLogic {
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         int startTextSize = gp.dialogueTextSizeMode;
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals((startTextSize + 1) % 3, gp.dialogueTextSizeMode, "Right must cycle dialogue text size");
+        assertEquals(startTextSize, gp.dialogueTextSizeMode, "Right must not cycle dialogue text size");
+        gp.keyH.optionsState(KeyEvent.VK_E);
+        assertEquals((startTextSize + 1) % 3, gp.dialogueTextSizeMode, "E must cycle dialogue text size");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         int startTextSpeed = gp.dialogueTextSpeedMode;
         gp.keyH.optionsState(KeyEvent.VK_RIGHT);
-        assertEquals((startTextSpeed + 1) % 4, gp.dialogueTextSpeedMode, "Right must cycle dialogue text speed");
+        assertEquals(startTextSpeed, gp.dialogueTextSpeedMode, "Right must not cycle dialogue text speed");
+        gp.keyH.optionsState(KeyEvent.VK_ENTER);
+        assertEquals((startTextSpeed + 1) % 4, gp.dialogueTextSpeedMode, "Enter must cycle dialogue text speed");
 
         gp.keyH.optionsState(KeyEvent.VK_DOWN);
         boolean highContrastBefore = gp.highContrastDialogue;

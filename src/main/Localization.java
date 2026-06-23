@@ -41,8 +41,8 @@ public final class Localization {
         put("Размер текста", "Text size");
         put("Скорость текста", "Text speed");
         put("Высокий контраст", "High contrast");
-        put("Q / Tab - вкладки, стрелки - значение, E / Enter - выбрать",
-                "Q / Tab - tabs, arrows - value, E / Enter - select");
+        put("Q - вперёд, Tab - назад, E / Enter - изменить",
+                "Q - next tab, Tab - previous tab, E / Enter - change");
         put("ВКЛ", "ON");
         put("ВЫКЛ", "OFF");
         put("Без лимита", "Unlimited");

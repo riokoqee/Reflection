@@ -1008,8 +1008,8 @@ public class UI {
 
         g2.setFont(GameFonts.regular(14));
         g2.setColor(new Color(176, 190, 184));
-        g2.drawString(t("Q / Tab - вкладки, стрелки - значение, E / Enter - выбрать",
-                        "Q / Tab - tabs, arrows - value, E / Enter - select"),
+        g2.drawString(t("Q - вперёд, Tab - назад, E / Enter - изменить",
+                        "Q - next tab, Tab - previous tab, E / Enter - change"),
                 panelX + 36, panelY + OPTIONS_PANEL_HEIGHT - 24);
     }
 
@@ -1954,15 +1954,11 @@ public class UI {
         int blockWidth = 26;
         int blockGap = 7;
 
-        g2.setFont(GameFonts.bold(19));
-        g2.drawString("<", barX - 32, y);
         for (int i = 0; i < maxValue; i++) {
             boolean filled = i < value;
             g2.setColor(filled ? new Color(174, 215, 196) : new Color(255, 255, 255, 45));
             g2.fillRoundRect(barX + i * (blockWidth + blockGap), barY, blockWidth, 18, 8, 8);
         }
-        g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
-        g2.drawString(">", barX + maxValue * (blockWidth + blockGap) + 4, y);
     }
 
     private void drawCycleOption(String label, String value, int command, int x, int y, int width) {
@@ -1981,10 +1977,6 @@ public class UI {
         g2.setFont(GameFonts.bold(16));
         g2.setColor(Color.white);
         g2.drawString(UiGraphics.trimToWidth(g2, value, valueWidth - 52), valueX + 26, y - 7);
-        g2.setFont(GameFonts.bold(18));
-        g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
-        g2.drawString("<", valueX - 24, y - 6);
-        g2.drawString(">", valueX + valueWidth + 12, y - 6);
     }
 
     private void drawVolumeOption(String label, int value, int command, int x, int y, int width) {
@@ -1999,15 +1991,11 @@ public class UI {
         int blockWidth = 28;
         int blockHeight = 18;
 
-        g2.setFont(GameFonts.bold(20));
-        g2.drawString("<", barX - 34, y);
         for (int i = 0; i < 5; i++) {
             boolean filled = i < value;
             g2.setColor(filled ? new Color(174, 215, 196) : new Color(255, 255, 255, 45));
             g2.fillRoundRect(barX + i * (blockWidth + 8), barY, blockWidth, blockHeight, 8, 8);
         }
-        g2.setColor(commandNum == command ? new Color(235, 250, 242) : new Color(205, 216, 211));
-        g2.drawString(">", barX + 5 * (blockWidth + 8) + 8, y);
     }
 
     private void drawToggleOption(String label, boolean enabled, int command, int x, int y, int width) {

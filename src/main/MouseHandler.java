@@ -205,23 +205,6 @@ public class MouseHandler extends MouseAdapter {
     }
 
     private int getOptionsActivationKey(Point point, int command) {
-        if (gp.ui.isOptionsBackCommand()) {
-            return KeyEvent.VK_ENTER;
-        }
-        if (gp.ui.getOptionsTab() == UI.OPTIONS_TAB_GRAPHICS && command == 0) {
-            return KeyEvent.VK_ENTER;
-        }
-
-        Rectangle row = gp.ui.getOptionsCommandBounds(command);
-        int leftArrowCenterX = row.x + row.width - 300;
-        int rightArrowCenterX = row.x + row.width - 34;
-
-        if (Math.abs(point.x - leftArrowCenterX) <= 34) {
-            return KeyEvent.VK_LEFT;
-        }
-        if (Math.abs(point.x - rightArrowCenterX) <= 34) {
-            return KeyEvent.VK_RIGHT;
-        }
         return KeyEvent.VK_ENTER;
     }
 }
