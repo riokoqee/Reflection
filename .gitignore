@@ -20,6 +20,8 @@ bin/
 /dist/
 /nbdist/
 /.nb-gradle/
+target/
+dependency-reduced-pom.xml
 
 .vscode/
 
