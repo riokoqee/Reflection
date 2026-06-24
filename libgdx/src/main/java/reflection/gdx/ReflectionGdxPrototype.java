@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 final class ReflectionGdxPrototype extends ApplicationAdapter {
@@ -35,6 +36,8 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     private SpriteBatch batch;
     private FitViewport viewport;
     private GdxTileCatalog tileCatalog;
+    private GdxTextureStore textureStore;
+    private GdxScene scene;
     private GdxMapData[] maps;
     private int currentMapIndex;
     private Texture heroIdleSheet;
@@ -46,12 +49,15 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     private int direction = DIRECTION_DOWN;
     private float animationTime;
     private float titleUpdateTimer;
+    private final Rectangle playerHitbox = new Rectangle();
 
     @Override
     public void create() {
         batch = new SpriteBatch();
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT);
         tileCatalog = new GdxTileCatalog();
+        textureStore = new GdxTextureStore();
+        scene = GdxScene.create(textureStore);
         maps = new GdxMapData[] {
                 GdxMapData.load("Apartment", "maps/apartment.txt", TILE_SIZE, 16, 12),
                 GdxMapData.load("Forest of Doubts", "maps/forest_doubts.txt", TILE_SIZE, 23, 43),
@@ -87,7 +93,9 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
         drawVisibleTiles();
-        drawPlayer(isMovingInputActive());
+        scene.drawFloorObjects(batch, currentMapIndex, currentMap().pixelHeight(TILE_SIZE));
+        scene.drawSortedActors(batch, currentMapIndex, currentMap().pixelHeight(TILE_SIZE), playerY,
+                () -> drawPlayer(isMovingInputActive()));
         batch.end();
     }
 
@@ -98,6 +106,12 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         }
         if (tileCatalog != null) {
             tileCatalog.dispose();
+        }
+        if (scene != null) {
+            scene.dispose();
+        }
+        if (textureStore != null) {
+            textureStore.dispose();
         }
         if (heroIdleSheet != null) {
             heroIdleSheet.dispose();
@@ -218,6 +232,11 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         float bottom = top + PLAYER_HITBOX_HEIGHT;
 
         if (left < 0f || top < 0f || right >= map.pixelWidth(TILE_SIZE) || bottom >= map.pixelHeight(TILE_SIZE)) {
+            return true;
+        }
+
+        playerHitbox.set(left, top, PLAYER_HITBOX_WIDTH, PLAYER_HITBOX_HEIGHT);
+        if (scene.collides(currentMapIndex, playerHitbox)) {
             return true;
         }
 

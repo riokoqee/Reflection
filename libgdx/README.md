@@ -8,7 +8,7 @@ This module is the first migration step from Swing/Java2D to LibGDX.
 mvn -f libgdx/pom.xml exec:java
 ```
 
-The current prototype renders the real project maps through LibGDX:
+The current prototype renders the real project maps and the first gameplay scene layer through LibGDX:
 
 - `WASD` or arrow keys: move
 - `Shift`: sprint
@@ -17,6 +17,15 @@ The current prototype renders the real project maps through LibGDX:
 - `3`: village
 - `4`: mountain
 - `5`: library
+
+Implemented in the LibGDX backend so far:
+
+- map loading from the existing `res/maps/*.txt` files
+- tile rendering from the existing `res/tiles` assets
+- player animation from the existing `res/player/new` sprite sheets
+- static objects, trees, decorations, houses, and NPC sprites
+- depth sorting between player, objects, and NPCs
+- tile, object, tree, house, and NPC collision
 
 ## Build
 
