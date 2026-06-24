@@ -8,6 +8,16 @@ This module is the first migration step from Swing/Java2D to LibGDX.
 mvn -f libgdx/pom.xml exec:java
 ```
 
+The current prototype renders the real project maps through LibGDX:
+
+- `WASD` or arrow keys: move
+- `Shift`: sprint
+- `1`: apartment
+- `2`: Forest of Doubts
+- `3`: village
+- `4`: mountain
+- `5`: library
+
 ## Build
 
 ```powershell
