@@ -14,6 +14,7 @@ The current prototype renders the real project maps and the first gameplay scene
 - `Shift`: sprint
 - `E` or `Enter`: interact / advance dialogue
 - `Space`: advance dialogue
+- `W/S` or arrows in dialogue: select an answer
 - `1`: apartment
 - `2`: Forest of Doubts
 - `3`: village
@@ -31,6 +32,8 @@ Implemented in the LibGDX backend so far:
 - interaction prompts and a basic dialogue overlay
 - simple object states for TV, dresser, dirty dishes, and lantern pickup
 - prototype location transitions through apartment door, forest shadow, village library door, and library exit
+- story prompts with answer choices for Shadow, Child, Friend, Elder, and Warrior
+- prototype metric tracking for Growth, Calm, Empathy, Confidence, Responsibility, Avoidance, and Self-worth
 
 ## Build
 

@@ -40,6 +40,7 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     private GdxTextureStore textureStore;
     private GdxScene scene;
     private GdxInteractionOverlay overlay;
+    private GdxStoryState story;
     private GdxMapData[] maps;
     private int currentMapIndex;
     private Texture heroIdleSheet;
@@ -68,6 +69,7 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         textureStore = new GdxTextureStore();
         scene = GdxScene.create(textureStore);
         overlay = new GdxInteractionOverlay();
+        story = new GdxStoryState();
         maps = new GdxMapData[] {
                 GdxMapData.load("Apartment", "maps/apartment.txt", TILE_SIZE, 16, 12),
                 GdxMapData.load("Forest of Doubts", "maps/forest_doubts.txt", TILE_SIZE, 23, 43),
@@ -106,7 +108,7 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         drawVisibleTiles();
         scene.drawFloorObjects(batch, currentMapIndex, currentMap().pixelHeight(TILE_SIZE));
         scene.drawSortedActors(batch, currentMapIndex, currentMap().pixelHeight(TILE_SIZE), playerY,
-                () -> drawPlayer(!overlay.isDialogueOpen() && isMovingInputActive()));
+                () -> drawPlayer(!overlay.isBlocking() && isMovingInputActive()));
         batch.end();
 
         uiViewport.apply(false);
@@ -165,7 +167,7 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     }
 
     private void handleMapShortcuts() {
-        if (overlay.isDialogueOpen()) {
+        if (overlay.isBlocking()) {
             return;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
@@ -199,6 +201,10 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     }
 
     private void handleInput(float delta) {
+        if (overlay.isChoiceOpen()) {
+            handleChoiceInput();
+            return;
+        }
         if (overlay.isDialogueOpen()) {
             if (advancePressed()) {
                 overlay.closeDialogue();
@@ -212,6 +218,31 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
             return;
         }
         updatePlayer(delta);
+    }
+
+    private void handleChoiceInput() {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.W) || Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+            overlay.moveChoice(-1);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S) || Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+            overlay.moveChoice(1);
+        }
+        if (interactPressed()) {
+            chooseStoryAnswer();
+        }
+    }
+
+    private void chooseStoryAnswer() {
+        GdxStoryState.ChoiceOutcome outcome = story.choose(overlay.activePrompt(), overlay.selectedChoiceIndex());
+        overlay.closePrompt();
+        if (outcome.nextPrompt != null) {
+            overlay.showPrompt(outcome.nextPrompt);
+            return;
+        }
+        Runnable closeAction = outcome.hasDestination()
+                ? () -> switchMap(outcome.mapIndex, outcome.column, outcome.row)
+                : null;
+        overlay.showDialogue(outcome.speaker, outcome.text, closeAction);
     }
 
     private void updatePlayer(float delta) {
@@ -311,7 +342,7 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     }
 
     private void updateInteractionTarget() {
-        if (overlay.isDialogueOpen()) {
+        if (overlay.isBlocking()) {
             interactionTarget = null;
             return;
         }
@@ -423,17 +454,20 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
                 interactShadow();
                 break;
             case "Child":
-                overlay.showDialogue("Child", "The swing creaks softly. The child points toward the deeper path.");
+                openStoryPromptOrMessage("Child",
+                        "The swing creaks softly. The child points toward the deeper path.");
                 break;
             case "Friend":
-                overlay.showDialogue("Friend", "The friend smiles carefully, like they are waiting for you to choose your words.");
+                openStoryPromptOrMessage("Friend",
+                        "The friend smiles carefully, like they are waiting for you to choose your words.");
                 break;
             case "Elder":
-                overlay.showDialogue("Elder", "The elder closes the book. The next answer is somewhere beyond the village.",
-                        () -> switchMap(3, 35, 31));
+                openStoryPromptOrMessage("Elder",
+                        "The elder closes the book. The next answer is somewhere beyond the village.");
                 break;
             case "Warrior":
-                overlay.showDialogue("Warrior", "The warrior stands beside the fire. The final climb begins when you stop running from yourself.");
+                openStoryPromptOrMessage("Warrior",
+                        "The warrior stands beside the fire. The final climb begins when you stop running from yourself.");
                 break;
             case "Traveler":
                 overlay.showDialogue("Traveler", "The traveler adjusts their pack. Some burdens only become lighter when named.");
@@ -445,16 +479,22 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     }
 
     private void interactShadow() {
-        if (currentMapIndex == 0) {
-            overlay.showDialogue("Shadow", "The reflection darkens. The room stretches into a path between trees.",
-                    () -> switchMap(1, 23, 43));
-        } else if (currentMapIndex == 1) {
-            overlay.showDialogue("Shadow", hasLantern
-                    ? "The forest opens. Lights from a village appear through the branches."
-                    : "Without a lantern, the voice is almost impossible to follow.",
-                    hasLantern ? () -> switchMap(2, 23, 15) : null);
+        GdxStoryState.Prompt prompt = story.promptForActor("Shadow", currentMapIndex, hasLantern);
+        if (prompt != null) {
+            overlay.showPrompt(prompt);
+            return;
+        }
+        overlay.showDialogue("Shadow", currentMapIndex == 1 && !hasLantern
+                ? "Without a lantern, the voice is almost impossible to follow."
+                : "The shadow says nothing, but the silence has shape.");
+    }
+
+    private void openStoryPromptOrMessage(String actorName, String fallbackText) {
+        GdxStoryState.Prompt prompt = story.promptForActor(actorName, currentMapIndex, hasLantern);
+        if (prompt != null) {
+            overlay.showPrompt(prompt);
         } else {
-            overlay.showDialogue("Shadow", "The shadow says nothing, but the silence has shape.");
+            overlay.showDialogue(actorName, fallbackText);
         }
     }
 
@@ -533,7 +573,7 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     }
 
     private String promptText() {
-        if (interactionTarget == null || overlay.isDialogueOpen()) {
+        if (interactionTarget == null || overlay.isBlocking()) {
             return "";
         }
         return "E  " + displayName(interactionTarget.name);
