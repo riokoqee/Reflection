@@ -461,7 +461,7 @@ final class GdxScene implements Disposable {
 
     private GdxSceneActor addNpc(int map, String name, String imagePath, int col, int row,
                                  float drawScale, boolean showName) {
-        return addNpc(map, name, imagePath, TILE_SIZE * col, TILE_SIZE * row, drawScale, showName);
+        return addNpc(map, name, imagePath, (float) TILE_SIZE * col, (float) TILE_SIZE * row, drawScale, showName);
     }
 
     private GdxSceneActor addNpc(int map, String name, String imagePath, float x, float y,
