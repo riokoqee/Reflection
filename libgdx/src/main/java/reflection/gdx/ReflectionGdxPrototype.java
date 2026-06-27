@@ -35,9 +35,11 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
 
     private SpriteBatch batch;
     private FitViewport viewport;
+    private FitViewport uiViewport;
     private GdxTileCatalog tileCatalog;
     private GdxTextureStore textureStore;
     private GdxScene scene;
+    private GdxInteractionOverlay overlay;
     private GdxMapData[] maps;
     private int currentMapIndex;
     private Texture heroIdleSheet;
@@ -49,15 +51,23 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     private int direction = DIRECTION_DOWN;
     private float animationTime;
     private float titleUpdateTimer;
+    private boolean tvOn;
+    private boolean bedroomLampOn;
+    private boolean phoneDresserOpen;
+    private boolean hasLantern;
+    private GdxSceneActor interactionTarget;
     private final Rectangle playerHitbox = new Rectangle();
+    private final Rectangle interactionArea = new Rectangle();
 
     @Override
     public void create() {
         batch = new SpriteBatch();
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT);
+        uiViewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT);
         tileCatalog = new GdxTileCatalog();
         textureStore = new GdxTextureStore();
         scene = GdxScene.create(textureStore);
+        overlay = new GdxInteractionOverlay();
         maps = new GdxMapData[] {
                 GdxMapData.load("Apartment", "maps/apartment.txt", TILE_SIZE, 16, 12),
                 GdxMapData.load("Forest of Doubts", "maps/forest_doubts.txt", TILE_SIZE, 23, 43),
@@ -75,14 +85,15 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, false);
+        uiViewport.update(width, height, true);
         updateCamera();
     }
 
     @Override
     public void render() {
         float delta = Math.min(Gdx.graphics.getDeltaTime(), 1f / 30f);
-        handleMapShortcuts();
-        updatePlayer(delta);
+        handleInput(delta);
+        updateInteractionTarget();
         updateCamera();
         updateTitle(delta);
 
@@ -95,7 +106,13 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         drawVisibleTiles();
         scene.drawFloorObjects(batch, currentMapIndex, currentMap().pixelHeight(TILE_SIZE));
         scene.drawSortedActors(batch, currentMapIndex, currentMap().pixelHeight(TILE_SIZE), playerY,
-                () -> drawPlayer(isMovingInputActive()));
+                () -> drawPlayer(!overlay.isDialogueOpen() && isMovingInputActive()));
+        batch.end();
+
+        uiViewport.apply(false);
+        batch.setProjectionMatrix(uiViewport.getCamera().combined);
+        batch.begin();
+        overlay.draw(batch, promptText());
         batch.end();
     }
 
@@ -109,6 +126,9 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         }
         if (scene != null) {
             scene.dispose();
+        }
+        if (overlay != null) {
+            overlay.dispose();
         }
         if (textureStore != null) {
             textureStore.dispose();
@@ -145,6 +165,9 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
     }
 
     private void handleMapShortcuts() {
+        if (overlay.isDialogueOpen()) {
+            return;
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
             switchMap(0);
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
@@ -165,6 +188,30 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
         playerY = map.startY;
         animationTime = 0f;
         updateCamera();
+    }
+
+    private void switchMap(int index, int col, int row) {
+        currentMapIndex = MathUtils.clamp(index, 0, maps.length - 1);
+        playerX = col * TILE_SIZE;
+        playerY = row * TILE_SIZE;
+        animationTime = 0f;
+        updateCamera();
+    }
+
+    private void handleInput(float delta) {
+        if (overlay.isDialogueOpen()) {
+            if (advancePressed()) {
+                overlay.closeDialogue();
+            }
+            return;
+        }
+
+        handleMapShortcuts();
+        if (interactPressed()) {
+            interact();
+            return;
+        }
+        updatePlayer(delta);
     }
 
     private void updatePlayer(float delta) {
@@ -199,6 +246,14 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
             moveVertically(moveY * speed * delta);
         }
         animationTime += delta;
+    }
+
+    private boolean interactPressed() {
+        return Gdx.input.isKeyJustPressed(Input.Keys.E) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER);
+    }
+
+    private boolean advancePressed() {
+        return interactPressed() || Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
     }
 
     private boolean isMovingInputActive() {
@@ -253,6 +308,154 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
             }
         }
         return false;
+    }
+
+    private void updateInteractionTarget() {
+        if (overlay.isDialogueOpen()) {
+            interactionTarget = null;
+            return;
+        }
+        interactionTarget = scene.findInteractionTarget(currentMapIndex, currentInteractionArea());
+    }
+
+    private Rectangle currentInteractionArea() {
+        float x = playerX + PLAYER_HITBOX_X;
+        float y = playerY + PLAYER_HITBOX_Y;
+        float width = PLAYER_HITBOX_WIDTH;
+        float height = PLAYER_HITBOX_HEIGHT;
+        float reach = TILE_SIZE * 0.62f;
+
+        switch (direction) {
+            case DIRECTION_UP:
+                y -= reach;
+                break;
+            case DIRECTION_DOWN:
+                y += reach;
+                break;
+            case DIRECTION_LEFT:
+                x -= reach;
+                break;
+            case DIRECTION_RIGHT:
+                x += reach;
+                break;
+            default:
+                break;
+        }
+
+        return interactionArea.set(x - 8f, y - 8f, width + 16f, height + 16f);
+    }
+
+    private void interact() {
+        if (interactionTarget == null) {
+            return;
+        }
+
+        switch (interactionTarget.name) {
+            case "Door":
+                overlay.showDialogue("Door", "The apartment door opens. The Forest of Doubts is waiting outside.",
+                        () -> switchMap(1, 23, 43));
+                break;
+            case "Village Library Door":
+                overlay.showDialogue("Library", "The door gives way to a quiet room filled with old shelves.",
+                        () -> switchMap(4, 24, 21));
+                break;
+            case "Library Exit":
+                overlay.showDialogue("Library", "You step back into the village square.",
+                        () -> switchMap(2, 28, 10));
+                break;
+            case "TV":
+                tvOn = !tvOn;
+                scene.setTvOn(tvOn);
+                overlay.showDialogue("TV", tvOn
+                        ? "The screen wakes up with a soft glow. The room feels less empty."
+                        : "The screen goes dark again.");
+                break;
+            case "Bedroom Lamp":
+            case "Dresser":
+                bedroomLampOn = !bedroomLampOn;
+                overlay.showDialogue("Lamp", bedroomLampOn
+                        ? "Warm light spreads over the bedroom."
+                        : "The bedroom returns to a quiet dimness.");
+                break;
+            case "Phone Dresser":
+                phoneDresserOpen = true;
+                scene.setPhoneDresserOpen(true);
+                overlay.showDialogue("Dresser", "The drawer slides open. A phone is inside, already lit by a message from mom.");
+                break;
+            case "Dirty Dishes":
+            case "Kitchen Wall Sink":
+                scene.hideDirtyDishes();
+                overlay.showDialogue("Kitchen", "The dishes are cleared away. Running water cuts through the heavy silence.");
+                break;
+            case "Lantern":
+                hasLantern = true;
+                scene.pickupLantern();
+                overlay.showDialogue("Lantern", "You pick up the lantern. Its light makes the forest path easier to read.");
+                break;
+            case "Bed":
+                overlay.showDialogue("Bed", "The blanket is pulled straight. The room looks a little calmer.");
+                break;
+            case "Sofa":
+                overlay.showDialogue("Sofa", tvOn
+                        ? "You sit down for a moment. The TV noise fills the room."
+                        : "It would feel easier to rest here if the TV were on first.");
+                break;
+            case "Old Photo":
+                overlay.showDialogue("Photo", "The photo is worn at the edges, but the feeling inside it is still clear.");
+                break;
+            case "Mirror":
+            case "Bathroom Mirror":
+                overlay.showDialogue("Mirror", "For a second, the reflection seems slower than you are.");
+                break;
+            case "Lost Lantern":
+                overlay.showDialogue("Lost Lantern", "A small lantern lies cold in the grass, as if someone left in a hurry.");
+                break;
+            case "Wounded Bird":
+                overlay.showDialogue("Bird", "The bird watches you without moving. It needs gentleness, not noise.");
+                break;
+            case "Mountain Fork":
+                overlay.showDialogue("Fork", "Two paths split ahead. Both feel honest. Neither feels easy.");
+                break;
+            case "Traveler Pack":
+                overlay.showDialogue("Pack", "The pack is light, but it has clearly been carried for a long time.");
+                break;
+            case "Shadow":
+                interactShadow();
+                break;
+            case "Child":
+                overlay.showDialogue("Child", "The swing creaks softly. The child points toward the deeper path.");
+                break;
+            case "Friend":
+                overlay.showDialogue("Friend", "The friend smiles carefully, like they are waiting for you to choose your words.");
+                break;
+            case "Elder":
+                overlay.showDialogue("Elder", "The elder closes the book. The next answer is somewhere beyond the village.",
+                        () -> switchMap(3, 35, 31));
+                break;
+            case "Warrior":
+                overlay.showDialogue("Warrior", "The warrior stands beside the fire. The final climb begins when you stop running from yourself.");
+                break;
+            case "Traveler":
+                overlay.showDialogue("Traveler", "The traveler adjusts their pack. Some burdens only become lighter when named.");
+                break;
+            default:
+                overlay.showDialogue(displayName(interactionTarget.name), "There is nothing more to do here yet.");
+                break;
+        }
+    }
+
+    private void interactShadow() {
+        if (currentMapIndex == 0) {
+            overlay.showDialogue("Shadow", "The reflection darkens. The room stretches into a path between trees.",
+                    () -> switchMap(1, 23, 43));
+        } else if (currentMapIndex == 1) {
+            overlay.showDialogue("Shadow", hasLantern
+                    ? "The forest opens. Lights from a village appear through the branches."
+                    : "Without a lantern, the voice is almost impossible to follow.",
+                    hasLantern ? () -> switchMap(2, 23, 15) : null);
+        } else {
+            overlay.showDialogue("Shadow", "The shadow says nothing, but the silence has shape.");
+        }
     }
 
     private void updateCamera() {
@@ -327,6 +530,32 @@ final class ReflectionGdxPrototype extends ApplicationAdapter {
             Gdx.graphics.setTitle("Reflection LibGDX - " + currentMap().name + " - " +
                     Gdx.graphics.getFramesPerSecond() + " FPS");
         }
+    }
+
+    private String promptText() {
+        if (interactionTarget == null || overlay.isDialogueOpen()) {
+            return "";
+        }
+        return "E  " + displayName(interactionTarget.name);
+    }
+
+    private String displayName(String name) {
+        if (name == null || name.isEmpty()) {
+            return "Interact";
+        }
+        if (name.startsWith("village_house")) {
+            return "House";
+        }
+        if (name.startsWith("tree_")) {
+            return "Tree";
+        }
+        if (name.startsWith("decoration_") || name.startsWith("mountain_")) {
+            return "Inspect";
+        }
+        if ("Village Library Door".equals(name)) {
+            return "Library";
+        }
+        return name;
     }
 
     private GdxMapData currentMap() {

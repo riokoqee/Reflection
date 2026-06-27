@@ -29,9 +29,14 @@ final class GdxScene implements Disposable {
     private final List<GdxSceneActor>[] npcs;
     private final List<DrawEntry> drawEntries = new ArrayList<>();
     private final Rectangle collisionBounds = new Rectangle();
+    private final Rectangle interactionBounds = new Rectangle();
     private final BitmapFont font = new BitmapFont();
     private final GlyphLayout glyphLayout = new GlyphLayout();
     private final Texture pixel;
+    private GdxSceneActor tv;
+    private GdxSceneActor phoneDresser;
+    private GdxSceneActor dirtyDishes;
+    private GdxSceneActor lantern;
 
     private GdxScene(GdxTextureStore textureStore) {
         this.textureStore = textureStore;
@@ -95,6 +100,38 @@ final class GdxScene implements Disposable {
         return collidesWithLayer(objects[mapIndex], playerHitbox) || collidesWithLayer(npcs[mapIndex], playerHitbox);
     }
 
+    GdxSceneActor findInteractionTarget(int mapIndex, Rectangle area) {
+        GdxSceneActor npc = findTarget(npcs[mapIndex], area);
+        if (npc != null) {
+            return npc;
+        }
+        return findTarget(objects[mapIndex], area);
+    }
+
+    void setTvOn(boolean on) {
+        if (tv != null) {
+            tv.setTexture(textureStore.get(on ? "/objects/home/tv_plasma_on" : "/objects/home/tv_plasma_off"));
+        }
+    }
+
+    void setPhoneDresserOpen(boolean open) {
+        if (phoneDresser != null) {
+            phoneDresser.setTexture(textureStore.get(open ? "/objects/home/dresser_open_phone" : "/objects/home/dresser"));
+        }
+    }
+
+    void hideDirtyDishes() {
+        if (dirtyDishes != null) {
+            dirtyDishes.setVisible(false).setInteractable(false);
+        }
+    }
+
+    void pickupLantern() {
+        if (lantern != null) {
+            lantern.setVisible(false).setInteractable(false);
+        }
+    }
+
     @Override
     public void dispose() {
         font.dispose();
@@ -112,6 +149,26 @@ final class GdxScene implements Disposable {
             }
         }
         return false;
+    }
+
+    private GdxSceneActor findTarget(List<GdxSceneActor> layer, Rectangle area) {
+        GdxSceneActor fallback = null;
+        for (GdxSceneActor actor : layer) {
+            if (!actor.interactable || actor.floorLayer) {
+                continue;
+            }
+            actor.worldSolidArea(interactionBounds);
+            if (interactionBounds.width <= 0f || interactionBounds.height <= 0f || !interactionBounds.overlaps(area)) {
+                continue;
+            }
+            if (!actor.collision) {
+                return actor;
+            }
+            if (fallback == null) {
+                fallback = actor;
+            }
+        }
+        return fallback;
     }
 
     private void drawLabel(SpriteBatch batch, GdxSceneActor actor, float mapHeight) {
@@ -181,11 +238,11 @@ final class GdxScene implements Disposable {
                 .setSolidArea(TILE_SIZE / 12f, TILE_SIZE / 12f,
                         tableWidth - TILE_SIZE / 6f, tableHeight - TILE_SIZE / 6f);
 
-        addObjectAtPixel(APARTMENT, "Phone Dresser", "/objects/home/dresser",
+        phoneDresser = addObjectAtPixel(APARTMENT, "Phone Dresser", "/objects/home/dresser",
                 TILE_SIZE * 24f - TILE_SIZE / 8f, TILE_SIZE * 7f, 1.35f, 1.2f, true, false)
                 .setSolidArea(TILE_SIZE / 12f, TILE_SIZE / 8f, TILE_SIZE * 6f / 5f, TILE_SIZE);
 
-        addObjectAtPixel(APARTMENT, "Dirty Dishes", "/objects/home/decor/dirty_dishes",
+        dirtyDishes = addObjectAtPixel(APARTMENT, "Dirty Dishes", "/objects/home/decor/dirty_dishes",
                 TILE_SIZE * 20f + TILE_SIZE / 4f, TILE_SIZE * 16f + TILE_SIZE / 12f,
                 0.7f, 0.42f, false, false)
                 .setSolidArea(0f, 0f, TILE_SIZE * 7f / 10f, TILE_SIZE * 4f / 3f)
@@ -199,7 +256,7 @@ final class GdxScene implements Disposable {
 
         float tvWidth = drawSize(2.45f);
         float sofaCenterX = TILE_SIZE * 32f + drawSize(2.8f) / 2f;
-        addObjectAtPixel(APARTMENT, "TV", "/objects/home/tv_plasma_off",
+        tv = addObjectAtPixel(APARTMENT, "TV", "/objects/home/tv_plasma_off",
                 sofaCenterX - tvWidth / 2f, TILE_SIZE * 8f, 2.45f, 1.35f, true, false)
                 .setSolidArea(TILE_SIZE / 8f, TILE_SIZE / 8f,
                         tvWidth - TILE_SIZE / 4f, drawSize(1.35f) - TILE_SIZE / 4f);
@@ -305,7 +362,7 @@ final class GdxScene implements Disposable {
                 .setRenderSortY(TILE_SIZE * 35f - 1f);
         addObject(FOREST_DOUBTS, "Wounded Bird", "/objects/story/wounded_bird", 28, 28, 0.75f, 0.55f, false, false)
                 .setRenderSortY(TILE_SIZE * 28f - 1f);
-        addObject(FOREST_DOUBTS, "Lantern", "/objects/lantern", 23, 41, 1.7f, 1.7f, false, false)
+        lantern = addObject(FOREST_DOUBTS, "Lantern", "/objects/lantern", 23, 41, 1.7f, 1.7f, false, false)
                 .setSolidArea(TILE_SIZE / 2f, TILE_SIZE / 4f, TILE_SIZE * 3f / 4f, TILE_SIZE * 5f / 4f)
                 .setRenderSortY(TILE_SIZE * 41f - 1f);
     }
@@ -326,6 +383,7 @@ final class GdxScene implements Disposable {
         villageHouse("village_house_south_west", "building_050_x13_y941_86x80", 4.0f, 3.75f, 12, 36);
         villageHouse("village_house_south_center", "building_014_x13_y464_86x80", 4.0f, 3.75f, 25, 36);
         villageHouse("village_house_south_east", "building_022_x13_y568_86x80", 4.0f, 3.75f, 38, 36);
+        placeVillageLibraryDoorTrigger();
     }
 
     private void placeMountainObjects() {
@@ -451,6 +509,24 @@ final class GdxScene implements Disposable {
                 col, row, finalWidthTiles, finalHeightTiles, true, false);
         house.setSolidArea(0f, 0f, drawSize(finalWidthTiles), drawSize(finalHeightTiles));
         return house;
+    }
+
+    private void placeVillageLibraryDoorTrigger() {
+        float widthTiles = 1.35f;
+        float heightTiles = 2.8f;
+        float doorWidth = drawSize(widthTiles);
+        float doorHeight = drawSize(heightTiles);
+        float houseX = TILE_SIZE * 25f;
+        float houseY = TILE_SIZE * 3f;
+        float houseWidth = drawSize(4.0f * VILLAGE_HOUSE_SCALE);
+        float houseHeight = drawSize(3.75f * VILLAGE_HOUSE_SCALE);
+        float doorX = houseX + houseWidth / 2f - doorWidth / 2f;
+        float doorY = houseY + houseHeight - TILE_SIZE / 2f;
+
+        addObjectAtPixel(VILLAGE, "Village Library Door", "/objects/home/door",
+                doorX, doorY, widthTiles, heightTiles, false, false)
+                .setSolidArea(0f, 0f, doorWidth, doorHeight)
+                .setVisible(false);
     }
 
     private void libraryShelf(String name, int col, int row) {

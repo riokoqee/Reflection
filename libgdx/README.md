@@ -12,6 +12,8 @@ The current prototype renders the real project maps and the first gameplay scene
 
 - `WASD` or arrow keys: move
 - `Shift`: sprint
+- `E` or `Enter`: interact / advance dialogue
+- `Space`: advance dialogue
 - `1`: apartment
 - `2`: Forest of Doubts
 - `3`: village
@@ -26,6 +28,9 @@ Implemented in the LibGDX backend so far:
 - static objects, trees, decorations, houses, and NPC sprites
 - depth sorting between player, objects, and NPCs
 - tile, object, tree, house, and NPC collision
+- interaction prompts and a basic dialogue overlay
+- simple object states for TV, dresser, dirty dishes, and lantern pickup
+- prototype location transitions through apartment door, forest shadow, village library door, and library exit
 
 ## Build
 

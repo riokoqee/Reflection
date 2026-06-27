@@ -9,7 +9,7 @@ final class GdxSceneActor {
     private static final int TILE_SIZE = 48;
 
     final String name;
-    final Texture texture;
+    Texture texture;
     final float x;
     final float y;
     final float width;
@@ -19,6 +19,7 @@ final class GdxSceneActor {
     final boolean npc;
     final Rectangle solidArea = new Rectangle();
     boolean visible = true;
+    boolean interactable = true;
     boolean showName;
     String label;
     float labelCenterX;
@@ -69,6 +70,16 @@ final class GdxSceneActor {
 
     GdxSceneActor setVisible(boolean visible) {
         this.visible = visible;
+        return this;
+    }
+
+    GdxSceneActor setInteractable(boolean interactable) {
+        this.interactable = interactable;
+        return this;
+    }
+
+    GdxSceneActor setTexture(Texture texture) {
+        this.texture = texture;
         return this;
     }
 
