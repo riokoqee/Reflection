@@ -171,10 +171,6 @@ The project is in a working state. The repository contains the source code, reso
 
 Developer: **riokoqee**
 
-## 📄 License
-
-Not specified in the repository. Check with the author before use or distribution.
-
 ---
 
 # 🪞 Reflection (Русский)
@@ -351,7 +347,3 @@ java -cp "out:res" main.Main
 ## 👤 Автор
 
 Разработчик: **riokoqee**
-
-## 📄 Лицензия
-
-Лицензия в репозитории не указана. Перед использованием или распространением проекта необходимо уточнить права у автора.
